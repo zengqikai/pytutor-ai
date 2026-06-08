@@ -93,12 +93,15 @@ async def execute_python_code(code: str) -> dict:
 
         start_time = time.perf_counter()
 
-        # 在子进程中执行
+        # 在子进程中执行（设置 PYTHONIOENCODING=utf-8 防止中文乱码）
+        import os as _os
+        env = {**_os.environ, "PYTHONIOENCODING": "utf-8"}
         process = await asyncio.create_subprocess_exec(
             "python",
             str(tmp_path),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
 
         try:
@@ -117,9 +120,13 @@ async def execute_python_code(code: str) -> dict:
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
 
-        # 限制输出大小
-        stdout = stdout_bytes.decode("utf-8", errors="replace")[:MAX_OUTPUT_SIZE]
-        stderr = stderr_bytes.decode("utf-8", errors="replace")[:MAX_OUTPUT_SIZE]
+        # 限制输出大小，统一换行符，清理临时文件路径中的用户名
+        import re
+        stdout = stdout_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")[:MAX_OUTPUT_SIZE]
+        stderr = stderr_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")
+        # 匿名化 temp 路径中的用户名（如 C:\Users\张三\... → C:\Users\<user>\...）
+        stderr = re.sub(r'File ".*?\\Temp\\[^"]+", line', 'File "<code>", line', stderr)
+        stderr = stderr[:MAX_OUTPUT_SIZE]
 
         if timeout_triggered:
             status = "timeout"

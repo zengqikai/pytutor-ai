@@ -104,7 +104,6 @@ function CodeBlock({ language, code, onRunInEditor }: { language: string; code: 
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
     <div className="my-3 rounded-xl overflow-hidden border border-white/[0.06]">
       <div className="flex items-center justify-between px-4 py-2 bg-slate-900 text-slate-400 text-xs gap-2">
@@ -113,7 +112,7 @@ function CodeBlock({ language, code, onRunInEditor }: { language: string; code: 
           {onRunInEditor && (
             <button onClick={() => onRunInEditor(code)}
               className="flex items-center gap-1 px-2 py-1 rounded hover:bg-emerald-500/10 transition-colors text-emerald-400 hover:text-emerald-300 text-xs">
-              ▶ 在编辑器中运行
+              ▶ 运行
             </button>
           )}
           <button onClick={handleCopy}

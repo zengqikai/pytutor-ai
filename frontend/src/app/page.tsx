@@ -93,16 +93,18 @@ export default function ChatPage() {
   };
 
   // ---- Code execution ----
-  const runCode = async () => {
+  const runCode = async (codeStr?: string) => {
     if (!isAuthenticated) { setCodeResult({ stderr: "请先登录后再运行代码" }); return; }
+    const codeToRun = codeStr || code;
+    if (codeStr) { setCode(codeStr); setEditorKey(k => k + 1); }
     set运行ningCode(true); setCodeResult(null);
     try {
-      const res = await codeAPI.submit(code);
+      const res = await codeAPI.submit(codeToRun);
       const result = { ...(res.result || res) };
       setCodeResult(result); set运行ningCode(false);
       if (result.stderr && result.status !== "completed") {
         setAnalyzing(true);
-        try { const analysis = await codeAPI.analyze(code, result.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
+        try { const analysis = await codeAPI.analyze(codeToRun, result.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
         setAnalyzing(false);
       }
     } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); set运行ningCode(false); }
@@ -185,7 +187,7 @@ export default function ChatPage() {
             <div className="max-w-3xl mx-auto space-y-5">
               {messages.map((msg, i) => (
                 <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} userAvatar={user?.display_name?.[0]}
-                  onRunInEditor={(codeStr) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }} />
+                  onRunInEditor={(codeStr) => { setShowCode(true); runCode(codeStr); }} />
               ))}
               {sending && (
                 <div className="flex gap-3 animate-fade-in">
@@ -255,6 +257,16 @@ export default function ChatPage() {
             <span className="text-sm font-medium text-slate-300">Python 编辑器</span>
             <div className="flex items-center gap-2">
               <button onClick={() => { setCode("print('Hello, Python!')\n"); setCodeResult(null); }} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors">清空</button>
+              <button onClick={() => {
+                  const blob = new Blob([code], { type: "text/x-python" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url; a.download = `pytutor_${Date.now()}.py`;
+                  a.click(); URL.revokeObjectURL(url);
+                }}
+                className="text-xs text-sky-400 hover:text-sky-300 px-2 py-1 rounded transition-colors">
+                ⬇ 下载 .py
+              </button>
               <button onClick={runCode} disabled={runningCode}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors">
                 {runningCode ? "..." : "▶"} 运行
