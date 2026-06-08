@@ -28,6 +28,7 @@ export default function ChatPage() {
   const [codeResult, setCodeResult] = useState<any>(null);
   const [runningCode, set运行ningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuSession, setMenuSession] = useState<string | null>(null);
@@ -182,7 +183,8 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto space-y-5">
               {messages.map((msg, i) => (
-                <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} userAvatar={user?.display_name?.[0]} />
+                <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} userAvatar={user?.display_name?.[0]}
+                  onRunInEditor={(codeStr) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }} />
               ))}
               {sending && (
                 <div className="flex gap-3 animate-fade-in">
@@ -201,10 +203,11 @@ export default function ChatPage() {
 
         {/* 输入区 */}
         <div className="border-t border-white/[0.06] glass p-4">
-          <div className="max-w-3xl mx-auto flex gap-3 items-end">
+          <div className="max-w-3xl mx-auto flex gap-3 items-stretch">
             <button onClick={() => setShowCode(!showCode)}
-              className={`p-2.5 rounded-xl border transition-all flex-shrink-0 ${showCode ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "border-white/[0.08] text-slate-500 hover:text-indigo-400 hover:border-indigo-500/30"}`}>
-              <CodeIcon />
+              className={`flex items-center gap-1.5 px-4 rounded-xl border transition-all flex-shrink-0 text-sm font-medium
+                ${showCode ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "border-white/[0.08] text-slate-400 hover:text-indigo-400 hover:border-indigo-500/30"}`}>
+              <CodeIcon /> 编辑器
             </button>
             <div className="flex-1 relative">
               <textarea value={input} onChange={(e) => setInput(e.target.value)}
@@ -216,7 +219,7 @@ export default function ChatPage() {
                 onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }} />
             </div>
             <button onClick={sendMessage} disabled={sending || !input.trim()}
-              className="glow-hover px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 transition-all flex-shrink-0">
+              className="glow-hover flex items-center px-6 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 transition-all flex-shrink-0">
               发送
             </button>
           </div>
@@ -238,7 +241,7 @@ export default function ChatPage() {
           </div>
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 min-h-0">
-              <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={code} onChange={(v) => setCode(v || "")}
+              <Editor key={editorKey} height="100%" defaultLanguage="python" theme="vs-dark" value={code} onChange={(v) => setCode(v || "")}
                 options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false }, scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 12 }, automaticLayout: true }} />
             </div>
             <div className="flex-1 flex flex-col border-t-2 border-white/[0.06] bg-[#060610] min-h-0 overflow-y-auto">

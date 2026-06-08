@@ -27,9 +27,10 @@ interface Props {
   hint_level?: number;
   related_concepts?: string[];
   userAvatar?: string;
+  onRunInEditor?: (code: string) => void;
 }
 
-export function ChatMessage({ role, content, hint_level, related_concepts, userAvatar }: Props) {
+export function ChatMessage({ role, content, hint_level, related_concepts, userAvatar, onRunInEditor }: Props) {
   const isUser = role === "user";
   const displayContent = isUser ? content : normalizeContent(content);
 
@@ -64,7 +65,7 @@ export function ChatMessage({ role, content, hint_level, related_concepts, userA
                     const match = /language-(\w+)/.exec(className || "");
                     const codeString = String(children).replace(/\n$/, "");
                     if (!match) return <code className="bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>;
-                    return <CodeBlock language={match[1]} code={codeString} />;
+                    return <CodeBlock language={match[1]} code={codeString} onRunInEditor={onRunInEditor} />;
                   },
                   pre({ children }) { return <>{children}</>; },
                   h1({ children }) { return <h1 className="text-lg font-bold text-white mt-4 mb-2 first:mt-0">{children}</h1>; },
@@ -96,7 +97,7 @@ export function ChatMessage({ role, content, hint_level, related_concepts, userA
   );
 }
 
-function CodeBlock({ language, code }: { language: string; code: string }) {
+function CodeBlock({ language, code, onRunInEditor }: { language: string; code: string; onRunInEditor?: (code: string) => void }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
@@ -106,12 +107,20 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 
   return (
     <div className="my-3 rounded-xl overflow-hidden border border-white/[0.06]">
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-900 text-slate-400 text-xs">
-        <span>{language || "code"}</span>
-        <button onClick={handleCopy}
-          className="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/[0.06] transition-colors text-slate-500 hover:text-slate-300">
-          {copied ? "Copied" : "Copy"}
-        </button>
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-900 text-slate-400 text-xs gap-2">
+        <span className="flex-shrink-0">{language || "code"}</span>
+        <div className="flex items-center gap-1">
+          {onRunInEditor && (
+            <button onClick={() => onRunInEditor(code)}
+              className="flex items-center gap-1 px-2 py-1 rounded hover:bg-emerald-500/10 transition-colors text-emerald-400 hover:text-emerald-300 text-xs">
+              ▶ 在编辑器中运行
+            </button>
+          )}
+          <button onClick={handleCopy}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/[0.06] transition-colors text-slate-500 hover:text-slate-300">
+            {copied ? "已复制" : "复制"}
+          </button>
+        </div>
       </div>
       <SyntaxHighlighter language={language || "python"} style={oneDark}
         customStyle={{ margin: 0, padding: "14px 18px", fontSize: "13px", borderRadius: 0, background: "#0f172a" }}>

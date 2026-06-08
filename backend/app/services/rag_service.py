@@ -188,12 +188,8 @@ async def retrieve_context(
             retrieval_time_ms=0,
         )
 
-    # 步骤 2：LLM 重排序
-    reranked = await rerank_with_llm(
-        query=request.query,
-        candidates=candidates,
-        top_n=request.top_k,
-    )
+    # 步骤 2：简化为直接取 Top-K（跳过 LLM 重排序以加速）
+    reranked = candidates[:request.top_k]
 
     # 步骤 3：更新检索统计
     chunk_ids = [r["chunk_id"] for r in reranked]
