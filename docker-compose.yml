@@ -1,0 +1,106 @@
+# =============================================================================
+# AI Python Tutor - Docker Compose 配置
+# =============================================================================
+# 一键启动整个开发环境：
+#   docker-compose up -d          # 后台启动
+#   docker-compose logs -f        # 查看日志
+#   docker-compose down           # 停止并清理
+#   docker-compose down -v        # 停止并删除数据卷（数据库也会删除）
+#
+# 服务说明：
+# - backend:   FastAPI 后端服务
+# - postgres:  PostgreSQL 数据库（生产环境，开发继续用 SQLite）
+# - redis:     Redis 缓存（预留，MVP 阶段可选）
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ==============================
+  # FastAPI 后端
+  # ==============================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-tutor-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # 覆盖 .env 中的数据库连接（指向 docker-compose 中的 postgres 服务）
+      # 如果继续使用 SQLite，注释掉下面这行即可
+      # DATABASE_URL: postgresql+asyncpg://tutor:tutor_pass@postgres:5432/ai_tutor
+    volumes:
+      # 开发模式：挂载代码目录，修改代码后自动热重载（需 uvicorn --reload）
+      - ./backend:/app
+      # 排除虚拟环境（避免本地 .venv 覆盖容器中的依赖）
+      - /app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # redis:
+      #   condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ai-tutor-network
+
+  # ==============================
+  # PostgreSQL 数据库
+  # ==============================
+  postgres:
+    image: pgvector/pgvector:pg17  # 含 pgvector 扩展（向量检索需要）
+    container_name: ai-tutor-postgres
+    environment:
+      POSTGRES_USER: tutor
+      POSTGRES_PASSWORD: tutor_pass
+      POSTGRES_DB: ai_tutor
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tutor -d ai_tutor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - ai-tutor-network
+
+  # ==============================
+  # Redis 缓存（预留）
+  # ==============================
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: ai-tutor-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
+  #   restart: unless-stopped
+  #   networks:
+  #     - ai-tutor-network
+
+# ==============================
+# 数据卷
+# ==============================
+volumes:
+  postgres_data:
+    driver: local
+  # redis_data:
+  #   driver: local
+
+# ==============================
+# 网络
+# ==============================
+networks:
+  ai-tutor-network:
+    driver: bridge
