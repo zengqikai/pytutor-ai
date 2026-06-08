@@ -199,6 +199,13 @@ async def send_message(
     if session.student_id != user.id:
         raise HTTPException(status_code=403, detail="无权操作此会话")
 
+    # 步骤 1.5：检查是否首条消息（必须在 add 之前，否则 auto-flush 会提前写入）
+    from sqlalchemy import func as sa_func, select as sa_select
+    count_result = await db.execute(
+        sa_select(sa_func.count()).select_from(ChatMessage).where(ChatMessage.session_id == session_id)
+    )
+    is_first_message = (count_result.scalar() or 0) == 0
+
     # 步骤 2：保存用户消息
     user_msg = ChatMessage(
         session_id=session_id,
@@ -268,13 +275,7 @@ async def send_message(
     db.add(assistant_msg)
 
     # 步骤 6：首条消息时自动更新标题
-    # 用 count 查询而非 len(session.messages)，避免异步 lazy-load 问题
-    from sqlalchemy import func, select as sa_select
-    count_result = await db.execute(
-        sa_select(func.count()).select_from(ChatMessage).where(ChatMessage.session_id == session_id)
-    )
-    msg_count = count_result.scalar() or 0
-    if msg_count <= 1:  # 只有当前这一条用户消息（刚 add 还没 commit）
+    if is_first_message:
         session.title = request.content[:40] + ("..." if len(request.content) > 40 else "")
 
     await db.commit()
