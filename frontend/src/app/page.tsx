@@ -22,11 +22,11 @@ export default function ChatPage() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sending, set发送ing] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("print('Hello, Python!')\n");
   const [codeResult, setCodeResult] = useState<any>(null);
-  const [runningCode, setRunningCode] = useState(false);
+  const [runningCode, set运行ningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -75,11 +75,11 @@ export default function ChatPage() {
     const aPin = pinnedSessions.has(a.id) ? 1 : 0; const bPin = pinnedSessions.has(b.id) ? 1 : 0; return bPin - aPin;
   });
 
-  // ---- Send message ----
+  // ---- 发送 message ----
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
     const content = input; const userMsg: Message = { role: "user", content };
-    setMessages((p) => [...p, userMsg]); setInput(""); setSending(true);
+    setMessages((p) => [...p, userMsg]); setInput(""); set发送ing(true);
     try {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content);
@@ -87,23 +87,23 @@ export default function ChatPage() {
       setMessages((p) => [...p, { role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts }]);
       loadSessions();
     } catch (e: any) { setMessages((p) => [...p, { role: "assistant", content: `Error: ${e.message}` }]); }
-    finally { setSending(false); }
+    finally { set发送ing(false); }
   };
 
   // ---- Code execution ----
   const runCode = async () => {
     if (!isAuthenticated) { setCodeResult({ stderr: "请先登录后再运行代码" }); return; }
-    setRunningCode(true); setCodeResult(null);
+    set运行ningCode(true); setCodeResult(null);
     try {
       const res = await codeAPI.submit(code);
       const result = { ...(res.result || res) };
-      setCodeResult(result); setRunningCode(false);
+      setCodeResult(result); set运行ningCode(false);
       if (result.stderr && result.status !== "completed") {
         setAnalyzing(true);
         try { const analysis = await codeAPI.analyze(code, result.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
         setAnalyzing(false);
       }
-    } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
+    } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); set运行ningCode(false); }
   };
 
   if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
@@ -154,8 +154,8 @@ export default function ChatPage() {
         </div>
         <div className="p-4 border-t border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold">{user?.display_name?.[0] || "U"}</div>
-            <div className="flex-1 min-w-0"><p className="text-sm font-medium text-slate-300 truncate">{user?.display_name}</p><p className="text-xs text-slate-500">Python Learner</p></div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold">{user?.display_name?.[0] || "..."}</div>
+            <div className="flex-1 min-w-0"><p className="text-sm font-medium text-slate-300 truncate">{user?.display_name}</p><p className="text-xs text-slate-500">{user?.role === "admin" ? "管理员" : user?.role === "instructor" ? "教师" : "学员"}</p></div>
           </div>
         </div>
       </aside>
@@ -168,8 +168,8 @@ export default function ChatPage() {
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-white/[0.06] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/10">
                 <span className="text-3xl">🐍</span>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome to PyTutor</h2>
-              <p className="text-slate-400 mb-8 max-w-md">Your AI Python programming mentor.<br/>Ask anything about Python, or try debugging your code.</p>
+              <h2 className="text-2xl font-bold text-white mb-2">欢迎来到 PyTutor</h2>
+              <p className="text-slate-400 mb-8 max-w-md">你的 AI Python 编程导师。<br/>无论是学习概念还是调试代码，随时问我！</p>
               <div className="flex gap-3 justify-center flex-wrap">
                 {["什么是 Python 列表？", "for 循环怎么用？", "帮我写一个函数", "解释什么是变量"].map((q) => (
                   <button key={q} onClick={() => setInput(q)}
@@ -209,7 +209,7 @@ export default function ChatPage() {
             <div className="flex-1 relative">
               <textarea value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder="Ask your Python question... (Enter to send)"
+                placeholder="输入你的 Python 问题... (Enter 发送)"
                 rows={1}
                 className="neon w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 resize-none outline-none transition-all"
                 style={{ minHeight: "44px", maxHeight: "120px" }}
@@ -217,7 +217,7 @@ export default function ChatPage() {
             </div>
             <button onClick={sendMessage} disabled={sending || !input.trim()}
               className="glow-hover px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 transition-all flex-shrink-0">
-              Send
+              发送
             </button>
           </div>
         </div>
@@ -227,12 +227,12 @@ export default function ChatPage() {
       {showCode && (
         <aside className="w-[420px] border-l border-white/[0.06] bg-[#0a0a14] flex flex-col animate-slide-in flex-shrink-0">
           <div className="shrink-0 px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-300">Python Editor</span>
+            <span className="text-sm font-medium text-slate-300">Python 编辑器</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => { setCode("print('Hello, Python!')\n"); setCodeResult(null); }} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors">Clear</button>
+              <button onClick={() => { setCode("print('Hello, Python!')\n"); setCodeResult(null); }} className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded transition-colors">清空</button>
               <button onClick={runCode} disabled={runningCode}
                 className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors">
-                {runningCode ? "..." : "▶"} Run
+                {runningCode ? "..." : "▶"} 运行
               </button>
             </div>
           </div>
@@ -243,22 +243,22 @@ export default function ChatPage() {
             </div>
             <div className="flex-1 flex flex-col border-t-2 border-white/[0.06] bg-[#060610] min-h-0 overflow-y-auto">
               <div className="shrink-0 px-5 py-2 border-b border-white/[0.04] flex items-center justify-between">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Output</p>
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">运行结果</p>
                 {codeResult && <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${codeResult.status === "completed" ? "bg-emerald-500/10 text-emerald-400" : codeResult.status === "blocked" ? "bg-amber-500/10 text-amber-400" : "bg-rose-500/10 text-rose-400"}`}>{codeResult.status}</span>}
               </div>
               <div className="flex-1 p-5 overflow-y-auto space-y-4">
                 {runningCode ? (
-                  <div className="flex items-center gap-2 text-slate-400 text-sm"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> Executing...</div>
+                  <div className="flex items-center gap-2 text-slate-400 text-sm"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> 执行中...</div>
                 ) : codeResult ? (
                   <>
-                    <OutputBlock label="stdout" color="emerald" content={codeResult.stdout || "(no output)"} />
-                    <OutputBlock label="stderr" color="rose" content={codeResult.stderr || "(no errors)"} />
+                    <运行结果Block label="stdout" color="emerald" content={codeResult.stdout || "(no output)"} />
+                    <运行结果Block label="stderr" color="rose" content={codeResult.stderr || "(no errors)"} />
                     <div>
-                      <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">AI Analysis</p>
+                      <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">AI 错误分析</p>
                       {analyzing ? (
                         <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/10 rounded-lg p-4">
                           <svg className="animate-spin w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
-                          <span className="text-sm text-amber-300/60">Analyzing error...</span>
+                          <span className="text-sm text-amber-300/60">AI 正在分析错误原因...</span>
                         </div>
                       ) : codeResult.error_analysis ? (
                         <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-4">
@@ -267,12 +267,12 @@ export default function ChatPage() {
                             <div className="flex gap-1.5 mt-3 flex-wrap">{codeResult.error_analysis.concepts.map((c: string) => <span key={c} className="text-[10px] bg-amber-500/10 text-amber-300 px-2.5 py-1 rounded-full">{c}</span>)}</div>
                           )}
                         </div>
-                      ) : codeResult.stderr ? <div className="text-sm text-slate-500 bg-white/[0.02] rounded-lg p-4 italic">No analysis</div> : <div className="text-sm text-slate-500 bg-white/[0.02] rounded-lg p-4 italic">Code ran successfully</div>}
+                      ) : codeResult.stderr ? <div className="text-sm text-slate-500 bg-white/[0.02] rounded-lg p-4 italic">无错误分析</div> : <div className="text-sm text-slate-500 bg-white/[0.02] rounded-lg p-4 italic">代码正常，无需分析</div>}
                     </div>
                     {codeResult.runtime_ms && <p className="text-[10px] text-slate-600 text-right">{codeResult.runtime_ms}ms</p>}
                   </>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">Write code above</p><p className="text-xs text-slate-700 mt-1">Click <span className="text-emerald-500">Run</span> to execute</p></div></div>
+                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">在上方编写代码</p><p className="text-xs text-slate-700 mt-1">Click <span className="text-emerald-500">运行</span> to execute</p></div></div>
                 )}
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function ChatPage() {
   );
 }
 
-function OutputBlock({ label, color, content }: { label: string; color: string; content: string }) {
+function 运行结果Block({ label, color, content }: { label: string; color: string; content: string }) {
   const colors: any = { emerald: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5", rose: "text-rose-400 border-rose-500/10 bg-rose-500/5" };
   return (
     <div>

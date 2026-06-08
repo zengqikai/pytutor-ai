@@ -39,7 +39,7 @@ export function ChatMessage({ role, content, hint_level, related_concepts, userA
         ${isUser
           ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white"
           : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"}`}>
-        {isUser ? (userAvatar || "U") : "AI"}
+        {isUser ? (userAvatar || "...") : "AI"}
       </div>
 
       <div className={`max-w-[78%] ${isUser ? "items-end" : "items-start"}`}>
