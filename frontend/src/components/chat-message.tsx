@@ -43,7 +43,7 @@ export function ChatMessage({ role, content, hint_level, related_concepts, userA
         ${isUser
           ? "bg-gradient-to-br from-indigo-500 to-violet-600 text-white"
           : "bg-gradient-to-br from-emerald-400 to-teal-500 text-white"}`}>
-        {isUser ? (userAvatar || "U") : "AI"}
+        {isUser ? (userAvatar || "我") : "AI"}
       </div>
 
       {/* 消息体 */}

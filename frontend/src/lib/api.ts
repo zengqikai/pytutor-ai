@@ -130,6 +130,12 @@ export const codeAPI = {
       method: "POST",
       body: JSON.stringify({ code, exercise_id: exerciseId }),
     }),
+
+  analyze: (code: string, stderr: string) =>
+    request<{ explanation: string; concepts: string[] }>("/code/analyze", {
+      method: "POST",
+      body: JSON.stringify({ code, stderr }),
+    }),
 };
 
 // ---- Exercise API ----

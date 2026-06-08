@@ -58,6 +58,45 @@ async def submit_code(
     return await submit_and_execute(db, current_user, request)
 
 
+@router.post("/analyze")
+async def analyze_error(
+    body: dict,
+    current_user: User = Depends(get_current_user),
+):
+    """独立错误分析接口——不影响代码执行速度。"""
+    code = body.get("code", "")
+    stderr = body.get("stderr", "")
+
+    if not stderr.strip():
+        return {"explanation": "", "concepts": []}
+
+    from app.schemas.ai import ChatMessage as LLMMessage
+    from app.services.llm_service import chat_completion
+
+    prompt = (
+        f"学生写了以下 Python 代码：\n```python\n{code[:500]}\n```\n\n"
+        f"执行后报错：\n{stderr[:300]}\n\n"
+        f"请用 2-3 句话用中文简要解释：1) 错误原因 2) 如何修复。"
+        f"同时在回复末尾用一行 <!-- concepts:xxx,yyy --> 标注涉及的知识点。"
+    )
+
+    try:
+        llm_resp = await chat_completion(
+            messages=[LLMMessage(role="user", content=prompt)],
+            temperature=0.3, max_tokens=300,
+        )
+        raw = llm_resp.content.strip()
+        concepts = []
+        import re
+        meta = re.search(r'<!--\s*concepts:(.+?)\s*-->', raw)
+        if meta:
+            concepts = [c.strip() for c in meta.group(1).split(",") if c.strip()]
+            raw = raw[:meta.start()].strip()
+        return {"explanation": raw, "concepts": concepts}
+    except Exception as e:
+        return {"explanation": f"分析失败: {str(e)[:100]}", "concepts": []}
+
+
 @router.get("/submissions/{submission_id}")
 async def get_submission(
     submission_id: str,

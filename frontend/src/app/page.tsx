@@ -143,11 +143,19 @@ export default function ChatPage() {
     setCodeResult(null);
     try {
       const res = await codeAPI.submit(code);
-      // 合并 result 和顶层的 error_analysis
-      setCodeResult({ ...(res.result || res), error_analysis: res.error_analysis });
+      const result = { ...(res.result || res) };
+      setCodeResult(result);
+      setRunningCode(false);
+
+      // 有错误时异步获取 AI 分析（不阻塞结果显示）
+      if (result.stderr && result.status !== "completed") {
+        try {
+          const analysis = await codeAPI.analyze(code, result.stderr);
+          setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis }));
+        } catch {}
+      }
     } catch (e: any) {
       setCodeResult({ stderr: `运行失败: ${e.message}` });
-    } finally {
       setRunningCode(false);
     }
   };
@@ -313,42 +321,41 @@ export default function ChatPage() {
       {showCode && (
         <aside className="w-[420px] border-l border-slate-200 bg-slate-900 flex flex-col animate-slide-in">
           {/* 顶部工具栏 */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700">
-            <span className="text-sm font-medium text-slate-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Python 编辑器
-            </span>
-            <div className="flex gap-2">
+          <div className="shrink-0 px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-200">Python 编辑器</span>
+            <div className="flex items-center gap-2">
               <button onClick={() => { setCode("print('Hello, Python!')\n"); setCodeResult(null); }}
                 className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded transition-colors">清空</button>
               <button onClick={runCode} disabled={runningCode}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
-                {runningCode ? "⏳ 运行中..." : "▶ 运行"}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                {runningCode ? "⏳" : "▶"} 运行
               </button>
             </div>
           </div>
 
-          {/* 编辑器 */}
-          <div className="h-[45%] border-b border-slate-700">
-            <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={code}
-              onChange={(v) => setCode(v || "")}
-              options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false },
-                scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 8 }, automaticLayout: true }} />
-          </div>
-
-          {/* 运行结果 —— 永远显示 */}
-          <div className="flex-1 flex flex-col bg-slate-950 overflow-y-auto">
-            <div className="px-4 py-2 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">运行结果</p>
-              {codeResult && (
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full
-                  ${codeResult.status === "completed" ? "bg-emerald-900/50 text-emerald-400" :
-                    codeResult.status === "blocked" ? "bg-amber-900/50 text-amber-400" :
-                    "bg-rose-900/50 text-rose-400"}`}>
-                  {codeResult.status}
-                </span>
-              )}
+          {/* 编辑器 + 结果：各占一半 */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 min-h-0">
+              <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={code}
+                onChange={(v) => setCode(v || "")}
+                options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false },
+                  scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 12 }, automaticLayout: true }} />
             </div>
-            <div className="flex-1 p-4">
+
+            {/* 结果区 */}
+            <div className="flex-1 flex flex-col border-t-2 border-slate-700 bg-slate-950 min-h-0 overflow-y-auto">
+              <div className="shrink-0 px-5 py-2 border-b border-slate-800 flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">运行结果</p>
+                {codeResult && (
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full
+                    ${codeResult.status === "completed" ? "bg-emerald-900/50 text-emerald-400" :
+                      codeResult.status === "blocked" ? "bg-amber-900/50 text-amber-400" :
+                      "bg-rose-900/50 text-rose-400"}`}>
+                    {codeResult.status}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 p-5 overflow-y-auto">
               {runningCode ? (
                 <div className="flex items-center gap-2 text-slate-500">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse-dot" />
@@ -399,6 +406,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </aside>

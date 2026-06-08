@@ -25,7 +25,7 @@ export function NavUser() {
       <button onClick={() => setShowMenu(!showMenu)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white text-xs font-bold">
-          {user.display_name?.[0] || "U"}
+          {user.display_name?.[0] || "我"}
         </div>
         <span className="text-sm font-medium text-slate-700">{user.display_name}</span>
       </button>
