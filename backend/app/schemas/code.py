@@ -35,9 +35,15 @@ class ExecutionResultResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ErrorAnalysis(BaseModel):
+    """错误分析。"""
+    explanation: str = ""
+    concepts: list[str] = []
+
 class CodeSubmitResponse(BaseModel):
     """代码提交响应。"""
     submission_id: str
     status: str
     result: ExecutionResultResponse | None = None
     message: str = ""
+    error_analysis: ErrorAnalysis | None = None

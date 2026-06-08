@@ -143,7 +143,8 @@ export default function ChatPage() {
     setCodeResult(null);
     try {
       const res = await codeAPI.submit(code);
-      setCodeResult(res.result || res);
+      // 合并 result 和顶层的 error_analysis
+      setCodeResult({ ...(res.result || res), error_analysis: res.error_analysis });
     } catch (e: any) {
       setCodeResult({ stderr: `运行失败: ${e.message}` });
     } finally {
@@ -355,6 +356,24 @@ export default function ChatPage() {
                 </div>
               ) : codeResult ? (
                 <div className="space-y-3">
+                  {/* 错误分析（AI 自然语言解释） */}
+                  {codeResult.error_analysis && (
+                    <div className="bg-amber-950/20 border border-amber-500/20 rounded-lg p-3">
+                      <p className="text-[10px] font-medium text-amber-400/80 uppercase tracking-wider mb-1.5">
+                        AI 错误分析
+                      </p>
+                      <p className="text-amber-200/90 text-sm leading-relaxed">
+                        {codeResult.error_analysis.explanation}
+                      </p>
+                      {codeResult.error_analysis.concepts?.length > 0 && (
+                        <div className="flex gap-1.5 mt-2 flex-wrap">
+                          {codeResult.error_analysis.concepts.map((c: string) => (
+                            <span key={c} className="text-[10px] bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full">{c}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {codeResult.stdout ? (
                     <div>
                       <p className="text-[10px] font-medium text-emerald-500/70 uppercase tracking-wider mb-1">标准输出 stdout</p>
