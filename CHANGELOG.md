@@ -271,6 +271,35 @@
 
 ---
 
+## Phase 4: 管理后台 + 评测 + Prompt 管理
+
+### Step 17 - 管理员后台
+**日期**: 2026-06-08
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/api/v1/admin.py` | 管理员 API：stats/users/logs/exercises 增删改查 |
+| 新增 | `frontend/src/app/admin/page.tsx` | 管理后台页面：概览/用户管理/题库管理/日志查看 |
+| 修改 | `backend/app/api/router.py` | 注册 admin 路由 |
+
+### Step 18 - Prompt 模板版本管理
+**日期**: 2026-06-08
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/models/prompt.py` | PromptTemplate 模型：版本化/可审计/可回滚 |
+| 修改 | `backend/alembic/env.py` | 导入 PromptTemplate |
+
+### Step 19 - AI 评测体系
+**日期**: 2026-06-08
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `evaluation/golden_dataset.json` | Golden Dataset：8 个标准测试用例 |
+| 新增 | `evaluation/run_eval.py` | 评测脚本：意图/知识点/内容/格式四维评分 |
+
+---
+
 ## 当前项目统计
 
 ```
