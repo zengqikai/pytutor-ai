@@ -8,39 +8,54 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PyTutor - AI 编程导师",
-  description: "个性化 Python 编程学习 AI 智能导师",
+  title: "PyTutor — AI Python 编程导师",
+  description: "个性化 AI Python 编程学习平台",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
-      <body className="h-full flex flex-col bg-slate-50">
-        <header className="h-14 bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
-          <div className="h-full max-w-[1600px] mx-auto px-6 flex items-center gap-1">
-            <Link href="/" className="flex items-center gap-2.5 mr-6">
-              <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm">Py</span>
-              <span className="font-bold text-slate-800 text-base tracking-tight">PyTutor</span>
+      <body className="h-full flex flex-col bg-[#06060f]">
+        {/* 背景光晕 */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-500/8 blur-[120px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-violet-500/6 blur-[100px]" />
+        </div>
+
+        {/* Glass Navbar */}
+        <header className="sticky top-0 z-50 glass-strong border-b border-white/[0.06]">
+          <div className="max-w-[1600px] mx-auto px-6 h-14 flex items-center gap-1">
+            <Link href="/" className="flex items-center gap-2.5 mr-8 group">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
+                Py
+              </div>
+              <span className="font-bold text-base tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                PyTutor
+              </span>
             </Link>
-            <NavLink href="/" icon="💬" label="AI 对话" />
-            <NavLink href="/exercises" icon="📝" label="练习中心" />
-            <NavLink href="/profile" icon="📊" label="学习画像" />
+            <NavLink href="/" label="AI 对话" />
+            <NavLink href="/exercises" label="练习中心" />
+            <NavLink href="/profile" label="学习画像" />
             <div className="flex-1" />
             <NavUser />
           </div>
         </header>
-        <main className="flex-1 overflow-hidden">{children}</main>
+
+        <main className="flex-1 overflow-hidden relative z-10">{children}</main>
       </body>
     </html>
   );
 }
 
-function NavLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+function NavLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link href={href}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
-      <span className="text-base">{icon}</span>
+    <Link
+      href={href}
+      className="relative px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors group"
+    >
       {label}
+      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full
+        group-hover:w-2/3 transition-all duration-300" />
     </Link>
   );
 }

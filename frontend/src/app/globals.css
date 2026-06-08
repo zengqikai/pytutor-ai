@@ -1,32 +1,110 @@
 @import "tailwindcss";
 
+/* ============================================================
+   PyTutor — Deep Space AI Theme
+   ============================================================ */
+
 @layer base {
   * { box-sizing: border-box; }
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+    margin: 0;
+    background: #06060f;
+    color: #e2e8f0;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
+/* ---- Scrollbar ---- */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full hover:bg-slate-400; }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.15); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.3); }
 
-.prose-custom h1 { @apply text-xl font-bold mb-3 text-slate-800; }
-.prose-custom h2 { @apply text-lg font-semibold mb-2 text-slate-700; }
-.prose-custom p { @apply mb-2 leading-relaxed; }
-.prose-custom ul { @apply list-disc pl-5 mb-2 space-y-1; }
-.prose-custom ol { @apply list-decimal pl-5 mb-2 space-y-1; }
-.prose-custom code { @apply bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded text-sm font-mono; }
-.prose-custom pre { @apply bg-slate-900 text-green-300 p-4 rounded-xl mb-3 overflow-x-auto text-sm font-mono; }
-.prose-custom pre code { @apply bg-transparent text-green-300 p-0; }
-.prose-custom strong { @apply font-semibold text-slate-900; }
-.prose-custom blockquote { @apply border-l-4 border-indigo-300 pl-4 italic text-slate-600 my-3; }
-.prose-custom a { @apply text-indigo-600 underline; }
+/* ---- Selection ---- */
+::selection { background: rgba(99, 102, 241, 0.3); color: #fff; }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes pulseDot { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
-.animate-fade-in { animation: fadeIn .25s ease-out; }
-.animate-slide-in { animation: slideIn .25s ease-out; }
-.animate-pulse-dot { animation: pulseDot 1.4s infinite; }
+/* ---- Animations ---- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.15); }
+  50%      { box-shadow: 0 0 40px rgba(99, 102, 241, 0.3); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  33%      { transform: translateY(-6px) translateX(3px); }
+  66%      { transform: translateY(4px) translateX(-3px); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1); }
+}
+.animate-fade-in   { animation: fadeIn .3s ease-out; }
+.animate-slide-in  { animation: slideIn .25s ease-out; }
+.animate-glow      { animation: glowPulse 3s ease-in-out infinite; }
+.animate-dot-pulse { animation: dotPulse 1.4s infinite; }
+.animate-float     { animation: float 8s ease-in-out infinite; }
+.delay-200 { animation-delay: .2s; }
+.delay-400 { animation-delay: .4s; }
+.delay-600 { animation-delay: .6s; }
+
+/* ---- Glass base ---- */
+.glass {
+  background: rgba(15, 15, 35, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.glass-strong {
+  background: rgba(15, 15, 35, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Neon focus ---- */
+input.neon:focus,
+textarea.neon:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), 0 0 20px rgba(99, 102, 241, 0.08);
+}
+button.glow-hover:hover {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ---- Markdown (dark) ---- */
+.prose-dark h1 { @apply text-xl font-bold text-white mb-3; }
+.prose-dark h2 { @apply text-lg font-semibold text-slate-100 mb-2; }
+.prose-dark h3 { @apply text-base font-semibold text-slate-200 mb-2; }
+.prose-dark p  { @apply mb-2 leading-relaxed text-slate-300; }
+.prose-dark ul { @apply list-disc pl-5 mb-2 space-y-0.5 text-slate-300; }
+.prose-dark ol { @apply list-decimal pl-5 mb-2 space-y-0.5 text-slate-300; }
+.prose-dark li { @apply leading-relaxed; }
+.prose-dark code {
+  @apply bg-amber-500/10 text-amber-300 px-1.5 py-0.5 rounded text-[13px] font-mono;
+}
+.prose-dark pre {
+  @apply bg-slate-900/80 border border-white/5 rounded-xl p-4 mb-3 overflow-x-auto text-sm font-mono leading-relaxed;
+}
+.prose-dark pre code { @apply bg-transparent text-emerald-300 p-0; }
+.prose-dark strong { @apply font-semibold text-white; }
+.prose-dark blockquote {
+  @apply border-l-3 border-indigo-500/40 pl-4 italic text-slate-400 my-3;
+}
+.prose-dark a { @apply text-indigo-400 underline hover:text-indigo-300; }
+.prose-dark table { @apply w-full border-collapse mb-3 text-sm; }
+.prose-dark th { @apply bg-white/5 px-3 py-2 text-left font-medium border border-white/10; }
+.prose-dark td { @apply px-3 py-2 border border-white/10; }
