@@ -22,11 +22,11 @@ export default function ChatPage() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [sending, set发送ing] = useState(false);
+  const [sending, setSending] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("print('Hello, Python!')\n");
   const [codeResult, setCodeResult] = useState<any>(null);
-  const [runningCode, set运行ningCode] = useState(false);
+  const [runningCode, setRunningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [reasoningMode, setReasoningMode] = useState(false);
@@ -81,7 +81,7 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
     const content = input; const userMsg: Message = { role: "user", content };
-    setMessages((p) => [...p, userMsg]); setInput(""); set发送ing(true);
+    setMessages((p) => [...p, userMsg]); setInput(""); setSending(true);
     try {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
@@ -89,7 +89,7 @@ export default function ChatPage() {
       setMessages((p) => [...p, { role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts }]);
       loadSessions();
     } catch (e: any) { setMessages((p) => [...p, { role: "assistant", content: `Error: ${e.message}` }]); }
-    finally { set发送ing(false); }
+    finally { setSending(false); }
   };
 
   // ---- Code execution ----
@@ -97,17 +97,19 @@ export default function ChatPage() {
     if (!isAuthenticated) { setCodeResult({ stderr: "请先登录后再运行代码" }); return; }
     const codeToRun = codeStr || code;
     if (codeStr) { setCode(codeStr); setEditorKey(k => k + 1); }
-    set运行ningCode(true); setCodeResult(null);
+    setRunningCode(true); setCodeResult(null);
     try {
       const res = await codeAPI.submit(codeToRun);
-      const result = { ...(res.result || res) };
-      setCodeResult(result); set运行ningCode(false);
-      if (result.stderr && result.status !== "completed") {
+      console.log("Code API response:", res);
+      const execResult = res.result || res;
+      console.log("Execution result:", execResult);
+      setCodeResult(execResult); setRunningCode(false);
+      if (execResult.stderr && execResult.status !== "completed") {
         setAnalyzing(true);
-        try { const analysis = await codeAPI.analyze(codeToRun, result.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
+        try { const analysis = await codeAPI.analyze(codeToRun, execResult.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
         setAnalyzing(false);
       }
-    } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); set运行ningCode(false); }
+    } catch (e: any) { console.error("Run error:", e); setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
   };
 
   if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
@@ -288,8 +290,8 @@ export default function ChatPage() {
                   <div className="flex items-center gap-2 text-slate-400 text-sm"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> 执行中...</div>
                 ) : codeResult ? (
                   <>
-                    <运行结果Block label="stdout" color="emerald" content={codeResult.stdout || "(no output)"} />
-                    <运行结果Block label="stderr" color="rose" content={codeResult.stderr || "(no errors)"} />
+                    <运行结果Block label="stdout" color="emerald" content={codeResult.stdout || "(无输出)"} />
+                    <运行结果Block label="stderr" color="rose" content={codeResult.stderr || "(无错误)"} />
                     <div>
                       <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">AI 错误分析</p>
                       {analyzing ? (
@@ -325,7 +327,8 @@ function 运行结果Block({ label, color, content }: { label: string; color: st
   return (
     <div>
       <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
-      <pre className={`text-sm whitespace-pre-wrap font-mono leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}>{content}</pre>
+      <pre className={`text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}
+        style={{ fontFamily: "Consolas, 'Microsoft YaHei', 'PingFang SC', monospace" }}>{content}</pre>
     </div>
   );
 }

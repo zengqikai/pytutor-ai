@@ -18,9 +18,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
+import json
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from sqlalchemy import text
 
@@ -97,7 +99,13 @@ def create_app() -> FastAPI:
     2. 不同的部署环境可以用不同的配置
     3. 避免模块级别的副作用
     """
+    # 自定义 JSON 响应类：不转义中文（ensure_ascii=False）
+    class UTF8JSONResponse(JSONResponse):
+        def render(self, content) -> bytes:
+            return json.dumps(content, ensure_ascii=False, indent=None, separators=(",", ":")).encode("utf-8")
+
     app = FastAPI(
+        default_response_class=UTF8JSONResponse,
         # Swagger 文档标题
         title=settings.app_name,
         # API 版本
