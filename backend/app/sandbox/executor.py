@@ -93,11 +93,22 @@ async def execute_python_code(code: str) -> dict:
 
         start_time = time.perf_counter()
 
-        # 在子进程中执行（设置 PYTHONIOENCODING=utf-8 防止中文乱码）
-        import os as _os
-        env = {**_os.environ, "PYTHONIOENCODING": "utf-8"}
+        # 在子进程中执行。先写入 UTF-8 BOM 声明，确保 Python 输出 UTF-8
+        import os as _os, sys as _sys
+        # 构建干净的 UTF-8 环境变量（避免 Windows GBK 编码污染）
+        env = {}
+        for k, v in _os.environ.items():
+            try:
+                env[k] = v
+            except Exception:
+                env[k] = ""
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        env["LANG"] = "en_US.UTF-8"
+        env["LC_ALL"] = "en_US.UTF-8"
         process = await asyncio.create_subprocess_exec(
-            "python",
+            _sys.executable,  # 使用当前 Python 解释器
+            "-X", "utf8",     # Python UTF-8 模式
             str(tmp_path),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

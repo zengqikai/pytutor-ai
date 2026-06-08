@@ -100,16 +100,17 @@ export default function ChatPage() {
     setRunningCode(true); setCodeResult(null);
     try {
       const res = await codeAPI.submit(codeToRun);
-      console.log("Code API response:", res);
       const execResult = res.result || res;
-      console.log("Execution result:", execResult);
-      setCodeResult(execResult); setRunningCode(false);
-      if (execResult.stderr && execResult.status !== "completed") {
-        setAnalyzing(true);
-        try { const analysis = await codeAPI.analyze(codeToRun, execResult.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
-        setAnalyzing(false);
-      }
-    } catch (e: any) { console.error("Run error:", e); setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
+      // 直接把整个 API 响应当作结果展示，不做额外处理
+      setCodeResult({
+        stdout: execResult.stdout || "",
+        stderr: execResult.stderr || "",
+        status: execResult.status || res.status,
+        runtime_ms: execResult.runtime_ms || 0,
+        _raw: JSON.stringify(res, null, 2) // 原始数据用于调试
+      });
+    } catch (e: any) { setCodeResult({ stderr: String(e.message) }); }
+    setRunningCode(false);
   };
 
   if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
@@ -290,8 +291,9 @@ export default function ChatPage() {
                   <div className="flex items-center gap-2 text-slate-400 text-sm"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> 执行中...</div>
                 ) : codeResult ? (
                   <>
-                    <运行结果Block label="stdout" color="emerald" content={codeResult.stdout || "(无输出)"} />
-                    <运行结果Block label="stderr" color="rose" content={codeResult.stderr || "(无错误)"} />
+                    <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">stdout 标准输出</p><pre className="text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-emerald-400 border-emerald-500/10 bg-emerald-500/5" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult.stdout || "(无输出)"}</pre></div>
+                    <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">stderr 错误输出</p><pre className="text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-rose-400 border-rose-500/10 bg-rose-500/5" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult.stderr || "(无错误)"}</pre></div>
+                    {codeResult._raw && <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">RAW 原始JSON</p><pre className="text-xs whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-slate-300 border-slate-500/10 bg-slate-800/50" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult._raw}</pre></div>}
                     <div>
                       <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">AI 错误分析</p>
                       {analyzing ? (
@@ -311,24 +313,13 @@ export default function ChatPage() {
                     {codeResult.runtime_ms && <p className="text-[10px] text-slate-600 text-right">{codeResult.runtime_ms}ms</p>}
                   </>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">在上方编写代码</p><p className="text-xs text-slate-700 mt-1">Click <span className="text-emerald-500">运行</span> to execute</p></div></div>
+                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">在上方编写代码</p><p className="text-xs text-slate-700 mt-1">点击 <span className="text-emerald-500">运行</span> 执行代码</p></div></div>
                 )}
               </div>
             </div>
           </div>
         </aside>
       )}
-    </div>
-  );
-}
-
-function 运行结果Block({ label, color, content }: { label: string; color: string; content: string }) {
-  const colors: any = { emerald: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5", rose: "text-rose-400 border-rose-500/10 bg-rose-500/5" };
-  return (
-    <div>
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
-      <pre className={`text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}
-        style={{ fontFamily: "Consolas, 'Microsoft YaHei', 'PingFang SC', monospace" }}>{content}</pre>
     </div>
   );
 }
