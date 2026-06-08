@@ -1,0 +1,178 @@
+"""
+管理员 API
+==========
+
+接口：
+    GET  /api/v1/admin/stats    - 系统统计
+    GET  /api/v1/admin/users    - 用户列表
+    PATCH /api/v1/admin/users/{id} - 修改用户角色/状态
+    GET  /api/v1/admin/logs     - 最近操作日志
+"""
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.session import get_db
+from app.models.user import User, UserRole
+from app.models.chat import ChatSession, ChatMessage
+from app.models.exercise import Exercise
+from app.models.rag import RAGDocument
+from app.models.submission import CodeSubmission
+from app.models.profile import LearningEvent
+from app.security.dependencies import get_current_user, require_role
+
+router = APIRouter()
+
+
+@router.get("/stats")
+async def admin_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """系统统计概览。"""
+    tables = {
+        "users": User,
+        "chat_sessions": ChatSession,
+        "chat_messages": ChatMessage,
+        "exercises": Exercise,
+        "rag_documents": RAGDocument,
+        "code_submissions": CodeSubmission,
+    }
+    stats = {}
+    for name, model in tables.items():
+        r = await db.execute(select(func.count()).select_from(model))
+        stats[name] = r.scalar() or 0
+
+    r = await db.execute(
+        select(func.count()).select_from(User).where(User.role == "student")
+    )
+    stats["students"] = r.scalar() or 0
+
+    return stats
+
+
+@router.get("/users")
+async def list_users(
+    search: str = Query(default=""),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """用户列表（可搜索）。"""
+    query = select(User)
+    if search:
+        query = query.where(
+            User.email.contains(search) | User.display_name.contains(search)
+        )
+    query = query.order_by(User.created_at.desc()).offset(offset).limit(limit)
+    r = await db.execute(query)
+    users = r.scalars().all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "display_name": u.display_name,
+            "role": u.role.value if isinstance(u.role, UserRole) else u.role,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat(),
+        }
+        for u in users
+    ]
+
+
+@router.patch("/users/{user_id}")
+async def update_user(
+    user_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """修改用户角色或状态。"""
+    r = await db.execute(select(User).where(User.id == user_id))
+    user = r.scalar_one_or_none()
+    if not user:
+        return {"detail": "用户不存在"}
+
+    if "role" in body:
+        try:
+            user.role = UserRole(body["role"])
+        except ValueError:
+            return {"detail": f"无效角色: {body['role']}"}
+    if "is_active" in body:
+        user.is_active = bool(body["is_active"])
+
+    await db.commit()
+    return {"id": user.id, "role": user.role.value, "is_active": user.is_active}
+
+
+@router.get("/logs")
+async def view_logs(
+    limit: int = Query(default=50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """查看最近的学习事件日志。"""
+    r = await db.execute(
+        select(LearningEvent)
+        .order_by(LearningEvent.created_at.desc())
+        .limit(limit)
+    )
+    events = r.scalars().all()
+    return [
+        {
+            "id": e.id,
+            "user_id": e.user_id,
+            "event_type": e.event_type,
+            "concept": e.concept,
+            "detail": e.detail_json,
+            "created_at": e.created_at.isoformat(),
+        }
+        for e in events
+    ]
+
+
+@router.get("/exercises")
+async def admin_exercises(
+    limit: int = Query(default=50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
+):
+    """题库管理列表。"""
+    r = await db.execute(
+        select(Exercise).order_by(Exercise.created_at.desc()).limit(limit)
+    )
+    exercises = r.scalars().all()
+    return [
+        {
+            "id": e.id,
+            "title": e.title,
+            "difficulty": e.difficulty,
+            "concepts": e.concepts,
+            "source": e.source,
+            "is_published": e.is_published,
+            "use_count": e.use_count,
+            "pass_rate": e.pass_rate,
+            "created_at": e.created_at.isoformat(),
+        }
+        for e in exercises
+    ]
+
+
+@router.patch("/exercises/{exercise_id}")
+async def toggle_exercise(
+    exercise_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
+):
+    """发布/取消发布练习。"""
+    r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    ex = r.scalar_one_or_none()
+    if not ex:
+        return {"detail": "不存在"}
+    if "is_published" in body:
+        ex.is_published = bool(body["is_published"])
+        await db.commit()
+    return {"id": ex.id, "is_published": ex.is_published}

@@ -13,6 +13,7 @@
 
 from fastapi import APIRouter
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.chat import router as chat_router
@@ -35,3 +36,4 @@ api_v1_router.include_router(code_router, prefix="/code", tags=["代码"])
 api_v1_router.include_router(agent_router, prefix="/agent", tags=["Agent"])
 api_v1_router.include_router(exercises_router, prefix="/exercises", tags=["练习"])
 api_v1_router.include_router(profile_router, prefix="/profile", tags=["画像"])
+api_v1_router.include_router(admin_router, prefix="/admin", tags=["管理"])

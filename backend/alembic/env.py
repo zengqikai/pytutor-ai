@@ -32,6 +32,7 @@ from app.models.rag import RAGDocument, RAGChunk  # noqa: F401
 from app.models.submission import CodeSubmission, ExecutionResult  # noqa: F401
 from app.models.exercise import Exercise, TestCase  # noqa: F401
 from app.models.profile import StudentProfile, StudentWeakness, LearningEvent  # noqa: F401
+from app.models.prompt import PromptTemplate  # noqa: F401
 
 # =============================================================================
 # Alembic Config 对象
