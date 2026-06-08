@@ -96,10 +96,10 @@ export const chatAPI = {
   getSession: (id: string) =>
     request<any>(`/chat/sessions/${id}`),
 
-  sendMessage: (sessionId: string, content: string) =>
+  sendMessage: (sessionId: string, content: string, model?: string) =>
     request<any>(`/chat/sessions/${sessionId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, model }),
     }),
 
   renameSession: (sessionId: string, title: string) =>

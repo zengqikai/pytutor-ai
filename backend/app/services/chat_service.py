@@ -163,6 +163,7 @@ async def send_message(
     session_id: str,
     user: User,
     request: SendMessageRequest,
+    model: str | None = None,
 ) -> dict:
     """
     发送消息并获取 AI 回复。
@@ -251,6 +252,7 @@ async def send_message(
             conversation_history=history,
             student_level="beginner",
             rag_context=rag_context,
+            model=model,
         )
     except Exception as e:
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))

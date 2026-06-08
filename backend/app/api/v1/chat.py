@@ -137,4 +137,4 @@ async def send_chat_message(
 
     如果消息中包含 ```python 代码块，AI 会自动切换到代码审查模式。
     """
-    return await send_message(db, session_id, current_user, request)
+    return await send_message(db, session_id, current_user, request, model=request.model)

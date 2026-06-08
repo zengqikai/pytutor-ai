@@ -22,22 +22,9 @@ from app.services.llm_service import chat_completion
 logger = get_logger(__name__)
 
 # 简化版 System Prompt——不要求 JSON，自然对话即可
-SYSTEM_PROMPT = """你是一位名叫 PyTutor 的 Python 编程导师，专门帮助初学者学习 Python。
+SYSTEM_PROMPT = """你是 PyTutor，Python 编程导师。用中文回复，简洁明了。
 
-## 回复规则
-1. 用简单易懂的中文解释，配合生活化的比喻。
-2. 优先引导学生思考，不直接给完整答案（除非学生明确要求）。
-3. 代码示例用 ```python 代码块包裹。
-4. 在回复的**第一行**加上提示等级标记，格式：`<!-- hint:N concepts:xxx,yyy -->`
-   - N 是 1-5 的数字（1=概念引导, 5=完整答案）
-   - concepts 是涉及的知识点（英文标识符，逗号分隔）
-5. 使用 Markdown 让你的回复清晰易读（标题、列表、加粗、代码块）。
-
-## 回复风格
-- 学生问概念 → 先解释概念，再给简单示例
-- 学生发代码 → 先分析问题，给思路，再给改进代码
-- 学生要练习 → 出一道题（含示例输入输出）
-- 无关问题 → 礼貌引导回 Python 学习"""
+规则：引导思考优先，不直接给答案。代码用 ```python 包裹。首行标注 <!-- hint:N concepts:x,y -->（N=1~5）。"""
 
 
 def calculate_hint_level(history: list[dict], question: str) -> int:
@@ -60,6 +47,7 @@ async def generate_tutor_response(
     conversation_history: list[dict],
     student_level: str = "beginner",
     rag_context: str | None = None,
+    model: str | None = None,
 ) -> AIResponse:
     """生成 AI 导师回复（纯文本 Markdown）。"""
     hint_level = calculate_hint_level(conversation_history, user_message)
@@ -79,7 +67,7 @@ async def generate_tutor_response(
     messages.append(LLMMessage(role="user", content=user_message))
 
     try:
-        llm_response = await chat_completion(messages=messages, temperature=0.7)
+        llm_response = await chat_completion(messages=messages, temperature=0.7, model=model)
         raw = llm_response.content.strip()
 
         # 解析首行元数据标记

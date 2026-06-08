@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [runningCode, set运行ningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [reasoningMode, setReasoningMode] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuSession, setMenuSession] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export default function ChatPage() {
     setMessages((p) => [...p, userMsg]); setInput(""); set发送ing(true);
     try {
       const sid = await ensureSession();
-      const chatRes = await chatAPI.sendMessage(sid, content);
+      const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
       const ai = chatRes.ai_response || {};
       setMessages((p) => [...p, { role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts }]);
       loadSessions();
@@ -203,7 +204,27 @@ export default function ChatPage() {
 
         {/* 输入区 */}
         <div className="border-t border-white/[0.06] glass p-4">
-          <div className="max-w-3xl mx-auto flex gap-3 items-stretch">
+          <div className="max-w-3xl mx-auto space-y-2">
+            {/* 模式切换 */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setReasoningMode(false)}
+                className={`text-[11px] px-3 py-1 rounded-full font-medium transition-all
+                  ${!reasoningMode
+                    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                    : "text-slate-500 hover:text-slate-400"}`}>
+                ⚡ CHAT
+              </button>
+              <button
+                onClick={() => setReasoningMode(true)}
+                className={`text-[11px] px-3 py-1 rounded-full font-medium transition-all
+                  ${reasoningMode
+                    ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                    : "text-slate-500 hover:text-slate-400"}`}>
+                🧠 REASONING
+              </button>
+            </div>
+          <div className="flex gap-3 items-stretch">
             <button onClick={() => setShowCode(!showCode)}
               className={`flex items-center gap-1.5 px-4 rounded-xl border transition-all flex-shrink-0 text-sm font-medium
                 ${showCode ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "border-white/[0.08] text-slate-400 hover:text-indigo-400 hover:border-indigo-500/30"}`}>
@@ -222,6 +243,7 @@ export default function ChatPage() {
               className="glow-hover flex items-center px-6 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 transition-all flex-shrink-0">
               发送
             </button>
+          </div>
           </div>
         </div>
       </div>

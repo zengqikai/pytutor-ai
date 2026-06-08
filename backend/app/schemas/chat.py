@@ -43,6 +43,7 @@ class SendMessageRequest(BaseModel):
         max_length=10000,
         description="消息内容（纯文本或含代码块）",
     )
+    model: str | None = Field(default=None, description="模型选择：默认 deepseek-chat，可选 deepseek-v4-pro")
 
 
 # =============================================================================
