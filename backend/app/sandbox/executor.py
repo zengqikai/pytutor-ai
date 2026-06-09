@@ -82,7 +82,7 @@ async def execute_python_code_with_input(code: str, stdin_input: str = "") -> di
 
         try:
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(input=stdin_input.encode("utf-8") if stdin_input else None),
+                process.communicate(input=stdin_input.encode("utf-8")),  # 始终传 bytes，空=空输入非关闭
                 timeout=EXECUTION_TIMEOUT,
             )
             timeout_triggered = False

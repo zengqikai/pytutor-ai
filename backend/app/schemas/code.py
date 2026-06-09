@@ -14,6 +14,7 @@ class CodeSubmitRequest(BaseModel):
     code: str = Field(..., min_length=1, max_length=50000, description="Python 代码")
     exercise_id: str | None = Field(default=None, description="关联的练习 ID")
     session_id: str | None = Field(default=None, description="关联的聊天会话 ID")
+    stdin: str = Field(default="", description="标准输入数据（模拟 input()）")
 
 
 class ExecutionResultResponse(BaseModel):

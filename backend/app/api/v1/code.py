@@ -55,7 +55,7 @@ async def submit_code(
             }
         }
     """
-    return await submit_and_execute(db, current_user, request)
+    return await submit_and_execute(db, current_user, request, request.stdin)
 
 
 @router.post("/analyze")

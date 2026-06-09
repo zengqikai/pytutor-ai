@@ -20,6 +20,7 @@ async def submit_and_execute(
     db: AsyncSession,
     user: User,
     request: CodeSubmitRequest,
+    stdin_input: str = "",
 ) -> CodeSubmitResponse:
     """
     提交代码并执行。
@@ -50,8 +51,12 @@ async def submit_and_execute(
     await db.commit()
     await db.refresh(submission)
 
-    # 步骤 2：安全执行代码
-    exec_result = await execute_python_code(request.code)
+    # 步骤 2：安全执行代码（支持 stdin 输入）
+    if stdin_input:
+        from app.sandbox.executor import execute_python_code_with_input
+        exec_result = await execute_python_code_with_input(request.code, stdin_input=stdin_input)
+    else:
+        exec_result = await execute_python_code(request.code)
 
     # 步骤 3：保存执行结果
     result = ExecutionResult(

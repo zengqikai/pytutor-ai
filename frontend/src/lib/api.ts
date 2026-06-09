@@ -125,10 +125,10 @@ export const agentAPI = {
 // ---- Code API ----
 
 export const codeAPI = {
-  submit: (code: string, exerciseId?: string) =>
+  submit: (code: string, exerciseId?: string, stdin?: string) =>
     request<any>("/code/submit", {
       method: "POST",
-      body: JSON.stringify({ code, exercise_id: exerciseId }),
+      body: JSON.stringify({ code, exercise_id: exerciseId, stdin: stdin || "" }),
     }),
 
   analyze: (code: string, stderr: string) =>

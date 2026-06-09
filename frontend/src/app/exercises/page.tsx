@@ -17,18 +17,33 @@ export default function ExercisesPage() {
   const [difficulty, setDifficulty] = useState(2);
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [customInput, setCustomInput] = useState("");
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   useEffect(() => { loadUser(); loadExercises(); }, []);
   const loadExercises = async () => { try { setExercises(await exerciseAPI.list()); } catch {} };
 
   const generateExercise = async () => {
     setGenerating(true);
-    try { const res = await exerciseAPI.generate({ difficulty, count: 1 }); if (res.exercises?.length) { setExercises((p) => [res.exercises[0], ...p]); setSelected(res.exercises[0]); setUserCode("# 在此编写你的代码\n"); setResult(null); } } catch (e: any) { alert(e.message); } finally { setGenerating(false); }
+    try { const res = await exerciseAPI.generate({ difficulty, count: 1 }); if (res.exercises?.length) { setExercises((p) => [res.exercises[0], ...p]); setSelected(res.exercises[0]); setUserCode("# 在此编写你的代码\n"); setResult(null); setCustomInput(""); setTestResult(null); } } catch (e: any) { alert(e.message); } finally { setGenerating(false); }
   };
   const submitAnswer = async () => {
     if (!selected || !userCode.trim()) return;
     setSubmitting(true); setResult(null);
     try { const r = await exerciseAPI.submit(selected.id, userCode); setResult(r); } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
+  };
+  // 自测：用自定义输入运行代码
+  const runTest = async () => {
+    if (!userCode.trim()) return;
+    setTestRunning(true); setTestResult(null);
+    try {
+      const { codeAPI } = await import("@/lib/api");
+      const res = await codeAPI.submit(userCode, undefined, customInput);
+      const exec = res.result || res;
+      setTestResult({ stdout: exec.stdout || "(无输出)", stderr: exec.stderr || "", status: exec.status, runtime_ms: exec.runtime_ms });
+    } catch (e: any) { setTestResult({ stderr: String(e.message) }); }
+    finally { setTestRunning(false); }
   };
 
   return (
@@ -98,15 +113,44 @@ export default function ExercisesPage() {
           <div className="w-[500px] flex flex-col flex-shrink-0">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
               <span className="text-sm font-medium text-slate-300">代码编辑器</span>
-              <button onClick={submitAnswer} disabled={submitting}
-                className="glow-hover px-5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 transition-all">
-                {submitting ? "判题中..." : "提交代码"}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={runTest} disabled={testRunning}
+                  className="px-3 py-1.5 bg-slate-700 text-white rounded-lg text-xs font-medium hover:bg-slate-600 disabled:opacity-40 transition-all">
+                  {testRunning ? "运行中..." : "▶ 运行测试"}
+                </button>
+                <button onClick={submitAnswer} disabled={submitting}
+                  className="glow-hover px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-lg text-xs font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 transition-all">
+                  {submitting ? "判题中..." : "提交判题"}
+                </button>
+              </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div style={{ height: "300px" }}>
               <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={userCode}
                 onChange={(v) => setUserCode(v || "")}
-                options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false }, scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 12 }, automaticLayout: true }} />
+                options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false }, scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 8 }, automaticLayout: true }} />
+            </div>
+
+            {/* 自定义输入 + 自测结果 */}
+            <div className="border-t border-white/[0.06]">
+              <div className="px-4 py-2 border-b border-white/[0.04]">
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">自定义输入（模拟 stdin）</p>
+              </div>
+              <textarea value={customInput} onChange={(e) => setCustomInput(e.target.value)}
+                placeholder="在这里输入测试数据，模拟 input() 读取的内容..."
+                className="w-full bg-[#0a0a14] border-0 text-green-300 text-xs font-mono p-3 resize-none outline-none h-16" />
+              {testResult && (
+                <div className="border-t border-white/[0.04]">
+                  <div className="px-4 py-2 border-b border-white/[0.04] flex items-center justify-between">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">自测输出</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${testResult.status === "completed" ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>{testResult.status}</span>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {testResult.stdout && <div><p className="text-[10px] text-slate-600 mb-1">stdout</p><pre className="text-emerald-400 text-xs whitespace-pre-wrap font-mono">{testResult.stdout}</pre></div>}
+                    {testResult.stderr && <div><p className="text-[10px] text-slate-600 mb-1">stderr</p><pre className="text-rose-400 text-xs whitespace-pre-wrap font-mono">{testResult.stderr}</pre></div>}
+                    {testResult.runtime_ms && <p className="text-[10px] text-slate-600">耗时: {testResult.runtime_ms}ms</p>}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 判题结果 */}
