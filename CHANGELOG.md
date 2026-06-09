@@ -251,7 +251,52 @@
 
 ---
 
-## Bug 汇总
+## Phase 4: 管理后台 + 评测 + Prompt 管理 (Steps 17-19)
+
+**日期**: 2026-06-08 ~ 2026-06-09
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/api/v1/admin.py` | 管理员 API：stats/users/logs/exercises |
+| 新增 | `frontend/src/app/admin/page.tsx` | 管理后台页面 |
+| 新增 | `backend/app/models/prompt.py` | Prompt 模板版本管理 |
+| 新增 | `evaluation/golden_dataset.json` | 8 个标准测试用例 |
+| 新增 | `evaluation/run_eval.py` | AI 评测脚本 |
+
+---
+
+## Phase 5: UI 重设计 + 练习中心 ACM (Steps 20-25)
+
+**日期**: 2026-06-09
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| **重写** | `frontend/src/app/globals.css` | 深空主题：玻璃拟态、霓虹、动画、暗色滚动条、prose-dark |
+| **重写** | `frontend/src/app/layout.tsx` | Glass 导航栏 + 渐变 Logo + 导航高亮 |
+| **重写** | `frontend/src/app/login/page.tsx` | 沉浸式科幻登录页 |
+| **重写** | `frontend/src/app/register/page.tsx` | 匹配深空主题 |
+| **重写** | `frontend/src/app/page.tsx` | 暗色聊天页：glass 面板、neon 输入、Monaco 暗色 |
+| **重写** | `frontend/src/components/chat-message.tsx` | 语法高亮代码块 + "在编辑器中运行"按钮 |
+| **重写** | `frontend/src/app/exercises/page.tsx` | ACM 布局：题目左 + 编辑器右 + 判题结果面板 |
+| **重写** | `frontend/src/app/profile/page.tsx` | 学习画像暗色化 |
+| **重写** | `frontend/src/app/admin/page.tsx` | 管理后台暗色化 |
+| 新增 | `frontend/src/components/nav-link.tsx` | 导航高亮组件（usePathname） |
+| 新增 | `frontend/src/stores/chat.ts` | Zustand persist 聊天状态持久化 |
+| 新增 | `frontend/src/stores/exercise.ts` | Zustand persist 练习状态持久化 |
+| 修改 | `backend/app/sandbox/security.py` | **重写**：去掉注释字符串再检查、只拦截真正危险操作、放行 input() |
+| 修改 | `backend/app/sandbox/executor.py` | 统一两个执行函数的 UTF-8 设置、新增 stdin 输入支持 |
+| 修改 | `backend/app/api/v1/exercises.py` | ACM 判题：每用例独立执行 + stdin 传入 + 提示/参考答案接口 |
+| 修改 | `backend/app/api/v1/code.py` | 新增 stdin 参数支持 + 独立错误分析接口 |
+| 修改 | `backend/app/schemas/code.py` | 新增 ErrorAnalysis schema |
+| 修改 | `backend/app/services/tutor_service.py` | 三次迭代：JSON→纯文本→极简（100 行→20 行） |
+| 新增 | `vision.js` | 千问 VL 识图脚本（node vision.js 图片路径） |
+| 新增 | `CLAUDE.md` | AI 项目说明 |
+| 新增 | `docs/tech-explanation.md` | 14 章技术栈详解 |
+| 新增 | `docs/interview-prep.md` | 快手面试准备指南（25 道题 + 项目具体实现） |
+
+---
+
+## Bug 汇总（共 15 个）
 
 | # | 问题 | 解决方案 | 影响文件 |
 |---|------|----------|----------|
@@ -268,6 +313,12 @@
 | 11 | LLM JSON 输出不稳定 | 取消 JSON 要求，纯文本 Markdown | `tutor_service.py`, `tutor_node.py` |
 | 12 | AI 回复 content 存 JSON 致历史乱码 | 只存 message 文本 | `services/chat_service.py` |
 | 13 | 会话切换后历史丢失 | content 纯文本化 + 前端兼容旧 JSON | `chat_message.tsx` |
+| 14 | 中文输出乱码（10 轮排查） | 两个执行函数 UTF-8 不一致：`execute_python_code` 缺 `-X utf8` | `executor.py` |
+| 15 | ACM 空输入 EOFError | 空 stdin 传 `b""` 而非 `None`，加 `\n` 变成空行 | `executor.py` |
+| 16 | 安全拦截误杀正常代码 | 去掉注释和字符串后再检查 + 精简黑名单 | `security.py` |
+| 17 | `sanitize_code` 被误删导致 500 | 内联替代代码 | `executor.py` |
+| 18 | `"use client"` 位置错误导致构建失败 | 拆出独立 NavLink 客户端组件 | `layout.tsx` + `nav-link.tsx` |
+| 19 | 练习中心换题不清空状态 | Zustand persist + 切换时 reset | `stores/exercise.ts` |
 
 ---
 

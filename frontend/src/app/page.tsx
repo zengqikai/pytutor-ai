@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
 import { useAuthStore } from "@/stores/auth";
+import { useChatStore } from "@/stores/chat";
 import { chatAPI, codeAPI } from "@/lib/api";
 import { ChatMessage } from "@/components/chat-message";
 
@@ -18,9 +19,10 @@ interface Message {
 export default function ChatPage() {
   const router = useRouter();
   const { user, isAuthenticated, loadUser } = useAuthStore();
+  const chatStore = useChatStore();
   const [sessions, setSessions] = useState<any[]>([]);
-  const [activeSession, setActiveSession] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const activeSession = chatStore.activeSession;
+  const messages = chatStore.messages;
   const [input, setInput] = useState("");
   const [sending, set发送ing] = useState(false);
   const [showCode, setShowCode] = useState(false);
@@ -50,13 +52,13 @@ export default function ChatPage() {
     if (activeSession) return activeSession;
     try {
       const s = await chatAPI.createSession("新的对话");
-      setSessions((p) => [s, ...p]); setActiveSession(s.id); return s.id;
+      setSessions((p) => [s, ...p]); chatStore.setActiveSession(s.id); return s.id;
     } catch (e) { throw e; }
   };
-  const newSession = () => { setActiveSession(null); setMessages([]); };
+  const newSession = () => { chatStore.setActiveSession(null); chatStore.setMessages([]); };
   const loadSession = async (id: string) => {
-    setActiveSession(id);
-    try { const s = await chatAPI.getSession(id); setMessages(s.messages || []); } catch {}
+    chatStore.setActiveSession(id);
+    try { const s = await chatAPI.getSession(id); chatStore.setMessages(s.messages || []); } catch {}
   };
 
   // ---- Session actions ----
@@ -69,7 +71,7 @@ export default function ChatPage() {
   const deleteSession = async (id: string) => {
     setMenuSession(null);
     if (!confirm("确定删除此对话？")) return;
-    try { await chatAPI.deleteSession(id); setSessions((p) => p.filter((s) => s.id !== id)); setPinnedSessions((prev) => { const next = new Set(prev); next.delete(id); return next; }); if (activeSession === id) { setActiveSession(null); setMessages([]); } } catch (e: any) { alert(e.message); }
+    try { await chatAPI.deleteSession(id); setSessions((p) => p.filter((s) => s.id !== id)); setPinnedSessions((prev) => { const next = new Set(prev); next.delete(id); return next; }); if (activeSession === id) { chatStore.setActiveSession(null); chatStore.setMessages([]); } } catch (e: any) { alert(e.message); }
   };
   const togglePin = (id: string) => { setMenuSession(null); setPinnedSessions((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); };
 
@@ -81,14 +83,14 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
     const content = input; const userMsg: Message = { role: "user", content };
-    setMessages((p) => [...p, userMsg]); setInput(""); set发送ing(true);
+    chatStore.addMessage(userMsg); setInput(""); set发送ing(true);
     try {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
       const ai = chatRes.ai_response || {};
-      setMessages((p) => [...p, { role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts }]);
+      chatStore.addMessage({ role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts });
       loadSessions();
-    } catch (e: any) { setMessages((p) => [...p, { role: "assistant", content: `Error: ${e.message}` }]); }
+    } catch (e: any) { chatStore.addMessage({ role: "assistant", content: `Error: ${e.message}` }); }
     finally { set发送ing(false); }
   };
 

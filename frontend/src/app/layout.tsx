@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { NavLink } from "@/components/nav-link";
 import { NavUser } from "@/components/nav-user";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -47,15 +48,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }
 
-function NavLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="relative px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors group"
-    >
-      {label}
-      <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full
-        group-hover:w-2/3 transition-all duration-300" />
-    </Link>
-  );
-}

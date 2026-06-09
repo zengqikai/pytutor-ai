@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth";
+import { useChatStore } from "@/stores/chat";
+import { useExerciseStore } from "@/stores/exercise";
 
 export function NavUser() {
   const router = useRouter();
   const { user, isAuthenticated, loadUser, logout } = useAuthStore();
+  const chatReset = useChatStore((s) => s.reset);
+  const exerciseReset = useExerciseStore((s) => s.reset);
   const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => { loadUser(); }, []);
@@ -39,7 +43,7 @@ export function NavUser() {
               <p className="text-sm font-medium text-white">{user.display_name}</p>
               <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
             </div>
-            <button onClick={() => { logout(); router.push("/login"); }}
+            <button onClick={() => { logout(); chatReset(); exerciseReset(); router.push("/login"); }}
               className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.04] transition-colors">
               退出登录
             </button>
