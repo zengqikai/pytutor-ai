@@ -81,8 +81,12 @@ async def execute_python_code_with_input(code: str, stdin_input: str = "") -> di
         )
 
         try:
+            # ACM 标准：空输入 = 一个空行（\n），不是关闭 stdin
+            input_bytes = stdin_input.encode("utf-8")
+            if not stdin_input or not stdin_input.endswith("\n"):
+                input_bytes = (stdin_input + "\n").encode("utf-8")
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(input=stdin_input.encode("utf-8")),  # 始终传 bytes，空=空输入非关闭
+                process.communicate(input=input_bytes),
                 timeout=EXECUTION_TIMEOUT,
             )
             timeout_triggered = False
@@ -171,12 +175,18 @@ async def execute_python_code(code: str) -> dict:
 
         start_time = time.perf_counter()
 
-        # 在子进程中执行
+        # 在子进程中执行（UTF-8 编码，与 execute_python_code_with_input 一致）
+        import os as _os2, sys as _sys2
+        env2 = {}
+        for k, v in _os2.environ.items():
+            try: env2[k] = v
+            except Exception: env2[k] = ""
+        env2["PYTHONIOENCODING"] = "utf-8"
+        env2["PYTHONUTF8"] = "1"
         process = await asyncio.create_subprocess_exec(
-            "python",
-            str(tmp_path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            _sys2.executable, "-X", "utf8", str(tmp_path),
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            env=env2,
         )
 
         try:

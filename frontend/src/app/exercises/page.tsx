@@ -65,7 +65,7 @@ export default function ExercisesPage() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {exercises.map((ex) => (
-            <button key={ex.id} onClick={() => { setSelected(ex); setUserCode("# 在此编写你的代码\n"); setResult(null); }}
+            <button key={ex.id} onClick={() => { setSelected(ex); setUserCode("# 在此编写你的代码\n"); setResult(null); setCustomInput(""); setTestResult(null); }}
               className={`w-full text-left p-3 rounded-xl transition-all border ${selected?.id === ex.id ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/[0.04] hover:border-white/[0.08]"}`}>
               <p className="font-semibold text-sm text-slate-200 truncate mb-1">{ex.title}</p>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400 font-medium">{diffLabels[ex.difficulty]}</span>
