@@ -93,29 +93,19 @@ export default function ChatPage() {
   };
 
   // ---- Code execution ----
-  const runCode = async (codeStr?: string) => {
+  const runCode = async () => {
     if (!isAuthenticated) { setCodeResult({ stderr: "请先登录后再运行代码" }); return; }
-    const codeToRun = codeStr || code;
-    if (codeStr) { setCode(codeStr); setEditorKey(k => k + 1); }
-    setRunningCode(true); setCodeResult(null);
+    set运行ningCode(true); setCodeResult(null);
     try {
-      const res = await codeAPI.submit(codeToRun);
-      const exec = res.result || res;
-      // Base64 解码 stdout/stderr
-      const b64decode = (s: string) => { try { const bin = atob(s); const bytes = Uint8Array.from(bin, (c: string) => c.charCodeAt(0)); return new TextDecoder("utf-8").decode(bytes); } catch { return s; } };
-      setRunningCode(false);
-      setCodeResult({
-        stdout: b64decode(exec.stdout_b64 || ""),
-        stderr: b64decode(exec.stderr_b64 || ""),
-        status: exec.status || res.status,
-        runtime_ms: exec.runtime_ms || 0,
-      });
-      if (exec.stderr_b64 && exec.status !== "completed") {
+      const res = await codeAPI.submit(code);
+      const result = { ...(res.result || res) };
+      setCodeResult(result); set运行ningCode(false);
+      if (result.stderr && result.status !== "completed") {
         setAnalyzing(true);
-        try { const analysis = await codeAPI.analyze(codeToRun, b64decode(exec.stderr_b64)); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
+        try { const analysis = await codeAPI.analyze(code, result.stderr); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
         setAnalyzing(false);
       }
-    } catch (e: any) { setCodeResult({ stderr: String(e.message) }); setRunningCode(false); }
+    } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); set运行ningCode(false); }
   };
 
   if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
@@ -260,7 +250,7 @@ export default function ChatPage() {
 
       {/* ====== 代码面板 ====== */}
       {showCode && (
-        <aside className="w-[520px] border-l border-white/[0.06] bg-[#0a0a14] flex flex-col animate-slide-in flex-shrink-0">
+        <aside className="w-[420px] border-l border-white/[0.06] bg-[#0a0a14] flex flex-col animate-slide-in flex-shrink-0">
           <div className="shrink-0 px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <span className="text-sm font-medium text-slate-300">Python 编辑器</span>
             <div className="flex items-center gap-2">
@@ -333,7 +323,7 @@ function 运行结果Block({ label, color, content }: { label: string; color: st
   return (
     <div>
       <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
-      <div className={`text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}>{content}</div>
+      <pre className={`text-sm whitespace-pre-wrap font-mono leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}>{content}</pre>
     </div>
   );
 }
