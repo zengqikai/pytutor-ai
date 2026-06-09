@@ -47,6 +47,63 @@ async def generate_exercise_list(
     return {"exercises": exercises, "count": len(exercises)}
 
 
+@router.post("/{exercise_id}/hint")
+async def get_exercise_hint(
+    exercise_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取分层提示。hint_level: 1-5（前端累积请求递增）。"""
+    from sqlalchemy import select
+    from app.schemas.ai import ChatMessage as LLMMessage
+    from app.services.llm_service import chat_completion
+
+    r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = r.scalar_one_or_none()
+    if not exercise:
+        return {"detail": "练习不存在"}
+
+    level = body.get("hint_level", 1)
+    user_code = body.get("code", "")
+    failed_info = body.get("failed_info", "")
+
+    hint_prompts = {
+        1: f"学生正在做一道题：{exercise.title}。请给一个概念性提示，不要涉及代码细节。",
+        2: f"学生正在做一道题：{exercise.title}。请给一个更具体的方向性提示。{failed_info}",
+        3: f"学生正在做一道题：{exercise.title}。请指出可能的错误方向。{failed_info}。学生当前代码：\n```python\n{user_code[:500]}\n```",
+        4: f"学生正在做一道题：{exercise.title}。请给出关键代码思路。题目：{exercise.description[:500]}",
+        5: f"学生正在做一道题：{exercise.title}。请给出接近完整的解题步骤。题目：{exercise.description[:500]}",
+    }
+
+    prompt = hint_prompts.get(min(level, 5), hint_prompts[1])
+    prompt += "\n\n用 2-4 句中文回复，不要直接给完整代码。引导思考。"
+
+    try:
+        llm_resp = await chat_completion(
+            messages=[LLMMessage(role="user", content=prompt)],
+            temperature=0.5, max_tokens=300,
+        )
+        return {"hint": llm_resp.content.strip(), "hint_level": level}
+    except Exception as e:
+        return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": level}
+
+
+@router.get("/{exercise_id}/solution")
+async def get_exercise_solution(
+    exercise_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取参考答案（练习通过后或多次尝试后）。"""
+    from sqlalchemy import select
+    r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = r.scalar_one_or_none()
+    if not exercise:
+        return {"detail": "练习不存在"}
+    return {"solution": exercise.reference_solution or "暂无参考答案"}
+
+
 @router.get("/{exercise_id}")
 async def get_exercise_detail(
     exercise_id: str,
@@ -133,6 +190,7 @@ async def submit_exercise_answer(
     return {
         "exercise_id": exercise_id,
         "execution": {"status": "completed" if any_error is None else "error", "stderr": any_error or "", "runtime_ms": avg_time},
-        "test_results": {"passed": passed, "total": total, "details": test_results,
-        },
+        "test_results": {"passed": passed, "total": total, "details": test_results, "all_passed": passed == total and total > 0},
+        # 附上错因分析和提示（前端可据此展示帮助按钮）
+        "help_available": passed < total,
     }

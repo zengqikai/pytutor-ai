@@ -20,6 +20,11 @@ export default function ExercisesPage() {
   const [customInput, setCustomInput] = useState("");
   const [testRunning, setTestRunning] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const [hintLevel, setHintLevel] = useState(1);
+  const [hintText, setHintText] = useState("");
+  const [hintLoading, setHintLoading] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
+  const [solutionText, setSolutionText] = useState("");
 
   useEffect(() => { loadUser(); loadExercises(); }, []);
   const loadExercises = async () => { try { setExercises(await exerciseAPI.list()); } catch {} };
@@ -34,6 +39,42 @@ export default function ExercisesPage() {
     try { const r = await exerciseAPI.submit(selected.id, userCode); setResult(r); } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
   };
   // 自测：用自定义输入运行代码
+  // 请求 AI 提示
+  const requestHint = async () => {
+    if (!selected) return;
+    setHintLoading(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`http://localhost:8000/api/v1/exercises/${selected.id}/hint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          hint_level: hintLevel,
+          code: userCode,
+          failed_info: result?.test_results?.details?.filter((d: any) => !d.passed).map((d: any) => d.description).join("; ") || "",
+        }),
+      });
+      const d = await res.json();
+      setHintText(d.hint || "");
+      setHintLevel((prev: number) => Math.min(prev + 1, 5));
+    } catch (e: any) { setHintText("获取提示失败"); }
+    finally { setHintLoading(false); }
+  };
+
+  // 查看参考答案
+  const viewSolution = async () => {
+    if (!selected) return;
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`http://localhost:8000/api/v1/exercises/${selected.id}/solution`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await res.json();
+      setSolutionText(d.solution || "暂无");
+      setShowSolution(true);
+    } catch { setSolutionText("获取失败"); setShowSolution(true); }
+  };
+
   const runTest = async () => {
     if (!userCode.trim()) return;
     setTestRunning(true); setTestResult(null);
@@ -65,7 +106,7 @@ export default function ExercisesPage() {
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {exercises.map((ex) => (
-            <button key={ex.id} onClick={() => { setSelected(ex); setUserCode("# 在此编写你的代码\n"); setResult(null); setCustomInput(""); setTestResult(null); }}
+            <button key={ex.id} onClick={() => { setSelected(ex); setUserCode("# 在此编写你的代码\n"); setResult(null); setCustomInput(""); setTestResult(null); setHintText(""); setHintLevel(1); setShowSolution(false); }}
               className={`w-full text-left p-3 rounded-xl transition-all border ${selected?.id === ex.id ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/[0.04] hover:border-white/[0.08]"}`}>
               <p className="font-semibold text-sm text-slate-200 truncate mb-1">{ex.title}</p>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400 font-medium">{diffLabels[ex.difficulty]}</span>
@@ -194,6 +235,39 @@ export default function ExercisesPage() {
                       <div className="text-xs text-slate-600 space-y-0.5">
                         <p>状态: {result.execution.status} | 耗时: {result.execution.runtime_ms}ms</p>
                         {result.execution.stderr && <pre className="text-rose-400 mt-1 whitespace-pre-wrap">{result.execution.stderr}</pre>}
+                      </div>
+                    )}
+
+                    {/* 帮助按钮区 */}
+                    <div className="flex gap-2 flex-wrap pt-2 border-t border-white/[0.04]">
+                      {!result.test_results?.all_passed && (
+                        <button onClick={requestHint} disabled={hintLoading}
+                          className="text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-colors">
+                          {hintLoading ? "生成中..." : `💡 提示 (Level ${hintLevel})`}
+                        </button>
+                      )}
+                      <button onClick={viewSolution}
+                        className="text-xs px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-colors">
+                        📖 参考答案
+                      </button>
+                    </div>
+
+                    {/* 提示内容 */}
+                    {hintText && (
+                      <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 text-sm text-amber-200/80 leading-relaxed animate-fade-in">
+                        <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">💡 Level {hintLevel - 1} 提示</p>
+                        {hintText}
+                      </div>
+                    )}
+
+                    {/* 参考答案 */}
+                    {showSolution && (
+                      <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-lg p-3 animate-fade-in">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-semibold text-indigo-400/80 uppercase tracking-wider">📖 参考答案</p>
+                          <button onClick={() => setShowSolution(false)} className="text-xs text-slate-500 hover:text-slate-300">收起</button>
+                        </div>
+                        <pre className="text-sm text-emerald-300 font-mono whitespace-pre-wrap leading-relaxed bg-emerald-950/20 rounded-lg p-3">{solutionText}</pre>
                       </div>
                     )}
                   </div>
