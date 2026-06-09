@@ -22,11 +22,11 @@ export default function ChatPage() {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sending, set发送ing] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("print('Hello, Python!')\n");
   const [codeResult, setCodeResult] = useState<any>(null);
-  const [runningCode, setRunningCode] = useState(false);
+  const [runningCode, set运行ningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [reasoningMode, setReasoningMode] = useState(false);
@@ -81,7 +81,7 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
     const content = input; const userMsg: Message = { role: "user", content };
-    setMessages((p) => [...p, userMsg]); setInput(""); setSending(true);
+    setMessages((p) => [...p, userMsg]); setInput(""); set发送ing(true);
     try {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
@@ -89,7 +89,7 @@ export default function ChatPage() {
       setMessages((p) => [...p, { role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts }]);
       loadSessions();
     } catch (e: any) { setMessages((p) => [...p, { role: "assistant", content: `Error: ${e.message}` }]); }
-    finally { setSending(false); }
+    finally { set发送ing(false); }
   };
 
   // ---- Code execution ----
@@ -100,17 +100,22 @@ export default function ChatPage() {
     setRunningCode(true); setCodeResult(null);
     try {
       const res = await codeAPI.submit(codeToRun);
-      const execResult = res.result || res;
-      // 直接把整个 API 响应当作结果展示，不做额外处理
+      const exec = res.result || res;
+      // Base64 解码 stdout/stderr
+      const b64decode = (s: string) => { try { const bin = atob(s); const bytes = Uint8Array.from(bin, (c: string) => c.charCodeAt(0)); return new TextDecoder("utf-8").decode(bytes); } catch { return s; } };
+      setRunningCode(false);
       setCodeResult({
-        stdout: execResult.stdout || "",
-        stderr: execResult.stderr || "",
-        status: execResult.status || res.status,
-        runtime_ms: execResult.runtime_ms || 0,
-        _raw: JSON.stringify(res, null, 2) // 原始数据用于调试
+        stdout: b64decode(exec.stdout_b64 || ""),
+        stderr: b64decode(exec.stderr_b64 || ""),
+        status: exec.status || res.status,
+        runtime_ms: exec.runtime_ms || 0,
       });
-    } catch (e: any) { setCodeResult({ stderr: String(e.message) }); }
-    setRunningCode(false);
+      if (exec.stderr_b64 && exec.status !== "completed") {
+        setAnalyzing(true);
+        try { const analysis = await codeAPI.analyze(codeToRun, b64decode(exec.stderr_b64)); setCodeResult((prev: any) => ({ ...prev, error_analysis: analysis })); } catch {}
+        setAnalyzing(false);
+      }
+    } catch (e: any) { setCodeResult({ stderr: String(e.message) }); setRunningCode(false); }
   };
 
   if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
@@ -190,7 +195,7 @@ export default function ChatPage() {
             <div className="max-w-3xl mx-auto space-y-5">
               {messages.map((msg, i) => (
                 <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} userAvatar={user?.display_name?.[0]}
-                  onRunInEditor={(codeStr) => { setShowCode(true); runCode(codeStr); }} />
+                  onRunInEditor={(codeStr) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }} />
               ))}
               {sending && (
                 <div className="flex gap-3 animate-fade-in">
@@ -255,7 +260,7 @@ export default function ChatPage() {
 
       {/* ====== 代码面板 ====== */}
       {showCode && (
-        <aside className="w-[420px] border-l border-white/[0.06] bg-[#0a0a14] flex flex-col animate-slide-in flex-shrink-0">
+        <aside className="w-[520px] border-l border-white/[0.06] bg-[#0a0a14] flex flex-col animate-slide-in flex-shrink-0">
           <div className="shrink-0 px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <span className="text-sm font-medium text-slate-300">Python 编辑器</span>
             <div className="flex items-center gap-2">
@@ -291,9 +296,8 @@ export default function ChatPage() {
                   <div className="flex items-center gap-2 text-slate-400 text-sm"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg> 执行中...</div>
                 ) : codeResult ? (
                   <>
-                    <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">stdout 标准输出</p><pre className="text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-emerald-400 border-emerald-500/10 bg-emerald-500/5" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult.stdout || "(无输出)"}</pre></div>
-                    <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">stderr 错误输出</p><pre className="text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-rose-400 border-rose-500/10 bg-rose-500/5" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult.stderr || "(无错误)"}</pre></div>
-                    {codeResult._raw && <div><p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">RAW 原始JSON</p><pre className="text-xs whitespace-pre-wrap leading-relaxed rounded-lg p-3 border text-slate-300 border-slate-500/10 bg-slate-800/50" style={{fontFamily:"Consolas,'Microsoft YaHei',monospace"}}>{codeResult._raw}</pre></div>}
+                    <运行结果Block label="stdout" color="emerald" content={codeResult.stdout || "(no output)"} />
+                    <运行结果Block label="stderr" color="rose" content={codeResult.stderr || "(no errors)"} />
                     <div>
                       <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">AI 错误分析</p>
                       {analyzing ? (
@@ -313,13 +317,23 @@ export default function ChatPage() {
                     {codeResult.runtime_ms && <p className="text-[10px] text-slate-600 text-right">{codeResult.runtime_ms}ms</p>}
                   </>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">在上方编写代码</p><p className="text-xs text-slate-700 mt-1">点击 <span className="text-emerald-500">运行</span> 执行代码</p></div></div>
+                  <div className="h-full flex items-center justify-center text-center"><div><p className="text-4xl mb-3 opacity-30">▶</p><p className="text-sm text-slate-600">在上方编写代码</p><p className="text-xs text-slate-700 mt-1">Click <span className="text-emerald-500">运行</span> to execute</p></div></div>
                 )}
               </div>
             </div>
           </div>
         </aside>
       )}
+    </div>
+  );
+}
+
+function 运行结果Block({ label, color, content }: { label: string; color: string; content: string }) {
+  const colors: any = { emerald: "text-emerald-400 border-emerald-500/10 bg-emerald-500/5", rose: "text-rose-400 border-rose-500/10 bg-rose-500/5" };
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</p>
+      <div className={`text-sm whitespace-pre-wrap leading-relaxed rounded-lg p-3 border ${colors[color] || "text-slate-400"}`}>{content}</div>
     </div>
   );
 }

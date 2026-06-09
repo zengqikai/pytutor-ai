@@ -93,26 +93,12 @@ async def execute_python_code(code: str) -> dict:
 
         start_time = time.perf_counter()
 
-        # 在子进程中执行。先写入 UTF-8 BOM 声明，确保 Python 输出 UTF-8
-        import os as _os, sys as _sys
-        # 构建干净的 UTF-8 环境变量（避免 Windows GBK 编码污染）
-        env = {}
-        for k, v in _os.environ.items():
-            try:
-                env[k] = v
-            except Exception:
-                env[k] = ""
-        env["PYTHONIOENCODING"] = "utf-8"
-        env["PYTHONUTF8"] = "1"
-        env["LANG"] = "en_US.UTF-8"
-        env["LC_ALL"] = "en_US.UTF-8"
+        # 在子进程中执行
         process = await asyncio.create_subprocess_exec(
-            _sys.executable,  # 使用当前 Python 解释器
-            "-X", "utf8",     # Python UTF-8 模式
+            "python",
             str(tmp_path),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env=env,
         )
 
         try:
@@ -131,13 +117,9 @@ async def execute_python_code(code: str) -> dict:
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
 
-        # 限制输出大小，统一换行符，清理临时文件路径中的用户名
-        import re
-        stdout = stdout_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")[:MAX_OUTPUT_SIZE]
-        stderr = stderr_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n")
-        # 匿名化 temp 路径中的用户名（如 C:\Users\张三\... → C:\Users\<user>\...）
-        stderr = re.sub(r'File ".*?\\Temp\\[^"]+", line', 'File "<code>", line', stderr)
-        stderr = stderr[:MAX_OUTPUT_SIZE]
+        # 限制输出大小
+        stdout = stdout_bytes.decode("utf-8", errors="replace")[:MAX_OUTPUT_SIZE]
+        stderr = stderr_bytes.decode("utf-8", errors="replace")[:MAX_OUTPUT_SIZE]
 
         if timeout_triggered:
             status = "timeout"
