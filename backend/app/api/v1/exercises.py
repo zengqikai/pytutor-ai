@@ -89,48 +89,50 @@ async def submit_exercise_answer(
 
     user_code = code.get("code", "")
 
-    # 执行用户代码
-    exec_result = await execute_python_code(user_code)
+    # ACM 模式：每个测试用例独立执行，stdin 传入 input_data
+    from app.sandbox.executor import execute_python_code_with_input
 
-    # 运行测试用例（简单比对 stdout）
     test_results = []
     passed = 0
     total = 0
+    total_time = 0.0
+    any_error = None
 
-    for tc in exercise.test_cases:
+    for tc in sorted(exercise.test_cases, key=lambda t: t.order_index):
         total += 1
-        # 简单比较：运行代码的输出是否等于期望输出
-        if exec_result["stdout"].strip() == tc.expected_output.strip():
-            passed += 1
-            test_results.append({
-                "description": tc.description,
-                "passed": True,
-                "is_hidden": tc.is_hidden,
-            })
-        else:
-            test_results.append({
-                "description": tc.description,
-                "passed": False,
-                "is_hidden": tc.is_hidden,
-                "expected": tc.expected_output if not tc.is_hidden else "(隐藏)",
-                "got": exec_result["stdout"][:100] if not tc.is_hidden else "(隐藏)",
-            })
+        exec_result = await execute_python_code_with_input(user_code, stdin_input=tc.input_data or "")
+        total_time += exec_result.get("runtime_ms", 0)
 
-    # 更新使用统计
+        if exec_result["status"] == "blocked":
+            test_results.append({"description": tc.description, "passed": False, "is_hidden": tc.is_hidden, "error": f"安全拦截: {exec_result['stderr']}"})
+            any_error = exec_result["stderr"]
+            continue
+        if exec_result["status"] == "timeout":
+            test_results.append({"description": tc.description, "passed": False, "is_hidden": tc.is_hidden, "error": "超时"})
+            any_error = "超时"
+            continue
+        if exec_result["status"] == "error" and exec_result["stderr"]:
+            test_results.append({"description": tc.description, "passed": False, "is_hidden": tc.is_hidden, "error": exec_result["stderr"][:200]})
+            any_error = exec_result["stderr"]
+            continue
+
+        user_output = exec_result["stdout"].rstrip()
+        expected = (tc.expected_output or "").rstrip()
+        if user_output == expected:
+            passed += 1
+            test_results.append({"description": tc.description, "passed": True, "is_hidden": tc.is_hidden})
+        else:
+            test_results.append({"description": tc.description, "passed": False, "is_hidden": tc.is_hidden,
+                "expected": expected if not tc.is_hidden else "(隐藏)",
+                "got": user_output[:200] if not tc.is_hidden else "(隐藏)"})
+
     exercise.use_count = (exercise.use_count or 0) + 1
     await db.commit()
+    avg_time = round(total_time / total, 2) if total > 0 else 0
 
     return {
         "exercise_id": exercise_id,
-        "execution": {
-            "stdout": exec_result["stdout"][:500],
-            "stderr": exec_result["stderr"][:500],
-            "status": exec_result["status"],
-            "runtime_ms": exec_result["runtime_ms"],
-        },
-        "test_results": {
-            "passed": passed,
-            "total": total,
-            "details": test_results,
+        "execution": {"status": "completed" if any_error is None else "error", "stderr": any_error or "", "runtime_ms": avg_time},
+        "test_results": {"passed": passed, "total": total, "details": test_results,
         },
     }
