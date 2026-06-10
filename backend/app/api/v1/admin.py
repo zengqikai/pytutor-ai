@@ -76,11 +76,13 @@ async def student_detail(
             "time": e.created_at.isoformat(),
         })
 
+    passed_count = sum(1 for e in events if e["type"] == "exercise_passed")
+
     return {
         "student": {
             "id": user.id, "name": user.display_name, "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "exercises_passed": passed_count,
             "hints_used": profile.total_hints_used if profile else 0,
         },
         "events": events,
@@ -217,14 +219,24 @@ async def student_overview(
         .limit(100)
     )
     students = []
+    # 预加载所有学生的通过数
+    from app.models.profile import LearningEvent
+    event_counts = {}
+    all_events = (await db.execute(
+        select(LearningEvent.user_id, func.count())
+        .where(LearningEvent.event_type == "exercise_passed")
+        .group_by(LearningEvent.user_id)
+    )).all()
+    for uid, cnt in all_events:
+        event_counts[uid] = cnt
+
     for user, profile in r:
         students.append({
             "id": user.id,
             "name": user.display_name,
             "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_passed": profile.total_exercises_passed if profile else 0,
-            "exercises_done": profile.total_exercises_completed if profile else 0,
+            "exercises_passed": event_counts.get(user.id, 0),
             "hints_used": profile.total_hints_used if profile else 0,
             "last_active": user.updated_at.isoformat() if user.updated_at else "",
             "is_active": user.is_active,
