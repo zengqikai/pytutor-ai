@@ -31,8 +31,9 @@ async def student_detail(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
-    """查看单个学生的学习记录：完成/失败的练习、使用提示情况。"""
-    from app.models.profile import LearningEvent, StudentProfile
+    """查看单个学生的学习记录：完成/失败的练习。"""
+    from app.models.profile import StudentProfile
+    from app.models.submission import CodeSubmission, ExecutionResult
 
     r = await db.execute(select(User).where(User.id == student_id))
     user = r.scalar_one_or_none()
@@ -41,28 +42,34 @@ async def student_detail(
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
 
-    # 学习事件
+    # 直接查代码提交记录（关联练习ID）
     r = await db.execute(
-        select(LearningEvent)
-        .where(LearningEvent.user_id == student_id)
-        .order_by(LearningEvent.created_at.desc())
+        select(CodeSubmission, ExecutionResult)
+        .join(ExecutionResult, CodeSubmission.id == ExecutionResult.submission_id, isouter=True)
+        .where(CodeSubmission.user_id == student_id, CodeSubmission.exercise_id.isnot(None))
+        .order_by(CodeSubmission.created_at.desc())
         .limit(50)
     )
     events = []
-    for e in r.scalars():
-        detail = {}
-        if e.detail_json:
-            import json
-            try: detail = json.loads(e.detail_json)
-            except: pass
+    seen_exercises = set()
+    for sub, res in r:
+        # 查练习标题
+        ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
+        ex = ex_r.scalar_one_or_none()
+        title = ex.title if ex else (sub.exercise_id or "未知题目")[:20]
+
+        passed = res and res.status == "completed" and res.exit_code == 0
         events.append({
-            "type": e.event_type,
-            "concept": e.concept,
-            "score_pct": detail.get("score_pct", 0),
-            "used_hints": detail.get("used_hints", 0),
-            "viewed_solution": detail.get("viewed_solution", False),
-            "time": e.created_at.isoformat(),
+            "type": "exercise_passed" if passed else "exercise_failed",
+            "title": title,
+            "concept": ex.concepts if ex else None,
+            "difficulty": ex.difficulty if ex else 1,
+            "status": res.status if res else "unknown",
+            "runtime_ms": res.runtime_ms if res else 0,
+            "time": sub.created_at.isoformat(),
         })
+        if passed:
+            seen_exercises.add(sub.exercise_id)
 
     return {
         "student": {
@@ -70,6 +77,7 @@ async def student_detail(
             "level": profile.level if profile else 1,
             "exercises_done": profile.total_exercises_completed if profile else 0,
             "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "unique_passed": len(seen_exercises),
             "hints_used": profile.total_hints_used if profile else 0,
         },
         "events": events,
@@ -82,41 +90,29 @@ async def exercise_records(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
-    """查看某道题的提交记录：哪些学生通过了、哪些用了提示。"""
-    from app.models.profile import LearningEvent
+    """查看某道题的提交记录：哪些学生通过了。"""
+    from app.models.submission import CodeSubmission, ExecutionResult
 
     r = await db.execute(
-        select(LearningEvent)
-        .where(LearningEvent.concept != None)
-        .order_by(LearningEvent.created_at.desc())
-        .limit(200)
+        select(CodeSubmission, ExecutionResult)
+        .join(ExecutionResult, CodeSubmission.id == ExecutionResult.submission_id, isouter=True)
+        .where(CodeSubmission.exercise_id == exercise_id)
+        .order_by(CodeSubmission.created_at.desc())
+        .limit(50)
     )
     records = []
-    for e in r.scalars():
-        detail = {}
-        if e.detail_json:
-            import json
-            try: detail = json.loads(e.detail_json)
-            except: pass
-        # 查用户名
-        ur = await db.execute(select(User).where(User.id == e.user_id))
+    for sub, res in r:
+        ur = await db.execute(select(User).where(User.id == sub.user_id))
         user = ur.scalar_one_or_none()
+        passed = res and res.status == "completed" and res.exit_code == 0
         records.append({
             "student_name": user.display_name if user else "?",
             "student_email": user.email if user else "",
-            "event_type": e.event_type,
-            "score_pct": detail.get("score_pct", 0),
-            "used_hints": detail.get("used_hints", 0),
-            "viewed_solution": detail.get("viewed_solution", False),
-            "time": e.created_at.isoformat(),
+            "passed": passed,
+            "status": res.status if res else "unknown",
+            "runtime_ms": res.runtime_ms if res else 0,
+            "time": sub.created_at.isoformat(),
         })
-    # 过滤与本题概念相关的记录
-    r2 = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
-    ex = r2.scalar_one_or_none()
-    if ex and ex.concepts:
-        concepts = [c.strip() for c in ex.concepts.split(",")]
-        records = [r for r in records if any(c in (r.get("event_type", "")) for c in concepts)] or records
-
     return {"records": records}
 
 

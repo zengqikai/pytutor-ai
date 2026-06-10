@@ -138,7 +138,7 @@ export default function AdminPage() {
                   <StatMini label="等级" value={`Lv.${studentDetail.student?.level}`} />
                   <StatMini label="通过" value={studentDetail.student?.exercises_passed} />
                   <StatMini label="使用提示" value={studentDetail.student?.hints_used} />
-                  <StatMini label="学习事件" value={studentDetail.events?.length || 0} />
+                  <StatMini label="独立通过" value={`${studentDetail.student?.unique_passed || 0}题`} />
                 </div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">练习记录</p>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -146,11 +146,10 @@ export default function AdminPage() {
                     <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${ev.type === "exercise_passed" ? "bg-emerald-500/5 border-emerald-500/10" : "bg-rose-500/5 border-rose-500/10"}`}>
                       <div className="flex items-center gap-3">
                         <span className={ev.type === "exercise_passed" ? "text-emerald-400" : "text-rose-400"}>{ev.type === "exercise_passed" ? "✅" : "❌"}</span>
-                        <div><p className="text-sm text-slate-300">{ev.concept || "练习"}</p><p className="text-xs text-slate-600">{ev.time}</p></div>
+                        <div><p className="text-sm text-slate-300">{ev.title || ev.concept || "练习"} {"★".repeat(ev.difficulty || 1)}</p><p className="text-xs text-slate-600">{ev.time}</p></div>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
-                        {ev.score_pct > 0 && <span className={`px-2 py-0.5 rounded-full ${ev.score_pct === 100 ? "bg-emerald-500/10 text-emerald-400" : ev.score_pct >= 50 ? "bg-amber-500/10 text-amber-400" : "bg-slate-500/10 text-slate-400"}`}>{ev.score_pct === 100 ? "⭐独立" : ev.score_pct >= 50 ? "🌟提示" : "📖答案"}</span>}
-                        {ev.used_hints > 0 && <span className="text-amber-400">提示×{ev.used_hints}</span>}
+                        <span className="text-slate-500">{ev.runtime_ms}ms</span>
                       </div>
                     </div>
                   ))}
@@ -192,15 +191,12 @@ export default function AdminPage() {
                 ) : (
                   <div className="space-y-2 max-h-80 overflow-y-auto">
                     {exerciseRecords.map((r: any, i: number) => (
-                      <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${r.event_type === "exercise_passed" ? "bg-emerald-500/5 border-emerald-500/10" : "bg-rose-500/5 border-rose-500/10"}`}>
+                      <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${r.passed ? "bg-emerald-500/5 border-emerald-500/10" : "bg-rose-500/5 border-rose-500/10"}`}>
                         <div className="flex items-center gap-3">
-                          <span className={r.event_type === "exercise_passed" ? "text-emerald-400" : "text-rose-400"}>{r.event_type === "exercise_passed" ? "✅" : "❌"}</span>
+                          <span className={r.passed ? "text-emerald-400" : "text-rose-400"}>{r.passed ? "✅" : "❌"}</span>
                           <div><p className="text-sm text-slate-300">{r.student_name} <span className="text-xs text-slate-500">({r.student_email})</span></p><p className="text-xs text-slate-600">{r.time}</p></div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          {r.score_pct > 0 && <span className={`px-2 py-0.5 rounded-full ${r.score_pct === 100 ? "bg-emerald-500/10 text-emerald-400" : r.score_pct >= 50 ? "bg-amber-500/10 text-amber-400" : "bg-slate-500/10 text-slate-400"}`}>{r.score_pct === 100 ? "⭐独立" : r.score_pct >= 50 ? "🌟提示" : "📖答案"}</span>}
-                          {r.used_hints > 0 && <span className="text-amber-400">提示×{r.used_hints}</span>}
-                        </div>
+                        <span className="text-xs text-slate-500">{r.runtime_ms}ms</span>
                       </div>
                     ))}
                   </div>
