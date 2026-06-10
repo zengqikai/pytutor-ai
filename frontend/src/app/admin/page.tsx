@@ -38,9 +38,16 @@ export default function AdminPage() {
     loadTab();
   };
 
-  if (user?.role !== "admin") return <div className="p-8 text-slate-500">需要管理员权限</div>;
+  if (user?.role !== "admin" && user?.role !== "instructor") return <div className="p-8 text-slate-500">需要教师或管理员权限</div>;
+  const isAdmin = user?.role === "admin";
 
-  const tabs = [{ key: "stats", label: "概览" }, { key: "users", label: "用户" }, { key: "exercises", label: "题库" }, { key: "logs", label: "日志" }];
+  const tabs = [
+    ...(isAdmin ? [{ key: "stats", label: "概览" }] : []),
+    { key: "exercises", label: "题库管理" },
+    ...(isAdmin ? [{ key: "users", label: "用户管理" }, { key: "logs", label: "系统日志" }] : []),
+  ];
+  // 教师默认打开题库
+  if (!isAdmin && tab === "stats") setTab("exercises");
 
   return (
     <div className="h-[calc(100vh-56px)] flex">
@@ -83,6 +90,12 @@ export default function AdminPage() {
           </div>
         )}
 
+        {!isAdmin && tab === "exercises" && (
+          <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+            <p className="text-sm text-indigo-300 font-medium mb-1">👩‍🏫 教师模式</p>
+            <p className="text-xs text-slate-400">你可以管理题库（发布/下架题目、查看使用数据）。学生管理功能需管理员权限。</p>
+          </div>
+        )}
         {tab === "exercises" && (
           <div className="glass rounded-xl border border-white/[0.06] overflow-hidden">
             <table className="w-full text-sm"><thead className="bg-white/[0.02]"><tr><th className="text-left px-4 py-2 text-slate-400">标题</th><th className="text-left px-4 py-2 text-slate-400">难度</th><th className="text-left px-4 py-2 text-slate-400">知识点</th><th className="text-left px-4 py-2 text-slate-400">来源</th><th className="text-left px-4 py-2 text-slate-400">使用/通过率</th><th className="text-left px-4 py-2 text-slate-400">操作</th></tr></thead>

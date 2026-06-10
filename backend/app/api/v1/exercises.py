@@ -84,11 +84,6 @@ async def get_exercise_hint(
             messages=[LLMMessage(role="user", content=prompt)],
             temperature=0.5, max_tokens=300,
         )
-        # 联动画像：提示使用计数
-        from app.services.profile_service import get_or_create_profile
-        profile = await get_or_create_profile(db, current_user.id)
-        profile.total_hints_used += 1
-        await db.commit()
         return {"hint": llm_resp.content.strip(), "hint_level": level}
     except Exception as e:
         return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": level}
@@ -222,6 +217,9 @@ async def submit_exercise_answer(
     if all_passed and score_pct > 0:
         profile.total_exercises_completed += 1
         profile.total_exercises_passed += 1
+        # 通过时才记录提示次数（独立完成的练习不计提示）
+        if used_hints > 0:
+            profile.total_hints_used += used_hints
     elif not all_passed:
         profile.total_exercises_completed += 1
 
