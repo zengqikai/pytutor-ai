@@ -18,10 +18,20 @@ export default function ExercisesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [testRunning, setTestRunning] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
-  const [displayedHintLevel, setDisplayedHintLevel] = useState(0); // 当前显示的提示等级
+  const [displayedHintLevel, setDisplayedHintLevel] = useState(0);
+  const [passedConcepts, setPassedConcepts] = useState<Set<string>>(new Set()); // 当前显示的提示等级
 
-  useEffect(() => { loadUser(); loadExercises(); }, []);
+  useEffect(() => { loadUser(); loadExercises(); loadPassed(); }, []);
   useEffect(() => { loadExercises(); }, [store.difficulty]);
+
+  const loadPassed = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed", { headers: { Authorization: `Bearer ${token}` } });
+      const data = await r.json();
+      setPassedConcepts(new Set((data.passed || []).map((p: any) => p.concept)));
+    } catch {}
+  };
 
   const loadExercises = async () => { try { setExercises(await exerciseAPI.list(store.difficulty)); } catch {} };
 
@@ -66,6 +76,7 @@ export default function ExercisesPage() {
         }),
       });
       store.setResult(await res.json());
+      loadPassed();
     } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
   };
 
@@ -142,13 +153,16 @@ export default function ExercisesPage() {
               <p className="mt-1">点击下方"AI 生成题目"创建</p>
             </div>
           )}
-          {exercises.map((ex) => (
+          {exercises.map((ex) => {
+            const exConcepts = (ex.concepts || "").split(",").map((c: string) => c.trim());
+            const isDone = exConcepts.some((c: string) => passedConcepts.has(c));
+            return (
             <button key={ex.id} onClick={() => selectExercise(ex)}
               className={`w-full text-left p-3 rounded-xl transition-all border ${store.selected?.id === ex.id ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/[0.04] hover:border-white/[0.08]"}`}>
-              <p className="font-semibold text-sm text-slate-200 truncate mb-1">{ex.title}</p>
+              <p className="font-semibold text-sm text-slate-200 truncate mb-1">{isDone && "✅ "}{ex.title}</p>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400 font-medium">{diffLabels[ex.difficulty]}</span>
             </button>
-          ))}
+          )})}
         </div>
       </aside>
 
