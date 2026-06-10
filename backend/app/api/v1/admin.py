@@ -76,6 +76,50 @@ async def student_detail(
     }
 
 
+@router.get("/exercises/{exercise_id}/records")
+async def exercise_records(
+    exercise_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
+):
+    """查看某道题的提交记录：哪些学生通过了、哪些用了提示。"""
+    from app.models.profile import LearningEvent
+
+    r = await db.execute(
+        select(LearningEvent)
+        .where(LearningEvent.concept != None)
+        .order_by(LearningEvent.created_at.desc())
+        .limit(200)
+    )
+    records = []
+    for e in r.scalars():
+        detail = {}
+        if e.detail_json:
+            import json
+            try: detail = json.loads(e.detail_json)
+            except: pass
+        # 查用户名
+        ur = await db.execute(select(User).where(User.id == e.user_id))
+        user = ur.scalar_one_or_none()
+        records.append({
+            "student_name": user.display_name if user else "?",
+            "student_email": user.email if user else "",
+            "event_type": e.event_type,
+            "score_pct": detail.get("score_pct", 0),
+            "used_hints": detail.get("used_hints", 0),
+            "viewed_solution": detail.get("viewed_solution", False),
+            "time": e.created_at.isoformat(),
+        })
+    # 过滤与本题概念相关的记录
+    r2 = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    ex = r2.scalar_one_or_none()
+    if ex and ex.concepts:
+        concepts = [c.strip() for c in ex.concepts.split(",")]
+        records = [r for r in records if any(c in (r.get("event_type", "")) for c in concepts)] or records
+
+    return {"records": records}
+
+
 @router.get("/stats")
 async def admin_stats(
     db: AsyncSession = Depends(get_db),
