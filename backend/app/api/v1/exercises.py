@@ -219,13 +219,24 @@ async def submit_exercise_answer(
     profile = await get_or_create_profile(db, current_user.id)
     # 难度加权经验值：exp = difficulty × score_pct
     exp_gained = round(exercise.difficulty * score_pct)
+
+    # 检查是否首次通过此题（通过 LearningEvent 去重）
+    from app.models.profile import LearningEvent
+    from sqlalchemy import func as _sa_func
+    already_passed = (await db.execute(
+        select(_sa_func.count()).select_from(LearningEvent)
+        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed",
+               LearningEvent.concept == (exercise.concepts.split(",")[0].strip() if exercise.concepts else exercise.title))
+    )).scalar() or 0
+
     if all_passed and score_pct > 0:
-        profile.total_exercises_completed += 1
-        profile.total_exercises_passed += 1
-        # 通过时才记录提示次数（独立完成的练习不计提示）
-        if used_hints > 0:
-            profile.total_hints_used += used_hints
+        if already_passed == 0:  # 首次通过才计数
+            profile.total_exercises_completed += 1
+            profile.total_exercises_passed += 1
+            if used_hints > 0:
+                profile.total_hints_used += used_hints
     elif not all_passed:
+        profile.total_exercises_completed += 1
         profile.total_exercises_completed += 1
 
     # 累积经验 + 升级（每 300 经验升一级，最低 Lv1）
