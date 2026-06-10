@@ -231,11 +231,11 @@ async def student_overview(
         .limit(100)
     )
     students = []
-    # 预加载所有学生的通过数
+    # 预加载所有学生的通过数（去重：同一知识点只算一次）
     from app.models.profile import LearningEvent
     event_counts = {}
     all_events = (await db.execute(
-        select(LearningEvent.user_id, func.count())
+        select(LearningEvent.user_id, func.count(func.distinct(LearningEvent.concept)))
         .where(LearningEvent.event_type == "exercise_passed")
         .group_by(LearningEvent.user_id)
     )).all()

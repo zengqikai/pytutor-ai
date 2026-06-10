@@ -41,6 +41,40 @@ async def get_my_weaknesses(
     return await get_weaknesses(db, current_user.id)
 
 
+@router.get("/me/passed")
+async def get_passed_exercises(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查看自己通过了哪些题目（去重）。"""
+    from app.models.profile import LearningEvent
+    r = await db.execute(
+        select(LearningEvent)
+        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed")
+        .order_by(LearningEvent.created_at.desc())
+        .limit(50)
+    )
+    seen = set()
+    passed = []
+    import json
+    for e in r.scalars():
+        concept = e.concept or "练习"
+        if concept in seen:
+            continue
+        seen.add(concept)
+        detail = {}
+        if e.detail_json:
+            try: detail = json.loads(e.detail_json)
+            except: pass
+        passed.append({
+            "concept": concept,
+            "score_pct": detail.get("score_pct", 0),
+            "used_hints": detail.get("used_hints", 0),
+            "time": e.created_at.isoformat(),
+        })
+    return {"passed": passed, "total": len(passed)}
+
+
 @router.get("/me/recommendations")
 async def get_my_recommendations(
     db: AsyncSession = Depends(get_db),

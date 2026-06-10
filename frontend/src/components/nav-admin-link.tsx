@@ -5,15 +5,11 @@ import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
 export function NavAdminLink() {
-  const { user, loadUser } = useAuthStore();
-  const [show, setShow] = useState(false);
+  const { user, isAuthenticated, loadUser } = useAuthStore();
 
-  useEffect(() => { loadUser(); }, []);
-  useEffect(() => {
-    if (user && (user.role === "admin" || user.role === "instructor")) {
-      setShow(true);
-    }
-  }, [user]);
+  useEffect(() => { loadUser(); }, [isAuthenticated]);
+
+  if (!user || (user.role !== "admin" && user.role !== "instructor")) return null;
 
   if (!show) return null;
 

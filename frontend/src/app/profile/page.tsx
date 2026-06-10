@@ -8,8 +8,17 @@ export default function ProfilePage() {
   const { user, loadUser } = useAuthStore();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { loadData(); }, []);
+  const [passed, setPassed] = useState<any[]>([]);
+  const [showPassed, setShowPassed] = useState(false);
+  useEffect(() => { loadData(); loadPassed(); }, []);
   const loadData = async () => { try { setProfile(await profileAPI.get()); } catch {} finally { setLoading(false); } };
+  const loadPassed = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed", { headers: { Authorization: `Bearer ${token}` } });
+      setPassed((await r.json()).passed || []);
+    } catch {}
+  };
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="flex gap-1.5"><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse" /><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse delay-200" /><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse delay-400" /></div></div>;
   if (!profile) return <div className="flex items-center justify-center h-full text-slate-500">无法加载画像</div>;
@@ -29,6 +38,36 @@ export default function ProfilePage() {
           <StatCard label="练习完成" value={stats.exercises_completed} color="from-emerald-500 to-teal-500" />
           <StatCard label="通过率" value={`${stats.pass_rate}%`} color="from-amber-500 to-orange-500" />
           <StatCard label="使用提示" value={stats.hints_used} color="from-sky-500 to-cyan-500" />
+        </div>
+
+        {/* 已通过题目 */}
+        <div className="glass rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between cursor-pointer" onClick={() => setShowPassed(!showPassed)}>
+            <h2 className="font-bold text-white">已通过题目 ({passed.length})</h2>
+            <span className="text-slate-500 text-sm">{showPassed ? "收起" : "展开"}</span>
+          </div>
+          {showPassed && (
+            <div className="p-6">
+              {passed.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">暂无通过记录</p>
+              ) : (
+                <div className="space-y-2">
+                  {passed.map((p: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-emerald-400">✅</span>
+                        <div><p className="text-sm font-medium text-slate-200">{p.concept}</p><p className="text-xs text-slate-500">{p.time}</p></div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {p.score_pct > 0 && <span className={`px-2 py-0.5 rounded-full ${p.score_pct === 100 ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>{p.score_pct === 100 ? "⭐独立" : "🌟提示"}</span>}
+                        {p.used_hints > 0 && <span className="text-amber-400">提示×{p.used_hints}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {recommendation && (
