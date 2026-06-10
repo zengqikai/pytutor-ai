@@ -195,7 +195,10 @@ export default function AdminPage() {
                           <span className={r.passed ? "text-emerald-400" : "text-rose-400"}>{r.passed ? "✅" : "❌"}</span>
                           <div><p className="text-sm text-slate-300">{r.student_name} <span className="text-xs text-slate-500">({r.student_email})</span></p><p className="text-xs text-slate-600">{r.time}</p></div>
                         </div>
-                        <span className="text-xs text-slate-500">{r.runtime_ms}ms</span>
+                        <div className="flex items-center gap-2 text-xs">
+                          {r.score_pct > 0 && <span className={`px-2 py-0.5 rounded-full ${r.score_pct === 100 ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>{r.score_pct === 100 ? "⭐独立" : "🌟提示"}</span>}
+                          {r.used_hints > 0 && <span className="text-amber-400">提示×{r.used_hints}</span>}
+                        </div>
                       </div>
                     ))}
                   </div>

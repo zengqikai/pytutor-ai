@@ -95,28 +95,40 @@ async def exercise_records(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
-    """查看某道题的提交记录：哪些学生通过了。"""
-    from app.models.submission import CodeSubmission, ExecutionResult
+    """查看某道题的提交记录：哪些学生通过了，按时间排序。"""
+    from app.models.profile import LearningEvent
+    import json
 
+    # 取题目概念
+    ex_r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = ex_r.scalar_one_or_none()
+    if not exercise:
+        return {"records": []}
+
+    concepts = [c.strip() for c in (exercise.concepts or "").split(",")] if exercise.concepts else [exercise.title]
+
+    # 查所有匹配概念的学习事件
     r = await db.execute(
-        select(CodeSubmission, ExecutionResult)
-        .join(ExecutionResult, CodeSubmission.id == ExecutionResult.submission_id, isouter=True)
-        .where(CodeSubmission.exercise_id == exercise_id)
-        .order_by(CodeSubmission.created_at.desc())
-        .limit(50)
+        select(LearningEvent)
+        .where(LearningEvent.concept.in_(concepts))
+        .order_by(LearningEvent.created_at.desc())
+        .limit(100)
     )
     records = []
-    for sub, res in r:
-        ur = await db.execute(select(User).where(User.id == sub.user_id))
+    for e in r.scalars():
+        ur = await db.execute(select(User).where(User.id == e.user_id))
         user = ur.scalar_one_or_none()
-        passed = res and res.status == "completed" and res.exit_code == 0
+        detail = {}
+        if e.detail_json:
+            try: detail = json.loads(e.detail_json)
+            except: pass
         records.append({
             "student_name": user.display_name if user else "?",
             "student_email": user.email if user else "",
-            "passed": passed,
-            "status": res.status if res else "unknown",
-            "runtime_ms": res.runtime_ms if res else 0,
-            "time": sub.created_at.isoformat(),
+            "passed": e.event_type == "exercise_passed",
+            "score_pct": detail.get("score_pct", 0),
+            "used_hints": detail.get("used_hints", 0),
+            "time": e.created_at.isoformat(),
         })
     return {"records": records}
 
