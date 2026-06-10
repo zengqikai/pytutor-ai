@@ -281,20 +281,41 @@ async def admin_exercises(
         select(Exercise).order_by(Exercise.created_at.desc()).limit(limit)
     )
     exercises = r.scalars().all()
-    return [
-        {
-            "id": e.id,
-            "title": e.title,
-            "difficulty": e.difficulty,
-            "concepts": e.concepts,
-            "source": e.source,
+
+    # 从 LearningEvent 统计每个题目的使用次数和通过率
+    from app.models.profile import LearningEvent
+    stats_map = {}
+    all_events = (await db.execute(
+        select(LearningEvent.concept, LearningEvent.event_type, func.count())
+        .where(LearningEvent.event_type.in_(["exercise_passed", "exercise_failed"]))
+        .group_by(LearningEvent.concept, LearningEvent.event_type)
+    )).all()
+    for concept, etype, cnt in all_events:
+        if concept not in stats_map:
+            stats_map[concept] = {"total": 0, "passed": 0}
+        stats_map[concept]["total"] += cnt
+        if etype == "exercise_passed":
+            stats_map[concept]["passed"] += cnt
+
+    result = []
+    for e in exercises:
+        total = 0
+        passed = 0
+        if e.concepts:
+            for c in e.concepts.split(","):
+                c = c.strip()
+                if c in stats_map:
+                    total += stats_map[c]["total"]
+                    passed += stats_map[c]["passed"]
+        result.append({
+            "id": e.id, "title": e.title, "difficulty": e.difficulty,
+            "concepts": e.concepts, "source": e.source,
             "is_published": e.is_published,
-            "use_count": e.use_count,
-            "pass_rate": e.pass_rate,
+            "use_count": total,
+            "pass_rate": f"{round(passed/total*100)}%" if total > 0 else "-",
             "created_at": e.created_at.isoformat(),
-        }
-        for e in exercises
-    ]
+        })
+    return result
 
 
 @router.patch("/exercises/{exercise_id}")
