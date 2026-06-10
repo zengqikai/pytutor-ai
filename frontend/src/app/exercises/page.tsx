@@ -18,6 +18,7 @@ export default function ExercisesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [testRunning, setTestRunning] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
+  const [displayedHintLevel, setDisplayedHintLevel] = useState(0); // 当前显示的提示等级
 
   useEffect(() => { loadUser(); loadExercises(); }, []);
   useEffect(() => { loadExercises(); }, [store.difficulty]);
@@ -30,6 +31,7 @@ export default function ExercisesPage() {
     store.setTestResult(null);
     store.setHintText("");
     store.setHintLevel(1);
+    setDisplayedHintLevel(0);
     store.setShowSolution(false);
   };
 
@@ -65,8 +67,11 @@ export default function ExercisesPage() {
         }),
       });
       const d = await res.json();
+      const currentLevel = store.hintLevel;
       store.setHintText(d.hint || "");
-      store.setHintLevel(Math.min(store.hintLevel + 1, 2));
+      setDisplayedHintLevel(currentLevel);  // 记录本次显示的等级
+      // 两次后禁用：level 2 点完后设为 3（> 2 触发 disabled）
+      store.setHintLevel(currentLevel >= 2 ? 3 : currentLevel + 1);
     } catch (e: any) { store.setHintText("获取提示失败"); }
     finally { setHintLoading(false); }
   };
@@ -154,7 +159,7 @@ export default function ExercisesPage() {
               {/* 帮助按钮区 —— 始终可用 */}
               <div className="space-y-4 pt-4 border-t border-white/[0.04]">
                 <div className="flex gap-2">
-                  <button onClick={requestHint} disabled={hintLoading || store.hintLevel > 2} className="text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-colors disabled:opacity-30">{hintLoading ? "生成中..." : store.hintLevel > 2 ? "💡 提示已用完" : `💡 提示 (${store.hintLevel}/2)`}</button>
+                  <button onClick={requestHint} disabled={hintLoading || store.hintLevel >= 3} className="text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-colors disabled:opacity-30">{hintLoading ? "生成中..." : store.hintLevel >= 3 ? "💡 提示已用完" : displayedHintLevel === 0 ? "💡 提示" : `💡 提示 (${displayedHintLevel}/2)`}</button>
                   <button onClick={viewSolution} className="text-xs px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-colors">📖 参考答案</button>
                 </div>
                 {store.result && store.result.test_results && (
@@ -169,7 +174,7 @@ export default function ExercisesPage() {
                 )}
                 {store.hintText && (
                   <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-4 text-sm text-amber-200/80 leading-relaxed animate-fade-in">
-                    <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">💡 Level {store.hintLevel - 1} 提示</p>{store.hintText}
+                    <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">💡 Level {displayedHintLevel} 提示</p>{store.hintText}
                   </div>
                 )}
                 {store.showSolution && (

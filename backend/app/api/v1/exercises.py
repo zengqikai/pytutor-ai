@@ -184,6 +184,25 @@ async def submit_exercise_answer(
                 "got": user_output[:200] if not tc.is_hidden else "(隐藏)"})
 
     exercise.use_count = (exercise.use_count or 0) + 1
+
+    # 联动学习画像：记录事件 + 更新薄弱点
+    from app.services.profile_service import record_event, update_weakness, get_or_create_profile
+    all_passed = passed == total and total > 0
+    await record_event(db, current_user.id,
+        "exercise_passed" if all_passed else "exercise_failed",
+        concept=exercise.concepts.split(",")[0] if exercise.concepts else None)
+    profile = await get_or_create_profile(db, current_user.id)
+    if all_passed:
+        profile.total_exercises_completed += 1
+        profile.total_exercises_passed += 1
+    else:
+        profile.total_exercises_completed += 1
+
+    # 更新薄弱点：失败的用例对应的知识点
+    if not all_passed and exercise.concepts:
+        for concept in exercise.concepts.split(","):
+            await update_weakness(db, current_user.id, concept.strip())
+
     await db.commit()
     avg_time = round(total_time / total, 2) if total > 0 else 0
 
