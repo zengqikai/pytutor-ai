@@ -107,6 +107,37 @@ async def update_user(
     return {"id": user.id, "role": user.role.value, "is_active": user.is_active}
 
 
+@router.get("/students")
+async def student_overview(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
+):
+    """教师专属：班级学生概览。"""
+    from app.models.profile import StudentProfile
+
+    r = await db.execute(
+        select(User, StudentProfile)
+        .join(StudentProfile, User.id == StudentProfile.user_id, isouter=True)
+        .where(User.role == "student")
+        .order_by(User.created_at.desc())
+        .limit(100)
+    )
+    students = []
+    for user, profile in r:
+        students.append({
+            "id": user.id,
+            "name": user.display_name,
+            "email": user.email,
+            "level": profile.level if profile else 1,
+            "exercises_done": profile.total_exercises_completed if profile else 0,
+            "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "hints_used": profile.total_hints_used if profile else 0,
+            "last_active": user.updated_at.isoformat() if user.updated_at else "",
+            "is_active": user.is_active,
+        })
+    return {"students": students, "total": len(students)}
+
+
 @router.get("/logs")
 async def view_logs(
     limit: int = Query(default=50, ge=1, le=200),

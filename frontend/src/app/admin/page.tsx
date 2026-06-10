@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [exercises, setExercises] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [search, setSearch] = useState("");
 
   useEffect(() => { loadUser(); if (user?.role !== "admin") return; loadTab(); }, [tab, user]);
@@ -26,6 +27,10 @@ export default function AdminPage() {
       if (tab === "stats") setStats(await fetchAdmin("/admin/stats"));
       if (tab === "users") setUsers(await fetchAdmin(`/admin/users?search=${search}`));
       if (tab === "exercises") setExercises(await fetchAdmin("/admin/exercises?limit=100"));
+      if (tab === "students") {
+        const d = await fetchAdmin("/admin/students");
+        setStudents(d.students || []);
+      }
       if (tab === "logs") setLogs(await fetchAdmin("/admin/logs?limit=100"));
     } catch {}
   };
@@ -42,7 +47,8 @@ export default function AdminPage() {
   const isAdmin = user?.role === "admin";
 
   const tabs = [
-    ...(isAdmin ? [{ key: "stats", label: "概览" }] : []),
+    ...(isAdmin ? [{ key: "stats", label: "系统概览" }] : []),
+    { key: "students", label: "学生概览" },
     { key: "exercises", label: "题库管理" },
     ...(isAdmin ? [{ key: "users", label: "用户管理" }, { key: "logs", label: "系统日志" }] : []),
   ];
@@ -90,10 +96,39 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!isAdmin && tab === "exercises" && (
-          <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-            <p className="text-sm text-indigo-300 font-medium mb-1">👩‍🏫 教师模式</p>
-            <p className="text-xs text-slate-400">你可以管理题库（发布/下架题目、查看使用数据）。学生管理功能需管理员权限。</p>
+        {tab === "students" && (
+          <div className="glass rounded-xl border border-white/[0.06] overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-white/[0.02]"><tr>
+                <th className="text-left px-4 py-3 text-slate-400">学生</th>
+                <th className="text-left px-4 py-3 text-slate-400">邮箱</th>
+                <th className="text-center px-4 py-3 text-slate-400">等级</th>
+                <th className="text-center px-4 py-3 text-slate-400">练习完成</th>
+                <th className="text-center px-4 py-3 text-slate-400">通过</th>
+                <th className="text-center px-4 py-3 text-slate-400">使用提示</th>
+                <th className="text-center px-4 py-3 text-slate-400">状态</th>
+              </tr></thead>
+              <tbody>
+                {students.map((s: any) => (
+                  <tr key={s.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-slate-200 font-medium">{s.name}</td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{s.email}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400">Lv.{s.level}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-slate-300">{s.exercises_done}</td>
+                    <td className="px-4 py-3 text-center text-emerald-400">{s.exercises_passed}</td>
+                    <td className="px-4 py-3 text-center text-amber-400">{s.hints_used}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${s.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+                        {s.is_active ? "活跃" : "禁用"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {students.length === 0 && <p className="text-center py-8 text-slate-500 text-sm">暂无学生数据</p>}
           </div>
         )}
         {tab === "exercises" && (
