@@ -13,15 +13,18 @@ async function fetchAdmin(path: string) {
 
 export default function AdminPage() {
   const { user, loadUser } = useAuthStore();
-  const [tab, setTab] = useState("stats");
+  const [tab, setTab] = useState("students");
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [exercises, setExercises] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentDetail, setStudentDetail] = useState<any>(null);
 
-  useEffect(() => { loadUser(); if (user?.role !== "admin") return; loadTab(); }, [tab, user]);
+  useEffect(() => { loadUser(); }, []);
+  useEffect(() => { if (user && (user.role === "admin" || user.role === "instructor")) loadTab(); }, [tab, user]);
   const loadTab = async () => {
     try {
       if (tab === "stats") setStats(await fetchAdmin("/admin/stats"));
@@ -110,7 +113,15 @@ export default function AdminPage() {
               </tr></thead>
               <tbody>
                 {students.map((s: any) => (
-                  <tr key={s.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
+                  <tr key={s.id}
+                    onClick={async () => {
+                      setSelectedStudent(s);
+                      try {
+                        const d = await fetchAdmin(`/admin/students/${s.id}`);
+                        setStudentDetail(d);
+                      } catch { setStudentDetail(null); }
+                    }}
+                    className={`border-t border-white/[0.04] hover:bg-white/[0.02] cursor-pointer ${selectedStudent?.id === s.id ? "bg-indigo-500/10" : ""}`}>
                     <td className="px-4 py-3 text-slate-200 font-medium">{s.name}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{s.email}</td>
                     <td className="px-4 py-3 text-center">
@@ -129,6 +140,62 @@ export default function AdminPage() {
               </tbody>
             </table>
             {students.length === 0 && <p className="text-center py-8 text-slate-500 text-sm">暂无学生数据</p>}
+          </div>
+        )}
+        {selectedStudent && studentDetail && (
+          <div className="glass rounded-xl border border-white/[0.06] p-6 mt-4 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">{studentDetail.student?.name} 的学习详情</h3>
+              <button onClick={() => { setSelectedStudent(null); setStudentDetail(null); }} className="text-xs text-slate-500 hover:text-slate-300">关闭</button>
+            </div>
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-indigo-400">Lv.{studentDetail.student?.level}</p>
+                <p className="text-xs text-slate-500">等级</p>
+              </div>
+              <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-400">{studentDetail.student?.exercises_passed}</p>
+                <p className="text-xs text-slate-500">通过</p>
+              </div>
+              <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-amber-400">{studentDetail.student?.hints_used}</p>
+                <p className="text-xs text-slate-500">使用提示</p>
+              </div>
+              <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-slate-400">{studentDetail.events?.length || 0}</p>
+                <p className="text-xs text-slate-500">学习事件</p>
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">练习记录</p>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {studentDetail.events?.map((ev: any, i: number) => (
+                <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${
+                  ev.type === "exercise_passed" ? "bg-emerald-500/5 border-emerald-500/10" : "bg-rose-500/5 border-rose-500/10"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <span className={ev.type === "exercise_passed" ? "text-emerald-400" : "text-rose-400"}>
+                      {ev.type === "exercise_passed" ? "✅" : "❌"}
+                    </span>
+                    <div>
+                      <p className="text-sm text-slate-300">{ev.concept || "练习"}</p>
+                      <p className="text-xs text-slate-600">{ev.time}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    {ev.score_pct > 0 && (
+                      <span className={`px-2 py-0.5 rounded-full ${ev.score_pct === 100 ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
+                        {ev.score_pct === 100 ? "⭐独立" : ev.score_pct >= 50 ? "🌟提示" : "📖答案"}
+                      </span>
+                    )}
+                    {ev.used_hints > 0 && <span className="text-amber-400">用了 {ev.used_hints} 次提示</span>}
+                    {ev.viewed_solution && <span className="text-slate-500">查看了答案</span>}
+                  </div>
+                </div>
+              ))}
+              {(!studentDetail.events || studentDetail.events.length === 0) && (
+                <p className="text-center text-slate-500 text-sm py-4">暂无练习记录</p>
+              )}
+            </div>
           </div>
         )}
         {tab === "exercises" && (

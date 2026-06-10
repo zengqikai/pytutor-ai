@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { NavLink } from "@/components/nav-link";
+import { NavAdminLink } from "@/components/nav-admin-link";
 import { NavUser } from "@/components/nav-user";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavLink href="/" label="AI 对话" />
             <NavLink href="/exercises" label="练习中心" />
             <NavLink href="/profile" label="学习画像" />
+            <NavAdminLink />
             <div className="flex-1" />
             <NavUser />
           </div>

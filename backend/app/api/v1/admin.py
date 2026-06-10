@@ -25,6 +25,57 @@ from app.security.dependencies import get_current_user, require_role
 router = APIRouter()
 
 
+@router.get("/students/{student_id}")
+async def student_detail(
+    student_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
+):
+    """查看单个学生的学习记录：完成/失败的练习、使用提示情况。"""
+    from app.models.profile import LearningEvent, StudentProfile
+
+    r = await db.execute(select(User).where(User.id == student_id))
+    user = r.scalar_one_or_none()
+    if not user: return {"detail": "学生不存在"}
+
+    r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
+    profile = r.scalar_one_or_none()
+
+    # 学习事件
+    r = await db.execute(
+        select(LearningEvent)
+        .where(LearningEvent.user_id == student_id)
+        .order_by(LearningEvent.created_at.desc())
+        .limit(50)
+    )
+    events = []
+    for e in r.scalars():
+        detail = {}
+        if e.detail_json:
+            import json
+            try: detail = json.loads(e.detail_json)
+            except: pass
+        events.append({
+            "type": e.event_type,
+            "concept": e.concept,
+            "score_pct": detail.get("score_pct", 0),
+            "used_hints": detail.get("used_hints", 0),
+            "viewed_solution": detail.get("viewed_solution", False),
+            "time": e.created_at.isoformat(),
+        })
+
+    return {
+        "student": {
+            "id": user.id, "name": user.display_name, "email": user.email,
+            "level": profile.level if profile else 1,
+            "exercises_done": profile.total_exercises_completed if profile else 0,
+            "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "hints_used": profile.total_hints_used if profile else 0,
+        },
+        "events": events,
+    }
+
+
 @router.get("/stats")
 async def admin_stats(
     db: AsyncSession = Depends(get_db),
