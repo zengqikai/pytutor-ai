@@ -206,28 +206,28 @@ async def submit_exercise_answer(
         score_pct = 0        # 未通过 → 0%
         # 未通过时仍记录尝试次数
 
-    await record_event(db, current_user.id,
-        "exercise_passed" if all_passed else "exercise_failed",
-        concept=(exercise.concepts.split(",")[0] if exercise.concepts else exercise.title),
-        detail={
-            "title": exercise.title,  # 存题目名
-            "exercise_id": exercise.id,
-            "score_pct": score_pct,
-            "used_hints": used_hints,
-            "viewed_solution": viewed_solution
-        })
-    profile = await get_or_create_profile(db, current_user.id)
-    # 难度加权经验值：exp = difficulty × score_pct
-    exp_gained = round(exercise.difficulty * score_pct)
-
-    # 检查是否首次通过此题（通过 LearningEvent 去重）
+    # 去重检查——必须在 record_event 之前！
     from app.models.profile import LearningEvent
-    from sqlalchemy import func as _sa_func
+    from sqlalchemy import select, func as _sa_func
     already_passed = (await db.execute(
         select(_sa_func.count()).select_from(LearningEvent)
         .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed",
                LearningEvent.concept == (exercise.concepts.split(",")[0].strip() if exercise.concepts else exercise.title))
     )).scalar() or 0
+
+    # 首次通过才创建 exercise_passed 事件
+    await record_event(db, current_user.id,
+        "exercise_passed" if (all_passed and already_passed == 0) else ("exercise_failed" if not all_passed else "exercise_retry"),
+        concept=(exercise.concepts.split(",")[0] if exercise.concepts else exercise.title),
+        detail={
+            "title": exercise.title,
+            "exercise_id": exercise.id,
+            "score_pct": score_pct if already_passed == 0 else 0,
+            "used_hints": used_hints,
+            "viewed_solution": viewed_solution
+        })
+    profile = await get_or_create_profile(db, current_user.id)
+    exp_gained = round(exercise.difficulty * score_pct)
 
     if all_passed and score_pct > 0:
         if already_passed == 0:  # 首次通过才计数
