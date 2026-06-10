@@ -185,12 +185,32 @@ async def submit_exercise_answer(
 
     exercise.use_count = (exercise.use_count or 0) + 1
 
-    # 联动学习画像：记录事件 + 更新薄弱点
+    # 联动学习画像：记录事件 + 更新薄弱点 + 独立完成度评分
     from app.services.profile_service import record_event, update_weakness, get_or_create_profile
     all_passed = passed == total and total > 0
+
+    # 独立完成度评分（前端传入 used_hints 和 viewed_solution）
+    used_hints = code.get("used_hints", 0)
+    viewed_solution = code.get("viewed_solution", False)
+
+    if all_passed:
+        if viewed_solution:
+            score_pct = 20   # 看了答案才通过 → 20%
+        elif used_hints >= 2:
+            score_pct = 50   # 用了 2 次提示 → 50%
+        elif used_hints == 1:
+            score_pct = 75   # 用了 1 次提示 → 75%
+        else:
+            score_pct = 100  # 完全独立 → 100%
+    else:
+        score_pct = 0        # 未通过 → 0%
+        # 未通过时仍记录尝试次数
+
     await record_event(db, current_user.id,
         "exercise_passed" if all_passed else "exercise_failed",
-        concept=exercise.concepts.split(",")[0] if exercise.concepts else None)
+        concept=exercise.concepts.split(",")[0] if exercise.concepts else None,
+        detail={"score_pct": score_pct, "used_hints": used_hints, "viewed_solution": viewed_solution})
+
     profile = await get_or_create_profile(db, current_user.id)
     if all_passed:
         profile.total_exercises_completed += 1
@@ -212,4 +232,8 @@ async def submit_exercise_answer(
         "test_results": {"passed": passed, "total": total, "details": test_results, "all_passed": passed == total and total > 0},
         # 附上错因分析和提示（前端可据此展示帮助按钮）
         "help_available": passed < total,
+        "score_pct": score_pct,
+        "score_label": "⭐ 完全独立完成！" if score_pct == 100 else
+                       "🌟 提示帮助完成" if score_pct >= 50 else
+                       "📖 参考答案辅助完成" if score_pct > 0 else "",
     }

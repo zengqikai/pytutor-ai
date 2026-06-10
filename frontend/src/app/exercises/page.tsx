@@ -32,6 +32,7 @@ export default function ExercisesPage() {
     store.setHintText("");
     store.setHintLevel(1);
     setDisplayedHintLevel(0);
+    store.setShowSolution(false);  // 重置答案查看状态
     store.setShowSolution(false);
   };
 
@@ -49,7 +50,19 @@ export default function ExercisesPage() {
   const submitAnswer = async () => {
     if (!store.selected || !store.userCode.trim()) return;
     setSubmitting(true); store.setResult(null);
-    try { const r = await exerciseAPI.submit(store.selected.id, store.userCode); store.setResult(r); } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`http://localhost:8000/api/v1/exercises/${store.selected.id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          code: store.userCode,
+          used_hints: displayedHintLevel,       // 使用了多少次提示
+          viewed_solution: store.showSolution,   // 是否查看了答案
+        }),
+      });
+      store.setResult(await res.json());
+    } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
   };
 
   const requestHint = async () => {
@@ -235,7 +248,10 @@ export default function ExercisesPage() {
                     <div className={`flex items-center gap-3 p-4 rounded-xl ${store.result.test_results?.passed === store.result.test_results?.total ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-rose-500/10 border border-rose-500/20"}`}>
                       <span className="text-2xl">{store.result.test_results?.passed === store.result.test_results?.total ? "✅" : "❌"}</span>
                       <div><p className={`font-bold ${store.result.test_results?.passed === store.result.test_results?.total ? "text-emerald-400" : "text-rose-400"}`}>{store.result.test_results?.passed === store.result.test_results?.total ? "Accepted" : "Wrong Answer"}</p>
-                      <p className="text-sm text-slate-400">{store.result.test_results?.passed}/{store.result.test_results?.total} 测试用例通过</p></div>
+                      <p className="text-sm text-slate-400">{store.result.test_results?.passed}/{store.result.test_results?.total} 测试用例通过</p>
+                      {store.result.score_pct > 0 && (
+                        <p className="text-xs mt-1">{store.result.score_label} <span className="text-slate-500">（独立分 {store.result.score_pct}%）</span></p>
+                      )}</div>
                     </div>
                     {store.result.test_results?.details?.map((tc: any, i: number) => (
                       <div key={i} className={`p-3 rounded-lg border ${tc.passed ? "bg-emerald-500/5 border-emerald-500/10" : "bg-rose-500/5 border-rose-500/10"}`}>
