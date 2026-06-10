@@ -42,34 +42,35 @@ async def student_detail(
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
 
-    # 只查练习中心的提交（有 exercise_id）
+    # 从学习事件查练习记录（画像联动已正确写入）
+    from app.models.profile import LearningEvent
     r = await db.execute(
-        select(CodeSubmission)
-        .where(CodeSubmission.user_id == student_id, CodeSubmission.exercise_id.isnot(None))
-        .order_by(CodeSubmission.created_at.desc())
+        select(LearningEvent)
+        .where(LearningEvent.user_id == student_id, LearningEvent.event_type.in_(["exercise_passed", "exercise_failed"]))
+        .order_by(LearningEvent.created_at.desc())
         .limit(50)
     )
     events = []
-    seen_exercises = set()
-    for sub in r.scalars():
-        ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
-        ex = ex_r.scalar_one_or_none()
-        title = ex.title if ex else "已删除的题目"
-
-        passed = sub.status == "completed"
+    import json
+    for e in r.scalars():
+        detail = {}
+        if e.detail_json:
+            try: detail = json.loads(e.detail_json)
+            except: pass
         events.append({
-            "type": "exercise_passed" if passed else "exercise_failed",
-            "title": title,
-            "time": sub.created_at.isoformat(),
+            "type": e.event_type,
+            "concept": e.concept or "练习",
+            "score_pct": detail.get("score_pct", 0),
+            "used_hints": detail.get("used_hints", 0),
+            "viewed_solution": detail.get("viewed_solution", False),
+            "time": e.created_at.isoformat(),
         })
-        if passed:
-            seen_exercises.add(sub.exercise_id)
 
     return {
         "student": {
             "id": user.id, "name": user.display_name, "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_passed": len(seen_exercises),
+            "exercises_passed": profile.total_exercises_passed if profile else 0,
             "hints_used": profile.total_hints_used if profile else 0,
         },
         "events": events,
@@ -207,19 +208,13 @@ async def student_overview(
     )
     students = []
     for user, profile in r:
-        # 统计该学生通过的独立练习数
-        ex_r = await db.execute(
-            select(func.count()).select_from(CodeSubmission)
-            .where(CodeSubmission.user_id == user.id, CodeSubmission.exercise_id.isnot(None), CodeSubmission.status == "completed")
-        )
-        passed_count = ex_r.scalar() or 0
-
         students.append({
             "id": user.id,
             "name": user.display_name,
             "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_passed": passed_count,
+            "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "exercises_done": profile.total_exercises_completed if profile else 0,
             "hints_used": profile.total_hints_used if profile else 0,
             "last_active": user.updated_at.isoformat() if user.updated_at else "",
             "is_active": user.is_active,
