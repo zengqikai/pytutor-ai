@@ -208,9 +208,14 @@ async def submit_exercise_answer(
 
     await record_event(db, current_user.id,
         "exercise_passed" if all_passed else "exercise_failed",
-        concept=exercise.concepts.split(",")[0] if exercise.concepts else None,
-        detail={"score_pct": score_pct, "used_hints": used_hints, "viewed_solution": viewed_solution})
-
+        concept=(exercise.concepts.split(",")[0] if exercise.concepts else exercise.title),
+        detail={
+            "title": exercise.title,  # 存题目名
+            "exercise_id": exercise.id,
+            "score_pct": score_pct,
+            "used_hints": used_hints,
+            "viewed_solution": viewed_solution
+        })
     profile = await get_or_create_profile(db, current_user.id)
     # 难度加权经验值：exp = difficulty × score_pct
     exp_gained = round(exercise.difficulty * score_pct)

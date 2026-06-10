@@ -59,7 +59,8 @@ async def student_detail(
             except: pass
         events.append({
             "type": e.event_type,
-            "concept": e.concept or "练习",
+            "title": detail.get("title") or e.concept or "练习",
+            "concept": detail.get("title") or e.concept or "练习",
             "score_pct": detail.get("score_pct", 0),
             "used_hints": detail.get("used_hints", 0),
             "viewed_solution": detail.get("viewed_solution", False),
