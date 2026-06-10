@@ -108,8 +108,8 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead className="bg-white/[0.02]"><tr>
                   <th className="text-left px-4 py-3 text-slate-400">学生</th><th className="text-left px-4 py-3 text-slate-400">邮箱</th>
-                  <th className="text-center px-4 py-3 text-slate-400">等级</th><th className="text-center px-4 py-3 text-slate-400">练习</th>
-                  <th className="text-center px-4 py-3 text-slate-400">通过</th><th className="text-center px-4 py-3 text-slate-400">提示</th>
+                  <th className="text-center px-4 py-3 text-slate-400">等级</th><th className="text-center px-4 py-3 text-slate-400">通过题目</th>
+                  <th className="text-center px-4 py-3 text-slate-400">使用提示</th>
                   <th className="text-center px-4 py-3 text-slate-400">状态</th>
                 </tr></thead>
                 <tbody>
@@ -119,7 +119,6 @@ export default function AdminPage() {
                       <td className="px-4 py-3 text-slate-200 font-medium">{s.name}</td>
                       <td className="px-4 py-3 text-slate-500 text-xs">{s.email}</td>
                       <td className="px-4 py-3 text-center"><span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400">Lv.{s.level}</span></td>
-                      <td className="px-4 py-3 text-center text-slate-300">{s.exercises_done}</td>
                       <td className="px-4 py-3 text-center text-emerald-400">{s.exercises_passed}</td>
                       <td className="px-4 py-3 text-center text-amber-400">{s.hints_used}</td>
                       <td className="px-4 py-3 text-center"><span className={`text-xs px-2 py-0.5 rounded-full ${s.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>{s.is_active ? "活跃" : "禁用"}</span></td>
@@ -136,9 +135,8 @@ export default function AdminPage() {
                 </div>
                 <div className="grid grid-cols-4 gap-3 mb-6">
                   <StatMini label="等级" value={`Lv.${studentDetail.student?.level}`} />
-                  <StatMini label="通过" value={studentDetail.student?.exercises_passed} />
-                  <StatMini label="使用提示" value={studentDetail.student?.hints_used} />
-                  <StatMini label="独立通过" value={`${studentDetail.student?.unique_passed || 0}题`} />
+                  <StatMini label="通过题目" value={`${studentDetail.student?.exercises_passed || 0}题`} />
+                  <StatMini label="使用提示" value={studentDetail.student?.hints_used || 0} />
                 </div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">练习记录</p>
                 <div className="space-y-2 max-h-80 overflow-y-auto">

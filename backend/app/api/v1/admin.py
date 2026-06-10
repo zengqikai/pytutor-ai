@@ -31,7 +31,7 @@ async def student_detail(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
-    """查看单个学生的学习记录：完成/失败的练习。"""
+    """查看单个学生的学习记录。"""
     from app.models.profile import StudentProfile
     from app.models.submission import CodeSubmission, ExecutionResult
 
@@ -42,42 +42,38 @@ async def student_detail(
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
 
-    # 直接查代码提交记录（关联练习ID）
+    # 查代码提交记录
     r = await db.execute(
-        select(CodeSubmission, ExecutionResult)
-        .join(ExecutionResult, CodeSubmission.id == ExecutionResult.submission_id, isouter=True)
-        .where(CodeSubmission.user_id == student_id, CodeSubmission.exercise_id.isnot(None))
+        select(CodeSubmission)
+        .where(CodeSubmission.user_id == student_id)
         .order_by(CodeSubmission.created_at.desc())
         .limit(50)
     )
     events = []
     seen_exercises = set()
-    for sub, res in r:
-        # 查练习标题
-        ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
-        ex = ex_r.scalar_one_or_none()
-        title = ex.title if ex else (sub.exercise_id or "未知题目")[:20]
+    for sub in r.scalars():
+        title = "代码练习"
+        if sub.exercise_id:
+            ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
+            ex = ex_r.scalar_one_or_none()
+            title = ex.title if ex else sub.exercise_id[:20]
 
-        passed = res and res.status == "completed" and res.exit_code == 0
+        passed = sub.status == "completed"
         events.append({
             "type": "exercise_passed" if passed else "exercise_failed",
             "title": title,
-            "concept": ex.concepts if ex else None,
-            "difficulty": ex.difficulty if ex else 1,
-            "status": res.status if res else "unknown",
-            "runtime_ms": res.runtime_ms if res else 0,
+            "difficulty": 1,
+            "status": sub.status,
             "time": sub.created_at.isoformat(),
         })
-        if passed:
+        if passed and sub.exercise_id:
             seen_exercises.add(sub.exercise_id)
 
     return {
         "student": {
             "id": user.id, "name": user.display_name, "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_done": profile.total_exercises_completed if profile else 0,
-            "exercises_passed": profile.total_exercises_passed if profile else 0,
-            "unique_passed": len(seen_exercises),
+            "exercises_passed": len(seen_exercises),
             "hints_used": profile.total_hints_used if profile else 0,
         },
         "events": events,
