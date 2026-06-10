@@ -42,31 +42,27 @@ async def student_detail(
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
 
-    # 查代码提交记录
+    # 只查练习中心的提交（有 exercise_id）
     r = await db.execute(
         select(CodeSubmission)
-        .where(CodeSubmission.user_id == student_id)
+        .where(CodeSubmission.user_id == student_id, CodeSubmission.exercise_id.isnot(None))
         .order_by(CodeSubmission.created_at.desc())
         .limit(50)
     )
     events = []
     seen_exercises = set()
     for sub in r.scalars():
-        title = "代码练习"
-        if sub.exercise_id:
-            ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
-            ex = ex_r.scalar_one_or_none()
-            title = ex.title if ex else sub.exercise_id[:20]
+        ex_r = await db.execute(select(Exercise).where(Exercise.id == sub.exercise_id))
+        ex = ex_r.scalar_one_or_none()
+        title = ex.title if ex else "已删除的题目"
 
         passed = sub.status == "completed"
         events.append({
             "type": "exercise_passed" if passed else "exercise_failed",
             "title": title,
-            "difficulty": 1,
-            "status": sub.status,
             "time": sub.created_at.isoformat(),
         })
-        if passed and sub.exercise_id:
+        if passed:
             seen_exercises.add(sub.exercise_id)
 
     return {
@@ -211,13 +207,19 @@ async def student_overview(
     )
     students = []
     for user, profile in r:
+        # 统计该学生通过的独立练习数
+        ex_r = await db.execute(
+            select(func.count()).select_from(CodeSubmission)
+            .where(CodeSubmission.user_id == user.id, CodeSubmission.exercise_id.isnot(None), CodeSubmission.status == "completed")
+        )
+        passed_count = ex_r.scalar() or 0
+
         students.append({
             "id": user.id,
             "name": user.display_name,
             "email": user.email,
             "level": profile.level if profile else 1,
-            "exercises_done": profile.total_exercises_completed if profile else 0,
-            "exercises_passed": profile.total_exercises_passed if profile else 0,
+            "exercises_passed": passed_count,
             "hints_used": profile.total_hints_used if profile else 0,
             "last_active": user.updated_at.isoformat() if user.updated_at else "",
             "is_active": user.is_active,
