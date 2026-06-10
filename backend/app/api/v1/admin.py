@@ -42,8 +42,18 @@ async def student_detail(
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
 
-    # 从学习事件查练习记录（画像联动已正确写入）
+    # 从学习事件查练习记录
     from app.models.profile import LearningEvent
+    import json
+
+    # 预加载所有题目，建立 concept → title 映射
+    all_exercises = (await db.execute(select(Exercise))).scalars().all()
+    concept_map: dict[str, str] = {}
+    for ex in all_exercises:
+        if ex.concepts:
+            for c in ex.concepts.split(","):
+                concept_map[c.strip()] = ex.title
+
     r = await db.execute(
         select(LearningEvent)
         .where(LearningEvent.user_id == student_id, LearningEvent.event_type.in_(["exercise_passed", "exercise_failed"]))
@@ -51,19 +61,18 @@ async def student_detail(
         .limit(50)
     )
     events = []
-    import json
     for e in r.scalars():
         detail = {}
         if e.detail_json:
             try: detail = json.loads(e.detail_json)
             except: pass
+        # 优先用 detail 里的 title，其次从题库 concept 映射，最后用原始 concept
+        title = detail.get("title") or concept_map.get(e.concept or "") or e.concept or "练习"
         events.append({
             "type": e.event_type,
-            "title": detail.get("title") or e.concept or "练习",
-            "concept": detail.get("title") or e.concept or "练习",
+            "title": title,
             "score_pct": detail.get("score_pct", 0),
             "used_hints": detail.get("used_hints", 0),
-            "viewed_solution": detail.get("viewed_solution", False),
             "time": e.created_at.isoformat(),
         })
 
