@@ -225,13 +225,22 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
     weaknesses = await get_weaknesses(db, user_id)
     recommendation = await get_recommendation(db, user_id)
 
-    # 计算练习通过率
+    # 计算练习通过率 + 经验值
     total = profile.total_exercises_completed
     passed = profile.total_exercises_passed
     pass_rate = round(passed / total * 100, 1) if total > 0 else 0
+    import json
+    mastery = {}
+    if profile.concept_mastery_json:
+        try: mastery = json.loads(profile.concept_mastery_json)
+        except: pass
+    total_exp = mastery.get("_total_exp", 0)
+    next_level_exp = (profile.level) * 300  # 升级所需总经验
 
     return {
         "level": profile.level,
+        "total_exp": total_exp,
+        "next_level_exp": next_level_exp,
         "stats": {
             "exercises_completed": total,
             "exercises_passed": passed,

@@ -26,10 +26,14 @@ export default function ExercisesPage() {
   const loadExercises = async () => { try { setExercises(await exerciseAPI.list(store.difficulty)); } catch {} };
 
   const selectExercise = (ex: any) => {
+    // 同一道题不重置（保留编辑中的代码）
+    const sameExercise = store.selected?.id === ex.id;
     store.setSelected(ex);
     store.setResult(null);
     store.setTestResult(null);
     store.setHintText("");
+    if (!sameExercise) store.setUserCode("# 在此编写你的代码\n");  // 换题重置
+    store.setCustomInput("");
     store.setHintLevel(1);
     setDisplayedHintLevel(0);
     store.setShowSolution(false);  // 重置答案查看状态

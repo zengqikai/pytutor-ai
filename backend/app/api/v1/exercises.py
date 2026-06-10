@@ -84,6 +84,11 @@ async def get_exercise_hint(
             messages=[LLMMessage(role="user", content=prompt)],
             temperature=0.5, max_tokens=300,
         )
+        # 联动画像：提示使用计数
+        from app.services.profile_service import get_or_create_profile
+        profile = await get_or_create_profile(db, current_user.id)
+        profile.total_hints_used += 1
+        await db.commit()
         return {"hint": llm_resp.content.strip(), "hint_level": level}
     except Exception as e:
         return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": level}
@@ -195,7 +200,7 @@ async def submit_exercise_answer(
 
     if all_passed:
         if viewed_solution:
-            score_pct = 20   # 看了答案才通过 → 20%
+            score_pct = 0    # 看了答案 → 不算通过
         elif used_hints >= 2:
             score_pct = 50   # 用了 2 次提示 → 50%
         elif used_hints == 1:
@@ -212,11 +217,31 @@ async def submit_exercise_answer(
         detail={"score_pct": score_pct, "used_hints": used_hints, "viewed_solution": viewed_solution})
 
     profile = await get_or_create_profile(db, current_user.id)
-    if all_passed:
+    # 难度加权经验值：exp = difficulty × score_pct
+    exp_gained = round(exercise.difficulty * score_pct)
+    if all_passed and score_pct > 0:
         profile.total_exercises_completed += 1
         profile.total_exercises_passed += 1
-    else:
+    elif not all_passed:
         profile.total_exercises_completed += 1
+
+    # 累积经验 + 升级（每 300 经验升一级，最低 Lv1）
+    import json
+    mastery = {}
+    if profile.concept_mastery_json:
+        try: mastery = json.loads(profile.concept_mastery_json)
+        except: pass
+    # 更新经验值
+    total_exp = mastery.get("_total_exp", 0) + exp_gained
+    mastery["_total_exp"] = total_exp
+    profile.level = max(1, total_exp // 300 + 1)
+    # 更新知识点掌握度（通过练习的知识点 +score_pct/100）
+    if exercise.concepts and score_pct > 0:
+        for c in exercise.concepts.split(","):
+            c = c.strip()
+            old = mastery.get(c, 0)
+            mastery[c] = min(1.0, old + score_pct / 200)  # 每次最多加 0.5
+    profile.concept_mastery_json = json.dumps(mastery, ensure_ascii=False)
 
     # 更新薄弱点：失败的用例对应的知识点
     if not all_passed and exercise.concepts:
@@ -235,5 +260,8 @@ async def submit_exercise_answer(
         "score_pct": score_pct,
         "score_label": "⭐ 完全独立完成！" if score_pct == 100 else
                        "🌟 提示帮助完成" if score_pct >= 50 else
-                       "📖 参考答案辅助完成" if score_pct > 0 else "",
+                       "📖 参考答案辅助（不计分）" if viewed_solution else
+                       "❌ 未通过" if not all_passed else "",
+        "exp_gained": exp_gained,  # 本次获得的经验值
+        "difficulty": exercise.difficulty,
     }
