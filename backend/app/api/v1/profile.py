@@ -47,6 +47,7 @@ async def get_passed_exercises(
     current_user: User = Depends(get_current_user),
 ):
     """查看自己通过了哪些题目（去重）。"""
+    from sqlalchemy import select
     from app.models.profile import LearningEvent
     r = await db.execute(
         select(LearningEvent)
