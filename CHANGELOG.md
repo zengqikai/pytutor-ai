@@ -545,6 +545,17 @@ Alembic 迁移: 7 次
 | 新增 | `misconception-exercises.ts` | 16 道 M1-M8 误区靶向练习 |
 | 新增 | `misconception_exercises.py` | seed 端点，已入库 16 题 |
 
+### Step 35 — 代码重构清理
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/data/mc_exercises.py` | 16 题数据与 API 分离 |
+| 修改 | `misconception_exercises.py` | 简化为纯 API 逻辑（从 data 导入） |
+| 修改 | `main.py` | 添加 `result.all()` 物化 + 注释说明 |
+| 修改 | `router.py` | 导入统一置顶，清晰分组 |
+| 修改 | `teacher.py` | 补充完整 docstring + 分段注释 + 异常处理 |
+
 ### Step 34 — 教师仪表盘
 **日期**: 2026-06-12
 
