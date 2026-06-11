@@ -541,6 +541,15 @@ Alembic 迁移: 7 次
 
 | 操作 | 文件 | 说明 |
 |------|------|------|
-| 修改 | `tutorial-data.ts` | 新增 5 课：input 输入、字符串数字、list 列表、函数入门、综合复习 |
-| 新增 | `misconception-exercises.ts` | 16 道 M1-M8 误区靶向练习（每类 2 题：修复/预测） |
-| 新增 | `misconception_exercises.py` | `POST /exercises/seed-mc-exercises` 种子端点 |
+| 修改 | `tutorial-data.ts` | 新增 5 课（共 12 课完整教程） |
+| 新增 | `misconception-exercises.ts` | 16 道 M1-M8 误区靶向练习 |
+| 新增 | `misconception_exercises.py` | seed 端点，已入库 16 题 |
+
+### Step 34 — 教师仪表盘
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/api/v1/teacher.py` | `GET /teacher/overview` 聚合统计 |
+| 新增 | `frontend/src/app/teacher/page.tsx` | 误区频次 / 薄弱点排行 / 提示依赖 / 学生列表 / 动态 |
+| 修改 | `layout.tsx` | 导航栏新增「教学分析」入口 |
