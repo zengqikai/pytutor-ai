@@ -206,16 +206,16 @@ async def submit_exercise_answer(
         score_pct = 0        # 未通过 → 0%
         # 未通过时仍记录尝试次数
 
-    # 去重检查——必须在 record_event 之前！
+    # 去重检查：按题目 ID 判断是否首次通过（而非按概念标签）
     from app.models.profile import LearningEvent
     from sqlalchemy import select, func as _sa_func
     already_passed = (await db.execute(
         select(_sa_func.count()).select_from(LearningEvent)
         .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed",
-               LearningEvent.concept == (exercise.concepts.split(",")[0].strip() if exercise.concepts else exercise.title))
+               LearningEvent.detail_json.like(f'%"{exercise.id}"%'))
     )).scalar() or 0
 
-    # 首次通过才创建 exercise_passed 事件
+    # 首次通过该题目才创建 exercise_passed 事件
     await record_event(db, current_user.id,
         "exercise_passed" if (all_passed and already_passed == 0) else ("exercise_failed" if not all_passed else "exercise_retry"),
         concept=(exercise.concepts.split(",")[0] if exercise.concepts else exercise.title),
