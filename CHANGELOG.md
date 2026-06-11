@@ -548,6 +548,23 @@ Alembic 迁移: 7 次
 ### Step 35 — 代码重构清理
 **日期**: 2026-06-12
 
+### Step 36 — 企业级 CI/CD + 测试体系
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/tests/conftest.py` | 共享 fixtures（auth, client） |
+| 新增 | `backend/tests/test_misconception.py` | 11 个误区诊断单元测试 |
+| 新增 | `backend/tests/test_pedagogy.py` | 8 个教学策略单元测试 |
+| 新增 | `backend/tests/test_api.py` | 9 个 API 集成测试 |
+| 新增 | `.github/workflows/ci.yml` | CI pipeline：backend test + frontend build + lint |
+| 修改 | `pyproject.toml` | test deps + markers |
+| 修改 | `exercises.py`, `vector_store.py` | 静默吞错改为 log warning |
+| **测试结果** | — | **28/28 全部通过**（19 unit + 9 integration） |
+
+### Step 35 — 代码重构清理
+**日期**: 2026-06-12
+
 | 操作 | 文件 | 说明 |
 |------|------|------|
 | 新增 | `backend/app/data/mc_exercises.py` | 16 题数据与 API 分离 |
