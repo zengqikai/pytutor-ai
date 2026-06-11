@@ -513,6 +513,16 @@ Alembic 迁移: 7 次
 
 | 操作 | 文件 | 说明 |
 |------|------|------|
-| 新增 | `frontend/src/data/diagnostic-tasks.ts` | 6 道诊断题（print/变量/赋值比较/for+range/list索引/append） |
-| 新增 | `frontend/src/components/diagnostic-flow.tsx` | 3 页 Portal 流程：说明页→答题（含代码运行）→诊断报告 |
-| 修改 | `onboarding-wrapper.tsx` | 入口 B 触发 DiagnosticFlow；结果决定跳练习中心或补漏教程 |
+| 新增 | `frontend/src/data/diagnostic-tasks.ts` | 6 道诊断题 |
+| 新增 | `frontend/src/components/diagnostic-flow.tsx` | 3 页 Portal 流程：说明→答题→报告 |
+| 修改 | `onboarding-wrapper.tsx` | 入口 B 触发 DiagnosticFlow |
+
+### Step 31 — 教学策略前端接入
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `exercises.py` hint API | 接入 misconception 诊断 + 5 级渐进提示 + 策略选择 |
+| 修改 | `exercises/page.tsx` | 提示卡片展示误区名 + 策略标签 |
+| 修改 | `chat-message.tsx` | AI 回复展示 misconception_id + pedagogical_strategy 徽章 |
+| 修改 | `page.tsx` | Message 接口新增 2.0 字段传递 |
