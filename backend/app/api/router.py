@@ -41,4 +41,7 @@ from app.api.v1.misconception_exercises import router as mc_exercises_router
 
 api_v1_router.include_router(misconceptions_router, prefix="/misconceptions", tags=["误区诊断"])
 api_v1_router.include_router(mc_exercises_router, prefix="/exercises", tags=["练习"])
+from app.api.v1.teacher import router as teacher_router
+
+api_v1_router.include_router(teacher_router, prefix="/teacher", tags=["教师"])
 api_v1_router.include_router(admin_router, prefix="/admin", tags=["管理"])
