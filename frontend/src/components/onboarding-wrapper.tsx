@@ -53,9 +53,17 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
       {/* 永久入口：右下角浮动按钮 */}
       {isAuthenticated && !showOnboarding && !showTutorial && (
         <button
-          onClick={() => setShowOnboarding(true)}
+          onClick={() => {
+            // 有保存进度直接进教程，否则弹选择窗
+            const saved = localStorage.getItem("pytutor_tutorial_progress");
+            if (saved) {
+              setShowTutorial(true);
+            } else {
+              setShowOnboarding(true);
+            }
+          }}
           className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all group"
-          title="重新选择学习基础"
+          title="继续学习"
         >
           <span className="text-xl">🎓</span>
           <span className="absolute right-14 bg-gray-900 text-white text-xs px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">

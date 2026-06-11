@@ -10,30 +10,62 @@ interface Props {
   onComplete: () => void;
 }
 
-export function LessonPlayer({ startLessonId, onComplete }: Props) {
+const STORAGE_KEY = "pytutor_tutorial_progress";
+
+function loadProgress(startLessonId?: string) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (typeof saved.lessonIdx === "number" && typeof saved.stepIdx === "number") {
+        return saved;
+      }
+    }
+  } catch {}
   const startIdx = TUTORIAL_LESSONS.findIndex((l) => l.id === startLessonId);
-  const [lessonIdx, setLessonIdx] = useState(startIdx >= 0 ? startIdx : 0);
+  return { lessonIdx: startIdx >= 0 ? startIdx : 0, stepIdx: 0 };
+}
+
+function saveProgress(lessonIdx: number, stepIdx: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ lessonIdx, stepIdx }));
+  } catch {}
+}
+
+export function LessonPlayer({ startLessonId, onComplete }: Props) {
+  const [mounted, setMounted] = useState(false);
+  const [lessonIdx, setLessonIdx] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
   const [code, setCode] = useState("");
   const [output, setOutput] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [misconception, setMisconception] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  // Restore progress on mount
+  useEffect(() => {
+    const saved = loadProgress(startLessonId);
+    setLessonIdx(saved.lessonIdx);
+    setStepIdx(saved.stepIdx);
+    setMounted(true);
+  }, []);
 
   const lesson = TUTORIAL_LESSONS[lessonIdx];
   const step = lesson?.steps[stepIdx];
   const isLastStep = stepIdx === (lesson?.steps.length ?? 0) - 1;
   const isLastLesson = lessonIdx === TUTORIAL_LESSONS.length - 1;
 
+  // Save progress on step/lesson change
+  useEffect(() => {
+    if (mounted) saveProgress(lessonIdx, stepIdx);
+  }, [lessonIdx, stepIdx, mounted]);
+
   // Init code when lesson changes
   useEffect(() => {
+    if (!mounted) return;
     setCode(lesson?.initialCode ?? "");
-    setStepIdx(0);
     setOutput(null);
     setMisconception(null);
-  }, [lessonIdx]);
+  }, [lessonIdx, mounted]);
 
   const advance = () => {
     if (isLastStep) {
@@ -41,6 +73,12 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
     } else {
       setStepIdx((i) => i + 1);
     }
+  };
+
+  const handleExit = () => {
+    // Save current progress before exiting
+    saveProgress(lessonIdx, stepIdx);
+    onComplete();
   };
 
   const completeLesson = async () => {
@@ -54,9 +92,13 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
     } catch {}
 
     if (isLastLesson) {
+      localStorage.removeItem(STORAGE_KEY);  // 全部完成，清除进度
       onComplete();
     } else {
-      setLessonIdx((i) => i + 1);
+      const next = lessonIdx + 1;
+      setLessonIdx(next);
+      setStepIdx(0);
+      saveProgress(next, 0);
     }
   };
 
@@ -104,7 +146,15 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
             <span className="font-semibold text-sm">{lesson.title}</span>
             <p className="text-[10px] text-slate-500">{lesson.desc}</p>
           </div>
-          <span className="ml-auto text-xs text-slate-500">课程 {lessonIdx + 1}/{TUTORIAL_LESSONS.length}</span>
+          <span className="ml-auto text-xs text-slate-500 mr-2">课程 {lessonIdx + 1}/{TUTORIAL_LESSONS.length}</span>
+          {/* Exit button */}
+          <button
+            onClick={handleExit}
+            className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            title="退出教程（进度已保存）"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Steps */}
