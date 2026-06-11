@@ -80,6 +80,38 @@ node vision.js --url https://example.com/img.jpg "这是什么"
 
 ---
 
+# 新手教程系统
+
+## 架构
+
+```
+OnboardingModal（4 选项）
+  → A: LessonPlayer（完整 7 课，从 Lesson 0A 开始）
+  → B: LessonPlayer（跳过编辑器，从 Lesson 1 开始）
+  → C: router.push("/exercises")
+  → D: 留在 AI 对话页
+```
+
+## LessonPlayer 组件
+
+- 左侧：AI Tutor 分步引导面板（教程文案 + 误区诊断卡片）
+- 右侧：Code Lab（编辑器 + stdin 输入 + 运行 + 输出）
+- 底部：进度条 + 下一课按钮
+- 课程数据：`frontend/src/data/tutorial-data.ts`（7 课，新增课程只需加数据）
+- 进度持久化：localStorage key = `pytutor_progress_{userId}`，按用户隔离
+
+## 退出与恢复
+
+- 右上角「暂时退出」按钮 → 弹窗确认 → 保存进度
+- 右下角 🎓 浮动按钮：有进度直接续学，无进度弹选择窗
+
+## 教程 stdin 支持
+
+- LessonPlayer 和主页编辑器均支持 stdin 输入
+- `codeAPI.submit(code, undefined, stdinInput)`
+
+---
+
 # PyTutor 2.0 — Misconception-Aware Tutoring
 
 ## 核心新增功能

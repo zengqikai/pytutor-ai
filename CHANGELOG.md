@@ -466,3 +466,40 @@ Alembic 迁移: 7 次
 记录 Bug:   25 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
+
+---
+
+## Phase 9: 新手教程完整系统 (Steps 27-29)
+
+### Step 27 — 7 课教程 + 通用播放器
+**日期**: 2026-06-11
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `frontend/src/data/tutorial-data.ts` | 7 课结构化数据（0A, 0B, 1-5），每课含 steps、代码、任务 |
+| 新增 | `frontend/src/components/lesson-player.tsx` | 通用 LessonPlayer 组件：AI 分步引导 + Code Lab + 误区诊断 |
+| 修改 | `frontend/src/components/onboarding-wrapper.tsx` | Lesson0 → LessonPlayer；四选项差异化行为 |
+| 删除 | `frontend/src/components/lesson-0.tsx` | 被 LessonPlayer 替代 |
+
+### Step 28 — 退出按钮 + 进度持久化
+**日期**: 2026-06-11
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `lesson-player.tsx` | 右上角「暂时退出」按钮 + 确认弹窗；localStorage 自动保存/恢复 |
+| 修改 | `lesson-player.tsx` | 进度按用户 ID 隔离（`pytutor_progress_{userId}`） |
+| 修改 | `onboarding-wrapper.tsx` | 右下角 🎓 浮动按钮：有进度直接续学 |
+
+### Step 29 — stdin 输入 + 输出区域扩大
+**日期**: 2026-06-11
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `lesson-player.tsx` | 右侧 50/50 布局；新增 stdin 输入行；输出区域加大 |
+| 修改 | `frontend/src/app/page.tsx` | 主页编辑器新增 stdin 输入字段 |
+
+## Bug 汇总补充
+
+| # | 问题 | 根因 | 修复 |
+|----|------|------|------|
+| Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位，换账号时读到旧值 | key 改为 `pytutor_progress_{user.id}` 从 auth store 获取 |
