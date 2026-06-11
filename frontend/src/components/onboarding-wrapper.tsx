@@ -13,7 +13,6 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAuthenticated) { setLoading(false); return; }
-    // Always check when auth state changes
     checkOnboarding();
   }, [isAuthenticated]);
 
@@ -25,16 +24,12 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const resp = await r.json();
-      // Response is wrapped: { data: {...}, message: ..., error: ... }
       const profile = resp.data || resp;
-
       if (!profile.onboarding_done) {
         setShowOnboarding(true);
       }
     } catch (e) {
-      // If profile check fails, still show onboarding (safe default)
-      console.warn("Onboarding check failed, showing modal as fallback", e);
-      setShowOnboarding(true);
+      console.warn("Onboarding check failed", e);
     } finally {
       setLoading(false);
     }
@@ -42,13 +37,7 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
-    if (level === "A") {
-      setShowLesson0(true);
-    }
-  };
-
-  const handleLesson0Complete = () => {
-    setShowLesson0(false);
+    if (level === "A") setShowLesson0(true);
   };
 
   if (loading) return <>{children}</>;
@@ -56,8 +45,22 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
-      {showLesson0 && <Lesson0 onComplete={handleLesson0Complete} />}
+      {showLesson0 && <Lesson0 onComplete={() => setShowLesson0(false)} />}
       {children}
+
+      {/* 永久入口：右下角浮动按钮，随时重新选择学习基础 */}
+      {isAuthenticated && !showOnboarding && !showLesson0 && (
+        <button
+          onClick={() => setShowOnboarding(true)}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all group"
+          title="重新选择学习基础"
+        >
+          <span className="text-xl">🎓</span>
+          <span className="absolute right-14 bg-gray-900 text-white text-xs px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            调整学习基础
+          </span>
+        </button>
+      )}
     </>
   );
 }
