@@ -296,7 +296,19 @@
 
 ---
 
-## Bug 汇总（共 15 个）
+## Phase 6: 工业级架构升级 (2026-06-11)
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/rag/vector_store.py` | ChromiDB 持久化向量库 + MiniLM embedding |
+| 修改 | `backend/app/services/rag_service.py` | 混合检索：向量(ChromaDB) + 关键词(TF-IDF) |
+| 修改 | `docker-compose.yml` | PostgreSQL+pgvector 配置就绪 |
+| 修改 | `backend/.env` | DB 双模式（SQLite默认，PG生产） |
+| 新增 | `pyproject.toml` | chromadb, sentence-transformers 依赖 |
+
+---
+
+## Bug 汇总（共 19 个）
 
 | # | 问题 | 解决方案 | 影响文件 |
 |---|------|----------|----------|
