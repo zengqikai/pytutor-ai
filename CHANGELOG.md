@@ -526,3 +526,12 @@ Alembic 迁移: 7 次
 | 修改 | `exercises/page.tsx` | 提示卡片展示误区名 + 策略标签 |
 | 修改 | `chat-message.tsx` | AI 回复展示 misconception_id + pedagogical_strategy 徽章 |
 | 修改 | `page.tsx` | Message 接口新增 2.0 字段传递 |
+
+### Step 32 — 回复质量自检 + Baseline 评估
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `tutor_service.py` | AI 回复后调用 verify_response()，不合格自动重新生成 |
+| 新增 | `evaluation/run_v2_eval.py` | 20 例 Baseline 评估脚本，3 维评分 |
+| **评估结果** | — | **92.3%** 综合分，77.5% 诊断准确率，100% 不早给答案 |
