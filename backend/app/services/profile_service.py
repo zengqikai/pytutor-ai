@@ -128,12 +128,9 @@ async def update_weakness(
         if weakness:
             weakness.fail_count += 1
             weakness.last_error_type = error_type
-            # 严重度 = 频率 + 持续性
-            # 失败 1 次=1, 2 次=2, 3 次=3, 4 次=4, 5+ 次=5
-            # 连续 3+ 次失败额外 +1（表示陷入困境）
-            base = min(4, weakness.fail_count)
-            stuck = 1 if weakness.fail_count >= 3 else 0
-            weakness.severity = min(5, base + stuck)
+            # 严重度 = 连续失败次数，4+ 次封顶
+            # 1→Lv1, 2→Lv2, 3→Lv3, 4→Lv4, 5+→Lv5
+            weakness.severity = min(5, weakness.fail_count)
         else:
             weakness = StudentWeakness(
                 user_id=user_id,

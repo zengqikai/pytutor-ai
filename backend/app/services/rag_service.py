@@ -87,7 +87,7 @@ async def ingest_document(
         await db.commit()
         await db.refresh(chunk)
 
-        # 加入内存检索索引
+        # 加入 TF-IDF 索引
         retriever.add_chunk(
             chunk_id=chunk.id,
             content=chunk.content,
@@ -97,6 +97,21 @@ async def ingest_document(
             document_title=title,
             tokens=tokens_str,
         )
+
+    # 同步写入向量库
+    from app.rag.vector_store import add_chunks as add_to_vector
+
+    vector_chunks = [
+        {
+            "chunk_id": chunk.id,
+            "content": chunk.content,
+            "heading": chunk.heading or "",
+            "concepts": concepts or "",
+            "difficulty": difficulty,
+        }
+        for chunk in doc.chunks
+    ]
+    add_to_vector(vector_chunks)
 
     logger.info(
         "document_ingested",
@@ -145,7 +160,21 @@ async def rebuild_index(db: AsyncSession) -> int:
         )
         count += 1
 
-    logger.info("index_rebuilt", chunk_count=count)
+    # 同步重建向量库
+    from app.rag.vector_store import rebuild_from_db
+    all_chunks_for_vector = [
+        {
+            "chunk_id": chunk.id,
+            "content": chunk.content,
+            "heading": chunk.heading or "",
+            "concepts": chunk.concepts or "",
+            "difficulty": chunk.difficulty,
+        }
+        for chunk, doc in result
+    ]
+    rebuild_from_db(all_chunks_for_vector)
+
+    logger.info("index_rebuilt", tfidf_count=count, vector_count=len(all_chunks_for_vector))
     return count
 
 
@@ -172,13 +201,32 @@ async def retrieve_context(
     import time
     start_time = time.perf_counter()
 
-    # 步骤 1：TF-IDF 检索
-    candidates = retriever.search(
+    # 步骤 1：向量检索（ChromaDB） + TF-IDF 混合
+    from app.rag.vector_store import search as vector_search
+
+    # 向量检索
+    vector_results = vector_search(
         query=request.query,
-        top_k=request.top_k * 3,  # 初检索更多候选，给重排序留空间
+        top_k=request.top_k * 2,
         difficulty_filter=request.difficulty_filter,
         concept_filter=request.concept_filter,
     )
+
+    # TF-IDF 关键词检索（补充精确匹配）
+    tfidf_results = retriever.search(
+        query=request.query,
+        top_k=request.top_k,
+        difficulty_filter=request.difficulty_filter,
+        concept_filter=request.concept_filter,
+    )
+
+    # 合并去重（向量优先，TF-IDF 补充）
+    seen = set()
+    candidates = []
+    for r in vector_results + tfidf_results:
+        if r["chunk_id"] not in seen:
+            seen.add(r["chunk_id"])
+            candidates.append(r)
 
     if not candidates:
         return RAGRetrievalResponse(

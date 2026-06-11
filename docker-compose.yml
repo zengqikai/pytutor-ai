@@ -29,9 +29,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # 覆盖 .env 中的数据库连接（指向 docker-compose 中的 postgres 服务）
-      # 如果继续使用 SQLite，注释掉下面这行即可
-      # DATABASE_URL: postgresql+asyncpg://tutor:tutor_pass@postgres:5432/ai_tutor
+      - DATABASE_URL=postgresql+asyncpg://tutor:tutor_pass@postgres:5432/ai_tutor
     volumes:
       # 开发模式：挂载代码目录，修改代码后自动热重载（需 uvicorn --reload）
       - ./backend:/app
