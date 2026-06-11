@@ -12,10 +12,8 @@ python-multipart
 openai
 structlog
 litellm
-chromadb
 langgraph
 langchain
 langchain-core
 langchain-openai
-sentence-transformers
 python-dotenv

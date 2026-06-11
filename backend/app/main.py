@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.warning("tfidf_rebuild_failed", error=str(e))
 
-    # 初始化 Embedding 服务（DashScope API，国内可用）
+    # 初始化 Embedding 服务（DashScope API，chromadb 可能不可用则跳过）
     try:
         from app.rag.embedding import get_embedding
         emb = get_embedding()
@@ -110,6 +110,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.info("embedding_service_ready", provider="dashscope", model=emb.model)
         else:
             logger.warning("embedding_service_unavailable", reason="DASHSCOPE_API_KEY 未配置")
+    except ImportError:
+        logger.warning("embedding_import_failed", reason="chromadb or sentence-transformers not installed")
     except Exception as e:
         logger.warning("embedding_init_failed", error=str(e)[:200])
 
