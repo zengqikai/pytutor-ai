@@ -70,6 +70,38 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* 2.0: 最近误区 */}
+        {profile.recent_misconceptions?.length > 0 && (
+          <div className="glass rounded-2xl border border-white/[0.06] overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.06]"><h2 className="font-bold text-white">最近常见误区</h2></div>
+            <div className="p-4 space-y-2">
+              {profile.recent_misconceptions.map((mc: string, i: number) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg">
+                  <span className="text-amber-400">⚠️</span>
+                  <span className="text-sm text-amber-200/80">{mc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2.0: 提示依赖度 */}
+        <div className="glass rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06]"><h2 className="font-bold text-white">提示依赖度</h2></div>
+          <div className="p-4">
+            <div className="flex items-center gap-4">
+              <div className={`text-2xl font-bold ${profile.hint_dependency === "high" ? "text-rose-400" : profile.hint_dependency === "medium" ? "text-amber-400" : "text-emerald-400"}`}>
+                {profile.hint_dependency === "high" ? "较高" : profile.hint_dependency === "medium" ? "中等" : "较低"}
+              </div>
+              <div className="flex gap-1">
+                {["low", "medium", "high"].map((level) => (
+                  <div key={level} className={`w-8 h-2 rounded-full ${level === profile.hint_dependency ? (level === "high" ? "bg-rose-400" : level === "medium" ? "bg-amber-400" : "bg-emerald-400") : "bg-white/[0.06]"}`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {recommendation && (
           <div className="glass rounded-2xl p-6 border border-white/[0.06] bg-gradient-to-r from-indigo-500/5 to-violet-500/5">
             <div className="flex items-start gap-4">

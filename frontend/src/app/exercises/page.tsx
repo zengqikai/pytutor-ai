@@ -194,6 +194,23 @@ export default function ExercisesPage() {
                   <button onClick={requestHint} disabled={hintLoading || store.hintLevel >= 3} className="text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-colors disabled:opacity-30">{hintLoading ? "生成中..." : store.hintLevel >= 3 ? "💡 提示已用完" : displayedHintLevel === 0 ? "💡 提示" : `💡 提示 (${displayedHintLevel}/2)`}</button>
                   <button onClick={viewSolution} className="text-xs px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-colors">📖 参考答案</button>
                 </div>
+                {/* 2.0: 误区诊断结果 */}
+                {store.result?.misconception?.has_misconception && (
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 animate-fade-in">
+                    <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-2">🧠 误区诊断</p>
+                    <p className="text-sm text-amber-200/80">
+                      你可能存在「<span className="font-bold text-amber-300">{store.result.misconception.misconception_name}</span>」误区
+                    </p>
+                    <p className="text-xs text-amber-400/60 mt-1">{store.result.misconception.evidence}</p>
+                    {store.result.misconception.related_concepts?.length > 0 && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {store.result.misconception.related_concepts.map((c: string) => (
+                          <span key={c} className="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full">{c}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {store.result && store.result.test_results && (
                   <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-3">
                     <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">判题注释</p>

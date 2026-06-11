@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NavLink } from "@/components/nav-link";
 import { NavAdminLink } from "@/components/nav-admin-link";
 import { NavUser } from "@/components/nav-user";
+import { OnboardingWrapper } from "@/components/onboarding-wrapper";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -44,7 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        <main className="flex-1 overflow-hidden relative z-10">{children}</main>
+        <main className="flex-1 overflow-hidden relative z-10">
+          <OnboardingWrapper>{children}</OnboardingWrapper>
+        </main>
       </body>
     </html>
   );

@@ -1,0 +1,22 @@
+[
+  {"case_id":"C01","code":"x = 5\nif x = 5:\n    print('five')","stderr":"SyntaxError: invalid syntax","expected_misconception":"M1","expected_hint_level":1,"student_question":"为什么报错"},
+  {"case_id":"C02","code":"for i in range(3):\nprint(i)","stderr":"IndentationError: expected an indented block","expected_misconception":"M2","expected_hint_level":1,"student_question":""},
+  {"case_id":"C03","code":"numbers = [1,2,3]\nnew = numbers.append(4)\nprint(new)","stderr":"","expected_misconception":"M3","expected_hint_level":1,"student_question":"为什么输出None"},
+  {"case_id":"C04","code":"items = ['a','b','c']\nfor i in items:\n    print(items[i])","stderr":"TypeError: list indices must be integers","expected_misconception":"M4","expected_hint_level":2,"student_question":""},
+  {"case_id":"C05","code":"for i in range(1,5):\n    print(i)","stderr":"","expected_misconception":"M5","expected_hint_level":1,"student_question":"为什么只到4不到5"},
+  {"case_id":"C06","code":"def add(a,b):\n    print(a+b)\nresult = add(3,4)\nprint(result)","stderr":"","expected_misconception":"M6","expected_hint_level":1,"student_question":""},
+  {"case_id":"C07","code":"age = 20\nprint('I am ' + age)","stderr":"TypeError: can only concatenate str","expected_misconception":"M7","expected_hint_level":1,"student_question":""},
+  {"case_id":"C08","code":"n = 0\nwhile n < 5:\n    print(n)","stderr":"","expected_misconception":"M8","expected_hint_level":2,"student_question":"为什么一直打印0"},
+  {"case_id":"C09","code":"if x = 10:\n    print(x)","stderr":"SyntaxError","expected_misconception":"M1","expected_hint_level":1,"student_question":""},
+  {"case_id":"C10","code":"lst = [1,2,3]\nlst_sorted = lst.sort()\nprint(lst_sorted)","stderr":"","expected_misconception":"M3","expected_hint_level":2,"student_question":"排序后为什么是None"},
+  {"case_id":"C11","code":"def greet():\nprint('hello')","stderr":"IndentationError","expected_misconception":"M2","expected_hint_level":1,"student_question":""},
+  {"case_id":"C12","code":"fruits = ['apple','banana']\nfor f in fruits:\n    print(fruits[f])","stderr":"TypeError","expected_misconception":"M4","expected_hint_level":2,"student_question":""},
+  {"case_id":"C13","code":"for i in range(10):\n    if i <= 5:\n        break\n    print(i)","stderr":"","expected_misconception":"M8","expected_hint_level":2,"student_question":"range范围搞不清"},
+  {"case_id":"C14","code":"s = 'hello'\nprint(s + 5)","stderr":"TypeError","expected_misconception":"M7","expected_hint_level":1,"student_question":""},
+  {"case_id":"C15","code":"def calc(x):\n    return x*2\n    print('done')","stderr":"","expected_misconception":"M6","expected_hint_level":2,"student_question":"为什么print没执行"},
+  {"case_id":"C16","code":"a = [1,2]\nb = a.append(3)\nprint(a, b)","stderr":"","expected_misconception":"M3","expected_hint_level":1,"student_question":""},
+  {"case_id":"C17","code":"for j in range(0,10,2):\n    print(j)","stderr":"","expected_misconception":"M5","expected_hint_level":1,"student_question":"range(0,10,2)输出什么"},
+  {"case_id":"C18","code":"x = input('num: ')\nprint(x + 10)","stderr":"TypeError","expected_misconception":"M7","expected_hint_level":1,"student_question":""},
+  {"case_id":"C19","code":"count = 10\nwhile count > 0:\n    print(count)","stderr":"","expected_misconception":"M8","expected_hint_level":2,"student_question":"无限循环了"},
+  {"case_id":"C20","code":"name = input('name: ')\nif name = 'admin':\n    print('welcome')","stderr":"SyntaxError","expected_misconception":"M1","expected_hint_level":1,"student_question":""}
+]
