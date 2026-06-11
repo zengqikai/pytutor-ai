@@ -14,6 +14,8 @@ interface Message {
   response_type?: string;
   hint_level?: number;
   related_concepts?: string[];
+  misconception_id?: string;
+  pedagogical_strategy?: string;
 }
 
 export default function ChatPage() {
@@ -89,7 +91,7 @@ export default function ChatPage() {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
       const ai = chatRes.ai_response || {};
-      chatStore.addMessage({ role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts });
+      chatStore.addMessage({ role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts, misconception_id: ai.misconception_id, pedagogical_strategy: ai.pedagogical_strategy });
       loadSessions();
     } catch (e: any) { chatStore.addMessage({ role: "assistant", content: `Error: ${e.message}` }); }
     finally { set发送ing(false); }

@@ -26,11 +26,23 @@ interface Props {
   content: string;
   hint_level?: number;
   related_concepts?: string[];
+  misconception_id?: string;
+  pedagogical_strategy?: string;
   userAvatar?: string;
   onRunInEditor?: (code: string) => void;
 }
 
-export function ChatMessage({ role, content, hint_level, related_concepts, userAvatar, onRunInEditor }: Props) {
+const strategyLabels: Record<string, string> = {
+  progressive_hint: "渐进提示",
+  concept_explanation: "概念解释",
+  debugging_guidance: "调试引导",
+  counterexample: "反例说明",
+  clarification: "追问确认",
+  summary_reflection: "总结反思",
+  practice_recommendation: "推荐练习",
+};
+
+export function ChatMessage({ role, content, hint_level, related_concepts, misconception_id, pedagogical_strategy, userAvatar, onRunInEditor }: Props) {
   const isUser = role === "user";
   const displayContent = isUser ? content : normalizeContent(content);
 
@@ -44,10 +56,24 @@ export function ChatMessage({ role, content, hint_level, related_concepts, userA
       </div>
 
       <div className={`max-w-[78%] ${isUser ? "items-end" : "items-start"}`}>
-        {!isUser && hint_level && hintLabels[hint_level] && (
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium mb-2 bg-white/[0.04] border border-white/[0.06] ${hintLabels[hint_level].color}`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-            {hintLabels[hint_level].label}
+        {!isUser && (
+          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+            {hint_level && hintLabels[hint_level] && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/[0.04] border border-white/[0.06] ${hintLabels[hint_level].color}`}>
+                <span className="w-1 h-1 rounded-full bg-current opacity-60" />
+                {hintLabels[hint_level].label}
+              </span>
+            )}
+            {misconception_id && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                🧠 {misconception_id}
+              </span>
+            )}
+            {pedagogical_strategy && strategyLabels[pedagogical_strategy] && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                📖 {strategyLabels[pedagogical_strategy]}
+              </span>
+            )}
           </div>
         )}
 

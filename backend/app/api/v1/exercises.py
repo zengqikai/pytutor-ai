@@ -68,25 +68,55 @@ async def get_exercise_hint(
     user_code = body.get("code", "")
     failed_info = body.get("failed_info", "")
 
+    # 2.0: 误区诊断 + 教学策略 → 渐进式提示
+    misconception = None
+    try:
+        from app.services.misconception_service import diagnose as mc_diagnose
+        stderr_info = failed_info if failed_info else ""
+        mc_result = await mc_diagnose(db, code=user_code, stderr=stderr_info)
+        if mc_result.get("has_misconception"):
+            misconception = mc_result
+    except Exception:
+        pass
+
+    # 根据误区和尝试次数确定提示等级
+    effective_level = level
+    strategy_name = "progressive_hint"
+    mc_name = misconception["misconception_name"] if misconception else None
+
+    if misconception and level <= 2:
+        # 首次误区 → 概念提示 + 反例
+        strategy_name = "counterexample" if level == 1 else "concept_explanation"
+        effective_level = 1 if level == 1 else 2
+    elif level >= 5:
+        effective_level = 5
+        strategy_name = "summary_reflection"
+
     hint_prompts = {
-        1: f"学生正在做一道题：{exercise.title}。请给一个概念性提示，不要涉及代码细节。",
-        2: f"学生正在做一道题：{exercise.title}。请给一个更具体的方向性提示。{failed_info}",
-        3: f"学生正在做一道题：{exercise.title}。请指出可能的错误方向。{failed_info}。学生当前代码：\n```python\n{user_code[:500]}\n```",
-        4: f"学生正在做一道题：{exercise.title}。请给出关键代码思路。题目：{exercise.description[:500]}",
-        5: f"学生正在做一道题：{exercise.title}。请给出接近完整的解题步骤。题目：{exercise.description[:500]}",
+        1: f"学生正在做：{exercise.title}。诊断出误区：{mc_name or '未知'}。请给 Level 1 概念提示——只解释相关概念，不涉及代码位置，不直接给答案。2-3 句中文。",
+        2: f"学生正在做：{exercise.title}。误区：{mc_name or '未知'}。请给 Level 2 方向提示——给出解决方向，用问题引导学生思考，不指出具体行。2-3 句中文。",
+        3: f"学生正在做：{exercise.title}。误区：{mc_name or '未知'}。学生代码：\n```python\n{user_code[:300]}\n```\n请给 Level 3 位置提示——指出可疑代码区域，但不给正确代码。2-3 句中文。",
+        4: f"学生正在做：{exercise.title}。误区：{mc_name or '未知'}。学生代码：\n```python\n{user_code[:400]}\n```\n请给 Level 4 部分代码——给出关键片段，但保留部分让学生完成。",
+        5: f"学生正在做：{exercise.title}。完整题目：{exercise.description[:400]}\n请给 Level 5 完整参考答案，附带逐行解释。",
     }
 
-    prompt = hint_prompts.get(min(level, 5), hint_prompts[1])
-    prompt += "\n\n用 2-4 句中文回复，不要直接给完整代码。引导思考。"
+    prompt = hint_prompts.get(min(effective_level, 5), hint_prompts[2])
+    max_tokens = 200 if effective_level <= 2 else 400
 
     try:
         llm_resp = await chat_completion(
             messages=[LLMMessage(role="user", content=prompt)],
-            temperature=0.5, max_tokens=300,
+            temperature=0.5, max_tokens=max_tokens,
         )
-        return {"hint": llm_resp.content.strip(), "hint_level": level}
+        return {
+            "hint": llm_resp.content.strip(),
+            "hint_level": effective_level,
+            "misconception_id": misconception["misconception_id"] if misconception else None,
+            "misconception_name": mc_name,
+            "strategy": strategy_name,
+        }
     except Exception as e:
-        return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": level}
+        return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": effective_level}
 
 
 @router.get("/{exercise_id}/solution")

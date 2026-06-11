@@ -19,7 +19,8 @@ export default function ExercisesPage() {
   const [testRunning, setTestRunning] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
   const [displayedHintLevel, setDisplayedHintLevel] = useState(0);
-  const [passedIds, setPassedIds] = useState<Set<string>>(new Set()); // 已通过的题目 ID 集合
+  const [hintMeta, setHintMeta] = useState<{misconception_name?: string; strategy?: string} | null>(null);
+  const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { loadUser(); loadExercises(); loadPassed(); }, []);
   useEffect(() => { loadExercises(); }, [store.difficulty]);
@@ -99,8 +100,8 @@ export default function ExercisesPage() {
       const d = await res.json();
       const currentLevel = store.hintLevel;
       store.setHintText(d.hint || "");
-      setDisplayedHintLevel(currentLevel);  // 记录本次显示的等级
-      // 两次后禁用：level 2 点完后设为 3（> 2 触发 disabled）
+      setDisplayedHintLevel(currentLevel);
+      setHintMeta({ misconception_name: d.misconception_name, strategy: d.strategy });
       store.setHintLevel(currentLevel >= 2 ? 3 : currentLevel + 1);
     } catch (e: any) { store.setHintText("获取提示失败"); }
     finally { setHintLoading(false); }
@@ -223,7 +224,21 @@ export default function ExercisesPage() {
                 )}
                 {store.hintText && (
                   <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-4 text-sm text-amber-200/80 leading-relaxed animate-fade-in">
-                    <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1.5">💡 Level {displayedHintLevel} 提示</p>{store.hintText}
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider">💡 Level {displayedHintLevel} 提示</p>
+                      {hintMeta?.misconception_name && (
+                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded-full">🧠 {hintMeta.misconception_name}</span>
+                      )}
+                      {hintMeta?.strategy && (
+                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full">
+                          {hintMeta.strategy === "counterexample" ? "反例说明" :
+                           hintMeta.strategy === "concept_explanation" ? "概念解释" :
+                           hintMeta.strategy === "progressive_hint" ? "渐进提示" :
+                           hintMeta.strategy === "summary_reflection" ? "总结反思" : hintMeta.strategy}
+                        </span>
+                      )}
+                    </div>
+                    {store.hintText}
                   </div>
                 )}
                 {store.showSolution && (
