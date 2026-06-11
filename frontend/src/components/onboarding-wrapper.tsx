@@ -6,7 +6,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 import { LessonPlayer } from "@/components/lesson-player";
 
 export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,15 +47,15 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
-      {showTutorial && <LessonPlayer onComplete={() => setShowTutorial(false)} />}
+      {showTutorial && <LessonPlayer userId={user?.id || "anon"} onComplete={() => setShowTutorial(false)} />}
       {children}
 
       {/* 永久入口：右下角浮动按钮 */}
       {isAuthenticated && !showOnboarding && !showTutorial && (
         <button
           onClick={() => {
-            const userId = localStorage.getItem("auth_token")?.slice(0, 16) || "anon";
-            const saved = localStorage.getItem(`pytutor_progress_${userId}`);
+            const uid = user?.id || "anon";
+            const saved = localStorage.getItem(`pytutor_progress_${uid}`);
             if (saved) {
               setShowTutorial(true);
             } else {

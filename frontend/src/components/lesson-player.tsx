@@ -7,17 +7,17 @@ import { TUTORIAL_LESSONS } from "@/data/tutorial-data";
 
 interface Props {
   startLessonId?: string;
+  userId: string;
   onComplete: () => void;
 }
 
-function getStorageKey() {
-  const userId = localStorage.getItem("auth_token")?.slice(0, 16) || "anon";
+function getStorageKey(userId: string) {
   return `pytutor_progress_${userId}`;
 }
 
-function loadProgress(startLessonId?: string) {
+function loadProgress(userId: string, startLessonId?: string) {
   try {
-    const raw = localStorage.getItem(getStorageKey());
+    const raw = localStorage.getItem(getStorageKey(userId));
     if (raw) {
       const saved = JSON.parse(raw);
       if (typeof saved.lessonIdx === "number" && typeof saved.stepIdx === "number") {
@@ -29,13 +29,13 @@ function loadProgress(startLessonId?: string) {
   return { lessonIdx: startIdx >= 0 ? startIdx : 0, stepIdx: 0 };
 }
 
-function saveProgress(lessonIdx: number, stepIdx: number) {
+function saveProgress(userId: string, lessonIdx: number, stepIdx: number) {
   try {
-    localStorage.setItem(getStorageKey(), JSON.stringify({ lessonIdx, stepIdx }));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify({ lessonIdx, stepIdx }));
   } catch {}
 }
 
-export function LessonPlayer({ startLessonId, onComplete }: Props) {
+export function LessonPlayer({ startLessonId, userId, onComplete }: Props) {
   const [mounted, setMounted] = useState(false);
   const [lessonIdx, setLessonIdx] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
@@ -48,7 +48,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
 
   // Restore progress on mount
   useEffect(() => {
-    const saved = loadProgress(startLessonId);
+    const saved = loadProgress(userId, startLessonId);
     setLessonIdx(saved.lessonIdx);
     setStepIdx(saved.stepIdx);
     setMounted(true);
@@ -61,7 +61,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
 
   // Save progress on step/lesson change
   useEffect(() => {
-    if (mounted) saveProgress(lessonIdx, stepIdx);
+    if (mounted) saveProgress(userId, lessonIdx, stepIdx);
   }, [lessonIdx, stepIdx, mounted]);
 
   // Init code when lesson changes
@@ -82,7 +82,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
 
   const handleExit = () => {
     // Save current progress before exiting
-    saveProgress(lessonIdx, stepIdx);
+    saveProgress(userId, lessonIdx, stepIdx);
     onComplete();
   };
 
@@ -97,13 +97,13 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
     } catch {}
 
     if (isLastLesson) {
-      localStorage.removeItem(getStorageKey());
+      localStorage.removeItem(getStorageKey(userId));
       onComplete();
     } else {
       const next = lessonIdx + 1;
       setLessonIdx(next);
       setStepIdx(0);
-      saveProgress(next, 0);
+      saveProgress(userId, next, 0);
     }
   };
 
