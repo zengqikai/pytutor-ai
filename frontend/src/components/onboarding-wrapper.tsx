@@ -9,26 +9,34 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showLesson0, setShowLesson0] = useState(false);
-  const [checked, setChecked] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated || checked) return;
+    if (!isAuthenticated) { setLoading(false); return; }
+    // Always check when auth state changes
     checkOnboarding();
   }, [isAuthenticated]);
 
   const checkOnboarding = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("auth_token");
       const r = await fetch("http://localhost:8000/api/v1/profile/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await r.json();
-      // Show onboarding if not yet completed (2.0 feature flag)
-      if (!data.onboarding_done && !localStorage.getItem("onboarding_skipped")) {
+      const resp = await r.json();
+      // Response is wrapped: { data: {...}, message: ..., error: ... }
+      const profile = resp.data || resp;
+
+      if (!profile.onboarding_done) {
         setShowOnboarding(true);
       }
-    } catch {} finally {
-      setChecked(true);
+    } catch (e) {
+      // If profile check fails, still show onboarding (safe default)
+      console.warn("Onboarding check failed, showing modal as fallback", e);
+      setShowOnboarding(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,6 +50,8 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const handleLesson0Complete = () => {
     setShowLesson0(false);
   };
+
+  if (loading) return <>{children}</>;
 
   return (
     <>
