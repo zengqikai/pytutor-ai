@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth";
 import { OnboardingModal } from "@/components/onboarding-modal";
-import { Lesson0 } from "@/components/lesson-0";
+import { LessonPlayer } from "@/components/lesson-player";
 
 export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showLesson0, setShowLesson0] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +37,9 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
-    if (level === "A") setShowLesson0(true);
+    if (level === "A") {
+      setShowTutorial(true);
+    }
   };
 
   if (loading) return <>{children}</>;
@@ -45,11 +47,11 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
-      {showLesson0 && <Lesson0 onComplete={() => setShowLesson0(false)} />}
+      {showTutorial && <LessonPlayer onComplete={() => setShowTutorial(false)} />}
       {children}
 
-      {/* 永久入口：右下角浮动按钮，随时重新选择学习基础 */}
-      {isAuthenticated && !showOnboarding && !showLesson0 && (
+      {/* 永久入口：右下角浮动按钮 */}
+      {isAuthenticated && !showOnboarding && !showTutorial && (
         <button
           onClick={() => setShowOnboarding(true)}
           className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all group"
