@@ -10,9 +10,6 @@ LiteLLM + Langfuse 自动追踪：
 接入方式：LiteLLM 原生支持，设置 callback 即可。
 """
 
-import litellm
-
-from app.core.config import settings
 from app.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -20,14 +17,9 @@ logger = get_logger(__name__)
 
 def setup_langfuse():
     """
-    初始化 Langfuse 可观测。
+    初始化 Langfuse 可观测（可选）。
 
     配置环境变量或在代码中设置。
-
-    免费自托管或使用 Langfuse Cloud:
-        LANGFUSE_PUBLIC_KEY=pk-xxx
-        LANGFUSE_SECRET_KEY=sk-xxx
-        LANGFUSE_HOST=https://cloud.langfuse.com
     """
     import os
 
@@ -35,16 +27,17 @@ def setup_langfuse():
     secret_key = os.getenv("LANGFUSE_SECRET_KEY", "")
 
     if not public_key or not secret_key:
-        logger.info("langfuse_skipped", reason="未配置 LANGFUSE_PUBLIC_KEY/SECRET_KEY，跳过")
+        logger.info("langfuse_skipped", reason="未配置 LANGFUSE_PUBLIC_KEY/SECRET_KEY")
         return
 
-    # LiteLLM 原生 Langfuse callback
-    litellm.success_callback = ["langfuse"]
-    litellm.failure_callback = ["langfuse"]
-
-    os.environ.setdefault("LANGFUSE_HOST", "https://cloud.langfuse.com")
-
-    logger.info("langfuse_enabled")
+    try:
+        import litellm
+        litellm.success_callback = ["langfuse"]
+        litellm.failure_callback = ["langfuse"]
+        os.environ.setdefault("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        logger.info("langfuse_enabled")
+    except ImportError:
+        logger.warning("langfuse_skipped", reason="litellm 未安装")
 
 
 def trace_agent_step(step_name: str, input_data: str = "", output_data: str = "", **kwargs):
