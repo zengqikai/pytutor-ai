@@ -463,7 +463,7 @@
                 misconceptions, misconception_events)
 API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   25 个
+记录 Bug:   28 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
 
@@ -502,7 +502,9 @@ Alembic 迁移: 7 次
 
 | # | 问题 | 根因 | 修复 |
 |----|------|------|------|
-| Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位，换账号时读到旧值 | key 改为 `pytutor_progress_{user.id}` 从 auth store 获取 |
+| Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位 | key 改为 `pytutor_progress_{user.id}` |
+| Bug #27 | 管理员用 SQLite 直插的账号无法登录 | bcrypt 哈希格式与 app 不兼容 | 通过 API 注册，再 SQL 升级角色 |
+| Bug #28 | 教师/管理员看到学生弹窗 | OnboardingWrapper 未检查 role | `user.role !== "student"` 跳过 |
 
 ---
 
