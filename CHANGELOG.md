@@ -400,21 +400,69 @@
 | Bug #21 | 向量索引写入 0 条 | `db.execute()` 结果被第一个 for 循环耗尽 | `result.all()` 物化 |
 | Bug #22 | 生成题目即显示 ✅ | 按概念标签匹配（通过一题全打勾） | 改为按题目 ID 匹配 + 新增 `/me/passed-ids` 端点 |
 | Bug #23 | 练习完成数翻倍（2 而非 1） | `exercises.py` 手动更新 profile + `record_event()` 内部再更新 = 双重计数；failed 行还有重复 `+= 1` | 移除 `exercises.py` 重复累加，由 `record_event()` 统一管理；前端 `exercises_passed` 替代 `exercises_completed` |
-| Bug #24 | 做对题目不打勾 + 切换后结果丢失 | `already_passed` 按概念去重（通过一题后同概念全阻塞）+ `selectExercise` 无条件清空 result | `already_passed` 改为按 exercise_id 去重；已通过题目保留判题结果和代码 |
+| Bug #24 | 做对题目不打勾 + 切换后结果丢失 | `already_passed` 按概念去重 + `selectExercise` 无条件清空 result | 按 exercise_id 去重；已通过题目保留结果 |
+| Bug #25 | 2.0 profile 接口返回 None | SQLAlchemy `create_all` 不修改已有表，新增 4 个 2.0 字段缺失 | 手动 `ALTER TABLE ADD COLUMN` |
+
+---
+
+## Phase 8: PyTutor 2.0 — Misconception-Aware AI Tutoring
+**日期**: 2026-06-11
+
+### Step 22 — 新手引导 (Priority 1)
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `frontend/src/components/onboarding-modal.tsx` | 首次登录弹窗：4 选项（零基础/学过/会基础/自由提问） |
+| 新增 | `frontend/src/components/onboarding-wrapper.tsx` | 客户端包装器：检测 profile 状态，决定是否弹窗 |
+| 新增 | `frontend/src/components/lesson-0.tsx` | Lesson 0 教程：9 步引导式对话 + 实时代码编辑器 |
+| 修改 | `frontend/src/app/layout.tsx` | 集成 OnboardingWrapper |
+| 修改 | `backend/app/api/v1/profile.py` | 新增 `/onboarding` + `/lesson/complete` 端点 |
+| 修改 | `backend/app/services/profile_service.py` | 返回 `onboarding_done` 字段 |
+
+### Step 23 — 误区分类与诊断 (Priority 2)
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/models/misconception.py` | Misconception + MisconceptionEvent 模型 |
+| 新增 | `backend/app/data/misconceptions.json` | 8 类误区种子数据（M1-M8，含正则匹配规则） |
+| 新增 | `backend/app/services/misconception_service.py` | 规则匹配 + LLM 辅助双通道诊断引擎 |
+| 新增 | `backend/app/api/v1/misconceptions.py` | `POST /diagnose` + `GET /misconceptions` |
+| 修改 | `backend/app/main.py` | 启动时 auto-create 表 + seed 误区数据 |
+| 修改 | `backend/app/api/router.py` | 注册 misconceptions 路由 |
+
+### Step 24 — 教学策略 + 渐进式提示 (Priority 3)
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/services/pedagogy_service.py` | 7 种教学策略 + 5 级提示系统 + 回复质量检查 |
+| 修改 | `backend/app/services/chat_service.py` | 代码消息自动触发误区诊断 + 注入教学策略到 Prompt |
+| 修改 | `backend/app/api/v1/exercises.py` | 提交未通过时自动诊断误区，返回 misconception 结果 |
+| 修改 | `backend/app/schemas/chat.py` | AIResponse 新增 misconception_id / pedagogical_strategy / reflection_question |
+| 修改 | `frontend/src/app/exercises/page.tsx` | 判题结果区展示「🧠 误区诊断」卡片 |
+
+### Step 25 — 学习画像增强 (Priority 4)
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/models/profile.py` | 新增 weak_topics / recent_misconceptions / hint_dependency / completed_lessons |
+| 修改 | `backend/app/services/profile_service.py` | 画像摘要返回 2.0 字段 |
+| 修改 | `frontend/src/app/profile/page.tsx` | 新增「最近误区」+「提示依赖度」展示区 |
+
+### Step 26 — 评估数据集 (Priority 5)
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `evaluation/v2_test_cases.json` | 20 个 Python 初学者错误案例（含期望误区和提示等级） |
 
 ---
 
 ## 当前项目统计
 
 ```
-总文件数:   62+ (不含 node_modules)
-后端文件:   45
-前端文件:   12
-数据库表:   10 (users, chat_sessions, chat_messages, rag_documents, rag_chunks,
+总文件数:   75+ (不含 node_modules)
+后端文件:   50
+前端文件:   15
+数据库表:   12 (users, chat_sessions, chat_messages, rag_documents, rag_chunks,
                 code_submissions, execution_results, exercises, test_cases,
-                student_profiles, student_weaknesses, learning_events)
-API 端点:   21+
+                student_profiles, student_weaknesses, learning_events,
+                misconceptions, misconception_events)
+API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   24 个
-技术文档:   14 章
+记录 Bug:   25 个
+版本:      2.0 (Misconception-Aware AI Tutoring)
 ```

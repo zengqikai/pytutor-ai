@@ -77,3 +77,46 @@ node vision.js --url https://example.com/img.jpg "这是什么"
 - TF-IDF 索引在 lifespan 启动时自动从 DB 重建
 - ChromaDB 向量数据持久化在 `backend/chroma_db/` 目录
 - 如果丢失：运行 `rebuild_index()` 重建
+
+---
+
+# PyTutor 2.0 — Misconception-Aware Tutoring
+
+## 核心新增功能
+
+1. **新手引导**：OnboardingModal（4 选项） + Lesson 0（9 步教程）
+2. **误区诊断**：8 类 Python 初学者误区（M1-M8），规则匹配 + LLM 辅助
+3. **教学策略**：7 种策略 + 5 级渐进提示（禁止首次给答案）
+4. **学习画像增强**：weak_topics / recent_misconceptions / hint_dependency
+5. **评估数据集**：evaluation/v2_test_cases.json（20 个案例）
+
+## 误区分类（8 类）
+
+| ID | 名称 | 典型模式 |
+|----|------|----------|
+| M1 | 赋值与比较混淆 | `if x = 3:` |
+| M2 | 缩进理解错误 | if/for 后无缩进 |
+| M3 | append 返回值误解 | `new = list.append(x)` |
+| M4 | index/value 混淆 | `for i in list: list[i]` |
+| M5 | range 右边界 | 以为 range(1,5) 含 5 |
+| M6 | print/return 混淆 | 函数只 print 不 return |
+| M7 | 类型转换错误 | string + int |
+| M8 | while 条件错误 | 无限循环 |
+
+## 误区诊断接入点
+
+- **练习提交**（exercises.py）：未通过时自动诊断
+- **AI 对话**（chat_service.py）：检测代码块后诊断 + 注入 Prompt
+- **API 端点**：`POST /api/v1/misconceptions/diagnose`
+
+## 常见问题
+
+### 新字段/表缺失
+- 2.0 使用 `Base.metadata.create_all()` 在启动时建表
+- SQLite 不支持修改已有表，新字段需手动添加：
+  ```sql
+  ALTER TABLE student_profiles ADD COLUMN weak_topics TEXT;
+  ALTER TABLE student_profiles ADD COLUMN recent_misconceptions TEXT;
+  ALTER TABLE student_profiles ADD COLUMN hint_dependency VARCHAR(20) DEFAULT 'low';
+  ALTER TABLE student_profiles ADD COLUMN completed_lessons TEXT;
+  ```
