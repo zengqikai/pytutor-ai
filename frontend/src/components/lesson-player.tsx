@@ -40,6 +40,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
   const [output, setOutput] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [misconception, setMisconception] = useState<any>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Restore progress on mount
   useEffect(() => {
@@ -146,14 +147,13 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
             <span className="font-semibold text-sm">{lesson.title}</span>
             <p className="text-[10px] text-slate-500">{lesson.desc}</p>
           </div>
-          <span className="ml-auto text-xs text-slate-500 mr-2">课程 {lessonIdx + 1}/{TUTORIAL_LESSONS.length}</span>
+          <span className="ml-auto text-xs text-slate-500">课程 {lessonIdx + 1}/{TUTORIAL_LESSONS.length}</span>
           {/* Exit button */}
           <button
-            onClick={handleExit}
-            className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-            title="退出教程（进度已保存）"
+            onClick={() => setShowExitConfirm(true)}
+            className="ml-3 px-4 py-1.5 rounded-lg bg-white/[0.04] hover:bg-rose-500/10 border border-white/[0.08] hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-medium transition-all"
           >
-            ✕
+            暂时退出
           </button>
         </div>
 
@@ -242,6 +242,32 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
           )}
         </div>
       </div>
+
+      {/* Exit confirmation modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="glass rounded-2xl border border-white/[0.08] p-8 max-w-md w-full mx-4 text-center">
+            <span className="text-4xl">📝</span>
+            <h3 className="text-lg font-bold text-white mt-3">进度已自动保存</h3>
+            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+              你目前学到<strong className="text-emerald-400"> {lesson.title} </strong>（第 {stepIdx + 1}/{lesson.steps.length} 步）。
+            </p>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              下次点击右下角的 <span className="text-indigo-400">🎓 按钮</span>，<br/>就可以从当前位置继续学习。
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowExitConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-slate-300 text-sm font-medium hover:bg-white/[0.08] transition-colors">
+                继续学习
+              </button>
+              <button onClick={handleExit}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium hover:bg-rose-500/20 transition-colors">
+                确认退出
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
