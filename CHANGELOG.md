@@ -400,6 +400,7 @@
 | Bug #21 | 向量索引写入 0 条 | `db.execute()` 结果被第一个 for 循环耗尽 | `result.all()` 物化 |
 | Bug #22 | 生成题目即显示 ✅ | 按概念标签匹配（通过一题全打勾） | 改为按题目 ID 匹配 + 新增 `/me/passed-ids` 端点 |
 | Bug #23 | 练习完成数翻倍（2 而非 1） | `exercises.py` 手动更新 profile + `record_event()` 内部再更新 = 双重计数；failed 行还有重复 `+= 1` | 移除 `exercises.py` 重复累加，由 `record_event()` 统一管理；前端 `exercises_passed` 替代 `exercises_completed` |
+| Bug #24 | 做对题目不打勾 + 切换后结果丢失 | `already_passed` 按概念去重（通过一题后同概念全阻塞）+ `selectExercise` 无条件清空 result | `already_passed` 改为按 exercise_id 去重；已通过题目保留判题结果和代码 |
 
 ---
 
@@ -414,6 +415,6 @@
                 student_profiles, student_weaknesses, learning_events)
 API 端点:   21+
 Alembic 迁移: 7 次
-记录 Bug:   23 个
+记录 Bug:   24 个
 技术文档:   14 章
 ```
