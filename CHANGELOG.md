@@ -503,3 +503,16 @@ Alembic 迁移: 7 次
 | # | 问题 | 根因 | 修复 |
 |----|------|------|------|
 | Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位，换账号时读到旧值 | key 改为 `pytutor_progress_{user.id}` 从 auth store 获取 |
+
+---
+
+## Phase 10: 入口 B 基础诊断系统 (Step 30)
+
+### Step 30 — DiagnosticFlow 诊断流程
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `frontend/src/data/diagnostic-tasks.ts` | 6 道诊断题（print/变量/赋值比较/for+range/list索引/append） |
+| 新增 | `frontend/src/components/diagnostic-flow.tsx` | 3 页 Portal 流程：说明页→答题（含代码运行）→诊断报告 |
+| 修改 | `onboarding-wrapper.tsx` | 入口 B 触发 DiagnosticFlow；结果决定跳练习中心或补漏教程 |

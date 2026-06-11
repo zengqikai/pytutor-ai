@@ -122,6 +122,15 @@ OnboardingModal（4 选项）
 4. **学习画像增强**：weak_topics / recent_misconceptions / hint_dependency
 5. **评估数据集**：evaluation/v2_test_cases.json（20 个案例）
 
+## 四入口行为
+
+| 入口 | 行为 |
+|------|------|
+| A 零基础 | LessonPlayer 完整 7 课教程 |
+| B 学过一点 | DiagnosticFlow 6 题诊断 → 按结果推荐补漏或练习 |
+| C 会基础 | 跳转 `/exercises` 练习中心 |
+| D 自由提问 | 留在 AI 对话页 |
+
 ## 误区分类（8 类）
 
 | ID | 名称 | 典型模式 |
