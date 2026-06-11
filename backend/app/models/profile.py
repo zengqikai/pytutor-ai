@@ -46,6 +46,20 @@ class StudentProfile(Base, TimestampMixin):
         String(100), nullable=True, comment="推荐的下一知识点"
     )
 
+    # 2.0 新增字段
+    weak_topics: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="薄弱知识点列表（JSON）"
+    )
+    recent_misconceptions: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="最近出现的误区 ID（JSON）"
+    )
+    hint_dependency: Mapped[str | None] = mapped_column(
+        String(20), default="low", comment="提示依赖度：low/medium/high"
+    )
+    completed_lessons: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="已完成课程列表（JSON）"
+    )
+
     def __repr__(self) -> str:
         return f"<StudentProfile(user={self.user_id}, level={self.level})>"
 

@@ -103,6 +103,65 @@ async def get_passed_exercise_ids(
     return {"ids": list(ids), "count": len(ids)}
 
 
+@router.post("/me/onboarding")
+async def complete_onboarding(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    记录用户首次登录的基础选择。
+
+    请求体：{"skill_level": "A/B/C/D"}
+    A=零基础 B=学过一点 C=会基础想练习 D=自由提问
+    """
+    from app.services.profile_service import record_event, get_or_create_profile
+    import json
+
+    level = body.get("skill_level", "B")
+    labels = {"A": "zero_basis", "B": "some_basics", "C": "can_practice", "D": "free_chat"}
+    label = labels.get(level, "some_basics")
+
+    await record_event(db, current_user.id, "onboarding_completed",
+        concept=label,
+        detail={"skill_level": level}
+    )
+
+    profile = await get_or_create_profile(db, current_user.id)
+    if profile.concept_mastery_json:
+        mastery = json.loads(profile.concept_mastery_json)
+    else:
+        mastery = {}
+    mastery["_onboarding"] = label
+    profile.concept_mastery_json = json.dumps(mastery, ensure_ascii=False)
+    await db.commit()
+
+    return {"skill_level": label, "next": "lesson_0" if level == "A" else "main"}
+
+
+@router.post("/me/lesson/complete")
+async def complete_lesson(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """记录课程完成。"""
+    from app.services.profile_service import record_event
+    lesson_id = body.get("lesson_id", "lesson_0")
+    await record_event(db, current_user.id, "lesson_completed", concept=lesson_id)
+    return {"lesson_id": lesson_id, "status": "completed"}
+
+
+@router.get("/me/misconceptions")
+async def get_my_misconceptions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """获取当前用户的误区历史。"""
+    from app.services.misconception_service import get_user_misconceptions
+    return await get_user_misconceptions(db, current_user.id)
+
+
 @router.get("/me/recommendations")
 async def get_my_recommendations(
     db: AsyncSession = Depends(get_db),

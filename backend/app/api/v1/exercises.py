@@ -185,6 +185,23 @@ async def submit_exercise_answer(
 
     exercise.use_count = (exercise.use_count or 0) + 1
 
+    # 2.0: 误区诊断（未全部通过时触发）
+    misconception_diagnosis = None
+    if not (passed == total and total > 0):
+        try:
+            from app.services.misconception_service import diagnose as mc_diagnose
+            stderr_summary = "; ".join([
+                t.get("error", "") for t in test_results if not t.get("passed")
+            ])[:500]
+            mc_result = await mc_diagnose(
+                db, code=user_code, stderr=stderr_summary,
+                exercise_context=exercise.description or ""
+            )
+            if mc_result.get("has_misconception"):
+                misconception_diagnosis = mc_result
+        except Exception:
+            pass
+
     # 联动学习画像：记录事件 + 更新薄弱点 + 独立完成度评分
     from app.services.profile_service import record_event, update_weakness, get_or_create_profile
     all_passed = passed == total and total > 0
@@ -271,6 +288,8 @@ async def submit_exercise_answer(
                        "🌟 提示帮助完成" if score_pct >= 50 else
                        "📖 参考答案辅助（不计分）" if viewed_solution else
                        "❌ 未通过" if not all_passed else "",
-        "exp_gained": exp_gained,  # 本次获得的经验值
+        "exp_gained": exp_gained,
         "difficulty": exercise.difficulty,
+        # 2.0: 误区诊断结果
+        "misconception": misconception_diagnosis,
     }

@@ -1,0 +1,88 @@
+[
+  {
+    "code": "M1",
+    "name": "赋值与比较混淆",
+    "description": "学生在 if/while 条件中使用 = 而非 ==，将赋值操作符误用为比较操作符",
+    "typical_patterns": [
+      "if\\s+\\w+\\s*=\\s*[^=]",
+      "while\\s+\\w+\\s*=\\s*[^=]"
+    ],
+    "related_concepts": "if_statement,operators,variables",
+    "recommended_strategy": "concept_explanation"
+  },
+  {
+    "code": "M2",
+    "name": "缩进理解错误",
+    "description": "if/for/while/def 语句后缺少缩进，学生未理解 Python 用缩进表示代码块",
+    "typical_patterns": [
+      "(if|for|while|def|else|elif)\\s+.*:\\s*\\n\\s*(?!(    |\\t|#))"
+    ],
+    "related_concepts": "if_statement,for_loop,indentation",
+    "recommended_strategy": "concept_explanation"
+  },
+  {
+    "code": "M3",
+    "name": "append 返回值误解",
+    "description": "将 append()/sort()/reverse() 等 in-place 操作的结果赋值给新变量，期望返回新列表",
+    "typical_patterns": [
+      "\\w+\\s*=\\s*\\w+\\.append\\(",
+      "\\w+\\s*=\\s*\\w+\\.sort\\(",
+      "\\w+\\s*=\\s*\\w+\\.reverse\\("
+    ],
+    "related_concepts": "list,append,in_place_operation",
+    "recommended_strategy": "progressive_hint"
+  },
+  {
+    "code": "M4",
+    "name": "index 和 value 混淆",
+    "description": "for 循环中把元素当作索引使用，如 for i in list: print(list[i])",
+    "typical_patterns": [
+      "for\\s+\\w+\\s+in\\s+\\w+\\s*:\\s*.*\\[\\s*\\1\\s*\\]"
+    ],
+    "related_concepts": "for_loop,list,index",
+    "recommended_strategy": "counterexample"
+  },
+  {
+    "code": "M5",
+    "name": "range 右边界误解",
+    "description": "以为 range(1, 5) 包含 5，不理解 Python 的左闭右开区间",
+    "typical_patterns": [
+      "range\\s*\\(\\s*\\d+\\s*,\\s*\\d+\\s*\\)"
+    ],
+    "related_concepts": "for_loop,range",
+    "recommended_strategy": "counterexample"
+  },
+  {
+    "code": "M6",
+    "name": "print 和 return 混淆",
+    "description": "函数内只用 print 输出，期望调用者能获取到值；或误以为 print 的值能被赋值",
+    "typical_patterns": [
+      "def\\s+\\w+.*:\\s*\\n\\s+print\\(",
+      "\\w+\\s*=\\s*print\\("
+    ],
+    "related_concepts": "function,return,print",
+    "recommended_strategy": "concept_explanation"
+  },
+  {
+    "code": "M7",
+    "name": "类型转换错误",
+    "description": "字符串和整数直接拼接或运算，如 'score: ' + 100 报 TypeError",
+    "typical_patterns": [
+      "str\\s*\\+\\s*int|int\\s*\\+\\s*str",
+      "TypeError.*can only concatenate"
+    ],
+    "related_concepts": "data_types,string,int,type_conversion",
+    "recommended_strategy": "concept_explanation"
+  },
+  {
+    "code": "M8",
+    "name": "while 循环条件错误",
+    "description": "while 循环缺少变量更新导致无限循环，或循环条件永远为 True",
+    "typical_patterns": [
+      "while\\s+True\\s*:",
+      "while\\s+\\w+\\s*[<>=]+\\s*\\w+\\s*:"
+    ],
+    "related_concepts": "while_loop,loop_condition",
+    "recommended_strategy": "debugging_guidance"
+  }
+]

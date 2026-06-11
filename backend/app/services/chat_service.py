@@ -312,8 +312,42 @@ async def send_message(
         # RAG 检索失败不影响对话（降级到无知识库模式）
         logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e))
 
-    # 步骤 5：调用 AI 导师
+    # 步骤 4.5：误区诊断（如果消息中包含代码）
+    misconception_result = None
+    if "```python" in request.content or "```" in request.content or "def " in request.content:
+        try:
+            from app.services.misconception_service import diagnose as mc_diagnose
+            # 提取代码块
+            import re
+            code_match = re.search(r'```(?:python)?\s*\n?(.*?)```', request.content, re.DOTALL)
+            code_to_check = code_match.group(1) if code_match else request.content
+            mc_result = await mc_diagnose(db, code=code_to_check, stderr="")
+            if mc_result.get("has_misconception"):
+                misconception_result = mc_result
+                logger.info("chat_misconception_detected",
+                    code=mc_result.get("misconception_id"),
+                    session_id=session_id)
+        except Exception as e:
+            logger.debug("chat_misconception_skipped", error=str(e)[:100])
+
+    # 步骤 5：调用 AI 导师（2.0 增强：传入误区和教学策略）
     try:
+        pedagogy_hint = ""
+        if misconception_result:
+            from app.services.pedagogy_service import select_strategy, get_hint_prompt
+            strategy = select_strategy(
+                misconception_result["misconception_id"],
+                attempt_count=len([m for m in history if m.get("role") == "assistant"]) + 1,
+                has_history=False,
+            )
+            pedagogy_hint = get_hint_prompt(
+                misconception_result["misconception_name"],
+                strategy["hint_level"],
+            )
+            # 将误区信息注入到 rag_context 中
+            mc_ctx = f"⚠️ 学生代码已诊断出误区：{misconception_result['misconception_name']}。{pedagogy_hint}"
+            rag_context = (rag_context or "") + "\n" + mc_ctx if rag_context else mc_ctx
+
         ai_response: AIResponse = await generate_tutor_response(
             user_message=request.content,
             conversation_history=history,
@@ -321,6 +355,10 @@ async def send_message(
             rag_context=rag_context,
             model=model,
         )
+        # 2.0: 注入误区信息到响应
+        if misconception_result:
+            ai_response.misconception_id = misconception_result.get("misconception_id")
+            ai_response.pedagogical_strategy = "progressive_hint"
     except Exception as e:
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))
         # 即使 AI 失败，用户消息也要保存

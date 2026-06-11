@@ -113,6 +113,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.warning("embedding_init_failed", error=str(e)[:200])
 
+    # 创建 2.0 新表 + 种子数据（误区分类）
+    try:
+        from app.database.base import Base
+        from app.models.misconception import Misconception, MisconceptionEvent  # noqa: F401
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async with AsyncSessionFactory() as session:
+            from app.services.misconception_service import seed_misconceptions
+            mc_count = await seed_misconceptions(session)
+            logger.info("misconceptions_seeded", count=mc_count)
+    except Exception as e:
+        logger.warning("misconception_init_failed", error=str(e)[:200])
+
     yield  # <-- 应用运行期间停在这里
 
     # ========== 关闭逻辑 ==========

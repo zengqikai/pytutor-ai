@@ -237,12 +237,28 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
         try: mastery = json.loads(profile.concept_mastery_json)
         except: pass
     total_exp = mastery.get("_total_exp", 0)
-    next_level_exp = (profile.level) * 300  # 升级所需总经验
+    next_level_exp = (profile.level) * 300
+    onboarding_done = mastery.get("_onboarding") is not None
+
+    # 2.0 字段
+    weak_topics = []
+    recent_mc = []
+    completed = []
+    if profile.weak_topics:
+        try: weak_topics = json.loads(profile.weak_topics)
+        except: pass
+    if profile.recent_misconceptions:
+        try: recent_mc = json.loads(profile.recent_misconceptions)
+        except: pass
+    if profile.completed_lessons:
+        try: completed = json.loads(profile.completed_lessons)
+        except: pass
 
     return {
         "level": profile.level,
         "total_exp": total_exp,
         "next_level_exp": next_level_exp,
+        "onboarding_done": onboarding_done,
         "stats": {
             "exercises_completed": total,
             "exercises_passed": passed,
@@ -252,5 +268,9 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
             "chat_messages": profile.total_chat_messages,
         },
         "weaknesses": weaknesses,
+        "weak_topics": weak_topics,
+        "recent_misconceptions": recent_mc,
+        "hint_dependency": profile.hint_dependency or "low",
+        "completed_lessons": completed,
         "recommendation": recommendation,
     }

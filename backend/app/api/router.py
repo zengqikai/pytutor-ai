@@ -21,6 +21,7 @@ from app.api.v1.code import router as code_router
 from app.api.v1.exercises import router as exercises_router
 from app.api.v1.profile import router as profile_router
 from app.api.v1.rag import router as rag_router
+from app.api.v1.misconceptions import router as misconceptions_router
 from app.api.v1.users import router as users_router
 
 # 创建 v1 主路由器
@@ -36,4 +37,5 @@ api_v1_router.include_router(code_router, prefix="/code", tags=["代码"])
 api_v1_router.include_router(agent_router, prefix="/agent", tags=["Agent"])
 api_v1_router.include_router(exercises_router, prefix="/exercises", tags=["练习"])
 api_v1_router.include_router(profile_router, prefix="/profile", tags=["画像"])
+api_v1_router.include_router(misconceptions_router, prefix="/misconceptions", tags=["误区诊断"])
 api_v1_router.include_router(admin_router, prefix="/admin", tags=["管理"])

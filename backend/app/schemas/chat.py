@@ -95,6 +95,19 @@ class AIResponse(BaseModel):
         default=None,
         description="推荐的练习题 ID（如有）"
     )
+    # 2.0 新增字段
+    misconception_id: Optional[str] = Field(
+        default=None,
+        description="诊断出的误区 ID（M1-M8）"
+    )
+    pedagogical_strategy: Optional[str] = Field(
+        default=None,
+        description="教学策略：progressive_hint | concept_explanation | ..."
+    )
+    reflection_question: Optional[str] = Field(
+        default=None,
+        description="引导学生反思的问题"
+    )
 
 
 class MessageResponse(BaseModel):
