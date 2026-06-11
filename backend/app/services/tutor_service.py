@@ -90,7 +90,31 @@ async def generate_tutor_response(
         elif any(kw in user_message for kw in ["练习", "题目"]):
             response_type = "exercise"
 
-        logger.info("tutor_response_ok", hint=hint, type=response_type, length=len(raw))
+        # 2.0: 回复质量自检
+        verify_score = 0
+        try:
+            from app.services.pedagogy_service import verify_response
+            verification = await verify_response(raw, hint, None)
+            verify_score = verification.get("score", 3)
+            if verification.get("needs_revision") and verify_score < 3:
+                # 不合格 → 重新生成（更严格的提示）
+                logger.info("tutor_response_revision", score=verify_score)
+                messages.append(LLMMessage(role="system",
+                    content="上一轮回复不合格。请确保：1) 不给完整答案 2) 符合提示等级 3) 用初学者能理解的语言。重新回复。"))
+                llm_response2 = await chat_completion(messages=messages, temperature=0.5, model=model)
+                raw = llm_response2.content.strip()
+                # 再次解析元数据
+                meta_match2 = re.match(r'<!--\s*hint:(\d+)\s*(?:concepts:(.+?))?\s*-->', raw)
+                if meta_match2:
+                    hint = int(meta_match2.group(1))
+                    if meta_match2.group(2):
+                        concepts = [c.strip() for c in meta_match2.group(2).split(",") if c.strip()]
+                    raw = raw[meta_match2.end():].strip()
+                verify_score = 2  # 标记为已修正
+        except Exception:
+            pass
+
+        logger.info("tutor_response_ok", hint=hint, type=response_type, length=len(raw), verify_score=verify_score)
 
         return AIResponse(
             response_type=response_type,
