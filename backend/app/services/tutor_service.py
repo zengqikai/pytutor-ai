@@ -111,6 +111,46 @@ async def generate_tutor_response(
         )
 
 
+async def generate_tutor_response_stream(
+    user_message: str,
+    conversation_history: list[dict],
+    student_level: str = "beginner",
+    rag_context: str | None = None,
+    model: str | None = None,
+):
+    """流式生成 AI 导师回复——逐 token yield"""
+    import litellm
+    from app.core.config import settings as s
+
+    hint_level = calculate_hint_level(conversation_history, user_message)
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    if rag_context:
+        messages.append({"role": "system", "content": f"参考知识点：\n{rag_context}"})
+    messages.append({"role": "system", "content": f"提示等级 Level {hint_level}。第一行写 <!-- hint:{hint_level} concepts:xxx -->"})
+
+    for msg in conversation_history[-20:]:
+        messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+    messages.append({"role": "user", "content": user_message})
+
+    provider_cfg = {"model": f"deepseek/{s.deepseek_model}", "api_key": s.deepseek_api_key, "api_base": s.deepseek_base_url}
+    litellm_model = model or provider_cfg["model"]
+
+    try:
+        response = await litellm.acompletion(
+            model=litellm_model, messages=messages,
+            temperature=s.llm_temperature, max_tokens=s.llm_max_tokens,
+            api_key=provider_cfg["api_key"], api_base=provider_cfg["api_base"],
+            stream=True, timeout=s.llm_timeout,
+        )
+        async for chunk in response:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+    except Exception as e:
+        logger.error("stream_failed", error=str(e))
+        yield f"\n[流式中断: {str(e)[:100]}]"
+
+
 def _parse_ai_json(raw_content: str, default_hint_level: int) -> AIResponse:
     """保留兼容旧版 JSON 解析。"""
     import json

@@ -155,6 +155,67 @@ async def list_sessions(
 
 
 # =============================================================================
+# 流式消息处理
+# =============================================================================
+
+async def send_message_stream(
+    db: AsyncSession,
+    session_id: str,
+    user: User,
+    request: SendMessageRequest,
+):
+    """流式发送消息——逐 token yield"""
+    import json
+    from app.services.tutor_service import generate_tutor_response_stream
+
+    # 验证会话
+    result = await db.execute(
+        select(ChatSession).where(ChatSession.id == session_id)
+    )
+    session = result.scalar_one_or_none()
+    if not session or session.student_id != user.id:
+        yield json.dumps({"error": "会话不存在或无权访问"})
+        return
+
+    # 保存用户消息
+    user_msg = ChatMessage(session_id=session_id, role="user", content=request.content)
+    db.add(user_msg)
+
+    # 获取历史
+    history = []
+    for msg in session.messages:
+        history.append({"role": msg.role, "content": msg.content})
+
+    # 流式生成
+    full_response = ""
+    async for token in generate_tutor_response_stream(
+        user_message=request.content,
+        conversation_history=history,
+        model=request.model,
+    ):
+        full_response += token
+        yield json.dumps({"token": token})
+
+    # 保存 AI 回复
+    assistant_msg = ChatMessage(
+        session_id=session_id, role="assistant", content=full_response,
+        response_type="general", hint_level=1,
+    )
+    db.add(assistant_msg)
+
+    # 自动命名
+    from sqlalchemy import func as sa_func, select as sa_select
+    count_result = await db.execute(
+        sa_select(sa_func.count()).select_from(ChatMessage).where(ChatMessage.session_id == session_id)
+    )
+    if (count_result.scalar() or 0) <= 1:
+        session.title = request.content[:40] + ("..." if len(request.content) > 40 else "")
+    await db.commit()
+
+    yield json.dumps({"done": True, "message_id": assistant_msg.id})
+
+
+# =============================================================================
 # 消息处理
 # =============================================================================
 

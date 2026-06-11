@@ -73,6 +73,25 @@ async def get_chat_session(
     return await get_session(db, session_id, current_user)
 
 
+@router.post("/sessions/{session_id}/stream")
+async def stream_chat_message(
+    session_id: str,
+    request: SendMessageRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """流式 AI 对话（SSE）——逐 token 返回。"""
+    from fastapi.responses import StreamingResponse
+    from app.services.chat_service import send_message_stream
+
+    async def event_stream():
+        async for chunk in send_message_stream(db, session_id, current_user, request):
+            yield f"data: {chunk}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
 @router.delete("/sessions/{session_id}")
 async def delete_chat_session(
     session_id: str,
