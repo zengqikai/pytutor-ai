@@ -535,3 +535,12 @@ Alembic 迁移: 7 次
 | 修改 | `tutor_service.py` | AI 回复后调用 verify_response()，不合格自动重新生成 |
 | 新增 | `evaluation/run_v2_eval.py` | 20 例 Baseline 评估脚本，3 维评分 |
 | **评估结果** | — | **92.3%** 综合分，77.5% 诊断准确率，100% 不早给答案 |
+
+### Step 33 — 教程 Lesson 6-10 + 误区专项练习
+**日期**: 2026-06-12
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `tutorial-data.ts` | 新增 5 课：input 输入、字符串数字、list 列表、函数入门、综合复习 |
+| 新增 | `misconception-exercises.ts` | 16 道 M1-M8 误区靶向练习（每类 2 题：修复/预测） |
+| 新增 | `misconception_exercises.py` | `POST /exercises/seed-mc-exercises` 种子端点 |
