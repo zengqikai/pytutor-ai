@@ -37,5 +37,8 @@ api_v1_router.include_router(code_router, prefix="/code", tags=["代码"])
 api_v1_router.include_router(agent_router, prefix="/agent", tags=["Agent"])
 api_v1_router.include_router(exercises_router, prefix="/exercises", tags=["练习"])
 api_v1_router.include_router(profile_router, prefix="/profile", tags=["画像"])
+from app.api.v1.misconception_exercises import router as mc_exercises_router
+
 api_v1_router.include_router(misconceptions_router, prefix="/misconceptions", tags=["误区诊断"])
+api_v1_router.include_router(mc_exercises_router, prefix="/exercises", tags=["练习"])
 api_v1_router.include_router(admin_router, prefix="/admin", tags=["管理"])

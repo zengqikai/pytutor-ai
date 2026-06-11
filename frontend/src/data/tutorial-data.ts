@@ -147,7 +147,86 @@ export const TUTORIAL_LESSONS: Lesson[] = [
       { content: "答案揭晓：输出是 `1 2 3 4`，**不包含 5**！\n\n`range(1, 5)` 从 1 开始，到 5 **之前**停止。\n\n这是 Python 的设计：左闭右开区间。\n\n点击运行验证一下。", action: "run", actionHint: "▶ 我运行了" },
       { content: "现在修改代码：把 `range(1, 5)` 改成 `range(1, 10)`。\n\n你猜会输出什么？运行看看！", action: "edit", actionHint: "我改好并运行了" },
       { content: "你学会了 for 循环！\n\n```\nfor 变量 in range(开始, 结束):\n    重复执行的代码\n```\n\n✅ `for` = 循环\n✅ `range(开始, 结束)` = 生成数字序列（不包含结束值）\n✅ 循环里的代码要**缩进**\n✅ 每次循环，变量的值都会变化" },
-      { content: "🎉 恭喜你完成了 Python 新手教程的全部课程！\n\n你学到了：\n\n✅ Lesson 0A：认识编辑器\n✅ Lesson 0B：运行、输出和报错\n✅ Lesson 1：第一行代码\n✅ Lesson 2：print 输出\n✅ Lesson 3：变量\n✅ Lesson 4：if 条件判断\n✅ Lesson 5：for 循环\n\n现在你已经可以自己写简单的 Python 程序了！\n\n接下来可以在 **AI 对话** 中自由提问，在 **练习中心** 挑战题目，继续你的学习之旅！", action: "continue", actionHint: "🎉 完成教程，开始学习！" },
+      { content: "你学会了 for 循环！\n\n```\nfor 变量 in range(开始, 结束):\n    重复执行的代码\n```\n\n✅ `for` = 循环\n✅ `range(开始, 结束)` = 生成数字序列（不包含结束值）\n✅ 循环里的代码要**缩进**\n✅ 每次循环，变量的值都会变化\n\n下一课：让程序接收你的输入！", action: "continue", actionHint: "进入下一课 →" },
+    ],
+  },
+
+  // Lesson 6：input 输入
+  {
+    id: "lesson_6",
+    title: "input 输入",
+    desc: "让程序接收用户输入，实现交互",
+    initialCode: `name = input("What is your name? ")\nprint("Hello, " + name)`,
+    relatedConcepts: ["input", "string", "variables"],
+    steps: [
+      { content: "之前我们的程序只能输出固定的内容。\n\n现在学习 **input()**——让程序接收你的输入！\n\n`input()` 会暂停程序，等待你输入内容，然后把你输入的内容作为**字符串**返回。", code: `name = input("What is your name? ")\nprint("Hello, " + name)` },
+      { content: "这段代码会：\n\n1️⃣ 显示提示语 \"What is your name? \"\n2️⃣ 等待你输入\n3️⃣ 把你输入的内容存到 `name` 变量\n4️⃣ 打印 \"Hello, \" + 你的名字\n\n在下方「输入(stdin)」框里填你的名字，然后点击运行！", action: "run", actionHint: "▶ 我运行了" },
+      { content: "你看到 \"Hello, xxx\" 了对吗？\n\n这就是交互式程序——程序根据你的输入生成了不同的输出。\n\n⚠️ 注意：`input()` 返回的**永远是字符串**。即使你输入数字 18，它也是字符串 \"18\"。", code: `age = input("How old are you? ")\nprint("You are " + age)` },
+      { content: "现在把提示语改成中文：\n\n```\nname = input(\"你叫什么名字？ \")\nprint(\"你好, \" + name)\n```\n\n改完运行，输入你自己的名字！", action: "edit", actionHint: "我改好并运行了" },
+      { content: "✅ 你学会了：\n\n✅ `input()` = 接收用户输入\n✅ `input(\"提示\")` = 显示提示+等待输入\n✅ input 返回的是字符串\n✅ 程序可以和人交互了！\n\n下一课：字符串和数字的类型转换。", action: "continue", actionHint: "进入下一课 →" },
+    ],
+  },
+
+  // Lesson 7：字符串和数字
+  {
+    id: "lesson_7",
+    title: "字符串和数字",
+    desc: "理解字符串和数字的区别，学会类型转换",
+    initialCode: `age = input("请输入年龄: ")\n# age 是字符串，不能直接计算\nreal_age = int(age)\nprint("明年你将是", real_age + 1, "岁")`,
+    relatedConcepts: ["string", "int", "float", "type_conversion"],
+    steps: [
+      { content: "`input()` 返回的是**字符串**。但如果你要计算，就需要**数字**。\n\n这就是**类型转换**——在字符串和数字之间切换。", code: `age = input(\"请输入年龄: \")\nreal_age = int(age)\nprint(\"明年你将是\", real_age + 1, \"岁\")` },
+      { content: "`int(age)` 把字符串 `\"18\"` 转换成数字 `18`。\n\n常用转换：\n- `int(x)` → 转整数\n- `float(x)` → 转小数\n- `str(x)` → 转字符串\n\n输入一个年龄试试！", action: "run", actionHint: "▶ 我运行了" },
+      { content: "⚠️ 看看这个错误代码会怎样：\n\n把代码改成：\n```\nage = input(\"年龄: \")\nprint(age + 1)\n```\n运行看看会报什么错？", code: `age = input(\"年龄: \")\nprint(age + 1)`, action: "edit", actionHint: "我运行了，看到了报错" },
+      { content: "你看到了 TypeError 对吗？\n\n错误说：不能把字符串和数字相加。\n\n**\"18\" 是文字，18 是数字，它们不是一回事。**\n\n把代码改回来：`print(int(age) + 1)`，再运行一次。", action: "edit", actionHint: "我修复好了" },
+      { content: "✅ 你学会了：\n\n✅ 字符串 = 文字，数字 = 可计算\n✅ `int()` → 字符串转整数\n✅ `str()` → 数字转字符串\n✅ 类型不匹配会报 TypeError\n\n下一课：list 列表！", action: "continue", actionHint: "进入下一课 →" },
+    ],
+  },
+
+  // Lesson 8：list 列表
+  {
+    id: "lesson_8",
+    title: "list 列表",
+    desc: "用列表保存多个数据，学习遍历和增删",
+    initialCode: `fruits = ["apple", "banana", "orange"]\nprint("第一个水果:", fruits[0])\nprint("全部水果:")\nfor fruit in fruits:\n    print(fruit)`,
+    relatedConcepts: ["list", "index", "append", "for_loop"],
+    steps: [
+      { content: "变量只能存一个值。如果需要存多个值（比如全班同学的名字），就需要**列表（list）**。\n\n列表用方括号 `[]`，元素用逗号分隔。", code: `fruits = [\"apple\", \"banana\", \"orange\"]\nprint(\"第一个水果:\", fruits[0])\nprint(\"全部水果:\")\nfor fruit in fruits:\n    print(fruit)` },
+      { content: "列表的**下标（索引）从 0 开始**：\n- `fruits[0]` = 第一个元素 \"apple\"\n- `fruits[1]` = 第二个 \"banana\"\n- `fruits[2]` = 第三个 \"orange\"\n\n点击运行！", action: "run", actionHint: "▶ 我运行了" },
+      { content: "你看到了用 for 循环遍历列表的效果！\n\n现在试试添加新元素：\n\n把代码改成：\n```python\nfruits = [\"apple\", \"banana\"]\nfruits.append(\"orange\")\nprint(fruits)\n```", action: "edit", actionHint: "我改好并运行了" },
+      { content: "`append()` 添加了一个新元素到列表末尾。\n\n⚠️ 重要误区：\n```python\n# 错误写法！\nnew_fruits = fruits.append(\"orange\")  # new_fruits 是 None！\n\n# 正确写法\nfruits.append(\"orange\")  # 直接修改原列表\n```\n\n`append()` 直接修改原列表，不返回新列表。", code: `# 正确：直接 append，然后打印原列表\nfruits = [\"apple\", \"banana\"]\nfruits.append(\"orange\")\nprint(fruits)  # [\"apple\", \"banana\", \"orange\"]` },
+      { content: "✅ 你学会了：\n\n✅ 列表 = 用 `[]` 存多个值\n✅ 下标从 0 开始\n✅ `append()` 添加元素\n✅ `append()` 修改原列表，不返回新列表\n\n下一课：函数入门！", action: "continue", actionHint: "进入下一课 →" },
+    ],
+  },
+
+  // Lesson 9：函数入门
+  {
+    id: "lesson_9",
+    title: "函数入门",
+    desc: "学会定义和调用函数，理解 return",
+    initialCode: `def greet(name):\n    return "Hello, " + name\n\nmessage = greet("Alice")\nprint(message)`,
+    relatedConcepts: ["function", "def", "return", "parameters"],
+    steps: [
+      { content: "**函数**是一段可以重复使用的代码。\n\n就像遥控器的按钮——按一下执行一个功能。\n\n`def` = 定义函数，`return` = 返回结果。", code: `def greet(name):\n    return \"Hello, \" + name\n\nmessage = greet(\"Alice\")\nprint(message)` },
+      { content: "代码解释：\n\n1️⃣ `def greet(name):` → 定义一个叫 greet 的函数，接收一个参数 name\n2️⃣ `return \"Hello, \" + name` → 返回拼接后的字符串\n3️⃣ `greet(\"Alice\")` → 调用函数，返回 \"Hello, Alice\"\n4️⃣ `print(message)` → 输出结果\n\n点击运行！", action: "run", actionHint: "▶ 我运行了" },
+      { content: "现在自己写一个加法函数：\n\n```python\ndef add(a, b):\n    return a + b\n\nresult = add(3, 5)\nprint(result)\n```\n\n运行看看结果！", action: "edit", actionHint: "我改好并运行了" },
+      { content: "⚠️ 重要：`print` 和 `return` 的区别！\n\n```python\n# 错误理解\ndef add(a, b):\n    print(a + b)  # 只是显示，没有返回值\n\nresult = add(3, 5)  # result 是 None！\n```\n\n`print()` 只是显示在屏幕上。\n`return` 才是把结果交回给调用者。\n\n把 print 改成 return 试试。", action: "edit", actionHint: "我理解了并改好了" },
+      { content: "✅ 你学会了：\n\n✅ `def` 定义函数\n✅ 函数可以接收参数\n✅ `return` 返回结果（不是 print）\n✅ 函数 = 可重复使用的代码块\n\n最后一课：综合复习！", action: "continue", actionHint: "进入最后一课 →" },
+    ],
+  },
+
+  // Lesson 10：综合复习
+  {
+    id: "lesson_10",
+    title: "综合复习",
+    desc: "综合运用所学知识，完成一个小项目",
+    initialCode: `# 一个小项目：名字收集器\nnames = []\n\nwhile True:\n    name = input(\"输入名字（输入q退出）: \")\n    if name == \"q\":\n        break\n    names.append(name)\n\nprint(\"你输入的名字有:\")\nfor n in names:\n    print(\"-\", n)\nprint(\"共\", len(names), \"个名字\")`,
+    relatedConcepts: ["list", "input", "if_statement", "for_loop", "while_loop", "function"],
+    steps: [
+      { content: "最后一课，我们来综合运用学到的所有知识！\n\n这是一个「名字收集器」程序——让你输入名字，最后列出所有名字。\n\n它用到了：input、if、while、list、append、for 循环。", code: `names = []\nwhile True:\n    name = input(\"输入名字（输入q退出）: \")\n    if name == \"q\":\n        break\n    names.append(name)\nprint(\"你输入的名字有:\")\nfor n in names:\n    print(\"-\", n)` },
+      { content: "逐行解释：\n\n1. `names = []` — 创建空列表\n2. `while True:` — 无限循环（直到 break）\n3. `name = input(...)` — 接收输入\n4. `if name == \"q\": break` — 输入 q 就退出\n5. `names.append(name)` — 把名字加入列表\n6. 最后用 for 循环打印所有名字\n\n运行试试！输入几个名字，然后输入 q 退出。", action: "run", actionHint: "▶ 我运行了" },
+      { content: "你完成了一个完整的交互式程序！\n\n现在试试修改：\n- 把退出字符改成 \"exit\"\n- 让程序统计输入了多少个名字（用 `len(names)`）\n- 加一个函数来打印欢迎语", action: "edit", actionHint: "我改好了" },
+      { content: "🎉 恭喜你完成了 PyTutor 新手教程的全部 12 课！\n\n你学到了：\n\n✅ Lesson 0A-0B：编辑器 + 运行/输出/报错\n✅ Lesson 1-3：print + 变量\n✅ Lesson 4-5：if 条件 + for 循环\n✅ Lesson 6-7：input + 类型转换\n✅ Lesson 8-9：list + 函数\n✅ Lesson 10：综合项目\n\n现在你可以：\n- 在 **AI 对话** 中自由提问\n- 去 **练习中心** 挑战 ACM 题目\n- 用 Code Lab 编写自己的程序\n\n**你已经是一个真正的 Python 初学者了！** 🐍", action: "continue", actionHint: "🎉 完成全部教程！" },
     ],
   },
 ];
