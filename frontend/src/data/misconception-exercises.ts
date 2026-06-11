@@ -48,7 +48,7 @@ export const MISCONCEPTION_EXERCISES: McExercise[] = [
     wrongCode: `age = 20\nif age >= 18:\n    print("成人")\n    print("可以投票")\nprint("程序结束")`,
     correctCode: `age = 20\nif age >= 18:\n    print("成人")\n    print("可以投票")\nprint("程序结束")`,
     hint: "缩进相同的行属于同一个代码块。不缩进的行不属于 if。",
-    explanation: ""成人"和"可以投票"都缩进了，属于 if 块。"程序结束"没有缩进，所以无论 age 是多少都会执行。",
+    explanation: "'成人'和'可以投票'都缩进了，属于 if 块。'程序结束'没有缩进，所以无论 age 是多少都会执行。",
   },
 
   // M3: append 返回值误解
