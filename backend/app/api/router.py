@@ -9,7 +9,10 @@
 from fastapi import APIRouter
 
 from app.api.v1.admin import router as admin_router
-from app.api.v1.agent import router as agent_router
+try:
+    from app.api.v1.agent import router as agent_router
+except ImportError:
+    agent_router = None
 from app.api.v1.auth import router as auth_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.code import router as code_router
@@ -30,7 +33,8 @@ api_v1_router.include_router(users_router,         prefix="/users",         tags
 api_v1_router.include_router(chat_router,          prefix="/chat",          tags=["聊天"])
 api_v1_router.include_router(rag_router,           prefix="/rag",           tags=["知识库"])
 api_v1_router.include_router(code_router,          prefix="/code",          tags=["代码"])
-api_v1_router.include_router(agent_router,         prefix="/agent",         tags=["Agent"])
+if agent_router:
+    api_v1_router.include_router(agent_router, prefix="/agent", tags=["Agent"])
 api_v1_router.include_router(exercises_router,     prefix="/exercises",     tags=["练习"])
 api_v1_router.include_router(mc_exercises_router,  prefix="/exercises",     tags=["练习"])
 api_v1_router.include_router(misconceptions_router,prefix="/misconceptions",tags=["误区诊断"])
