@@ -304,7 +304,14 @@
 | 修改 | `backend/app/services/rag_service.py` | 混合检索：向量(ChromaDB) + 关键词(TF-IDF) |
 | 修改 | `docker-compose.yml` | PostgreSQL+pgvector 配置就绪 |
 | 修改 | `backend/.env` | DB 双模式（SQLite默认，PG生产） |
-| 新增 | `pyproject.toml` | chromadb, sentence-transformers 依赖 |
+| 新增 | `pyproject.toml` | chromadb, sentence-transformers, litellm, langfuse, ragas 依赖 |
+| 重写 | `backend/app/services/llm_service.py` | LiteLLM 网关替换裸 OpenAI SDK |
+| 新增 | `backend/app/api/v1/chat.py` | SSE 流式端点 `POST /sessions/{id}/stream` |
+| 新增 | `backend/app/services/chat_service.py` | `send_message_stream()` 流式消息 |
+| 新增 | `backend/app/services/tutor_service.py` | `generate_tutor_response_stream()` LiteLLM stream |
+| 新增 | `backend/app/observability/langfuse_setup.py` | Langfuse + LiteLLM callback |
+| 新增 | `backend/app/sandbox/docker_executor.py` | Docker 容器沙箱（auto-fallback） |
+| 新增 | `evaluation/run_eval_ragas.py` | Ragas 自动化评测 |
 
 ---
 
