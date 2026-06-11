@@ -10,11 +10,14 @@ interface Props {
   onComplete: () => void;
 }
 
-const STORAGE_KEY = "pytutor_tutorial_progress";
+function getStorageKey() {
+  const userId = localStorage.getItem("auth_token")?.slice(0, 16) || "anon";
+  return `pytutor_progress_${userId}`;
+}
 
 function loadProgress(startLessonId?: string) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey());
     if (raw) {
       const saved = JSON.parse(raw);
       if (typeof saved.lessonIdx === "number" && typeof saved.stepIdx === "number") {
@@ -28,7 +31,7 @@ function loadProgress(startLessonId?: string) {
 
 function saveProgress(lessonIdx: number, stepIdx: number) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ lessonIdx, stepIdx }));
+    localStorage.setItem(getStorageKey(), JSON.stringify({ lessonIdx, stepIdx }));
   } catch {}
 }
 
@@ -94,7 +97,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
     } catch {}
 
     if (isLastLesson) {
-      localStorage.removeItem(STORAGE_KEY);  // 全部完成，清除进度
+      localStorage.removeItem(getStorageKey());
       onComplete();
     } else {
       const next = lessonIdx + 1;

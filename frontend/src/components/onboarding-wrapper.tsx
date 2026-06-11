@@ -54,8 +54,8 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
       {isAuthenticated && !showOnboarding && !showTutorial && (
         <button
           onClick={() => {
-            // 有保存进度直接进教程，否则弹选择窗
-            const saved = localStorage.getItem("pytutor_tutorial_progress");
+            const userId = localStorage.getItem("auth_token")?.slice(0, 16) || "anon";
+            const saved = localStorage.getItem(`pytutor_progress_${userId}`);
             if (saved) {
               setShowTutorial(true);
             } else {
