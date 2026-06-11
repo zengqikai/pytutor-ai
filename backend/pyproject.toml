@@ -57,8 +57,9 @@ dev = [
 test = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
-    "httpx>=0.28.0",          # 也用于测试中的异步 HTTP 调用
-    "coverage>=7.6.0",        # 代码覆盖率
+    "pytest-cov>=6.0",
+    "httpx>=0.28.0",
+    "coverage>=7.6.0",
 ]
 
 [tool.pytest.ini_options]
@@ -67,3 +68,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = [
+    "integration: tests that require a running backend server",
+]

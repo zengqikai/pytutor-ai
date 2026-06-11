@@ -116,7 +116,9 @@ async def get_exercise_hint(
             "strategy": strategy_name,
         }
     except Exception as e:
-        return {"hint": f"提示生成失败: {str(e)[:100]}", "hint_level": effective_level}
+        from app.observability.logger import get_logger
+        get_logger(__name__).warning("hint_generation_failed", error=str(e)[:200])
+        return {"hint": "提示生成暂时失败，请稍后重试", "hint_level": effective_level}
 
 
 @router.get("/{exercise_id}/solution")

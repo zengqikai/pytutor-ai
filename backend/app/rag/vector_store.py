@@ -127,7 +127,8 @@ def search(
 
     try:
         query_embeddings = embedding.encode([query])
-    except Exception:
+    except Exception as e:
+        logger.warning("vector_encode_failed", error=str(e)[:200])
         return []
 
     where_filter = None
