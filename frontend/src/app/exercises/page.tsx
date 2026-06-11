@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import Editor from "@monaco-editor/react";
 import { useAuthStore } from "@/stores/auth";
 import { useExerciseStore } from "@/stores/exercise";
-import { exerciseAPI } from "@/lib/api";
+import { exerciseAPI, API_BASE_URL } from "@/lib/api";
 
 const diffLabels: Record<number, string> = { 1: "入门", 2: "基础", 3: "进阶", 4: "困难", 5: "挑战" };
 
@@ -28,7 +28,7 @@ export default function ExercisesPage() {
   const loadPassed = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed-ids", { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API_BASE_URL}/profile/me/passed-ids`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await r.json();
       setPassedIds(new Set(data.ids || []));
     } catch {}
@@ -69,7 +69,7 @@ export default function ExercisesPage() {
     setSubmitting(true); store.setResult(null);
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(`http://localhost:8000/api/v1/exercises/${store.selected.id}/submit`, {
+      const res = await fetch(`${API_BASE_URL}/exercises/${store.selected.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -88,7 +88,7 @@ export default function ExercisesPage() {
     setHintLoading(true);
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(`http://localhost:8000/api/v1/exercises/${store.selected.id}/hint`, {
+      const res = await fetch(`${API_BASE_URL}/exercises/${store.selected.id}/hint`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ export default function ExercisesPage() {
     if (!store.selected) return;
     try {
       const token = localStorage.getItem("auth_token");
-      const res = await fetch(`http://localhost:8000/api/v1/exercises/${store.selected.id}/solution`, {
+      const res = await fetch(`${API_BASE_URL}/exercises/${store.selected.id}/solution`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await res.json();

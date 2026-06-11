@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { API_BASE_URL } from "@/lib/api";
 import { DIAGNOSTIC_TASKS } from "@/data/diagnostic-tasks";
 
 export function DiagnosticFlow({ onComplete }: { onComplete: (result: any) => void }) {
@@ -58,7 +59,7 @@ export function DiagnosticFlow({ onComplete }: { onComplete: (result: any) => vo
     // Save to profile
     try {
       const token = localStorage.getItem("auth_token");
-      fetch("http://localhost:8000/api/v1/profile/me/onboarding", {
+      fetch(`${API_BASE_URL}/profile/me/onboarding`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ skill_level: "B", diagnosis: result }),

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 const options = [
   { key: "A", label: "我完全没有编程基础", desc: "从零开始，从认识编辑器到for循环，一步步引导", icon: "🌱", btn: "开始新手教程" },
@@ -18,7 +19,7 @@ export function OnboardingModal({ onComplete }: { onComplete: (level: string) =>
     setSubmitting(true);
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch("http://localhost:8000/api/v1/profile/me/onboarding", {
+      await fetch(`${API_BASE_URL}/profile/me/onboarding`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ skill_level: selected }),

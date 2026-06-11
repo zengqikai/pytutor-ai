@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 
 export default function TeacherPage() {
@@ -17,7 +18,7 @@ export default function TeacherPage() {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const r = await fetch("http://localhost:8000/api/v1/teacher/overview", {
+      const r = await fetch(`${API_BASE_URL}/teacher/overview`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setData(await r.json());

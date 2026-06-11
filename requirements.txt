@@ -1,0 +1,19 @@
+# PyTutor Backend — Render 部署依赖
+# 从 pyproject.toml 提取，Render 不直接支持 pyproject.toml
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+email-validator>=2.3.0
+sqlalchemy[asyncio]>=2.0.36
+aiosqlite>=0.20.0
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+httpx>=0.28.0
+python-multipart>=0.0.18
+openai>=1.58.0
+structlog>=24.4.0
+litellm>=1.88.0
+chromadb>=1.5.0
+python-dotenv>=1.0.0

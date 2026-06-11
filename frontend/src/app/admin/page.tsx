@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth";
-import { getToken } from "@/lib/api";
+import { getToken, API_BASE_URL } from "@/lib/api";
 
-const API = "http://localhost:8000/api/v1";
+const API = API_BASE_URL;
 async function fetchAdmin(path: string) {
   const res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
   if (!res.ok) throw new Error("Permission denied");

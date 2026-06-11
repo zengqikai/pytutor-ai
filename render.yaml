@@ -1,0 +1,37 @@
+# Render 部署配置
+# 文档: https://render.com/docs
+
+services:
+  - type: web
+    name: pytutor-api
+    runtime: python
+    region: singapore  # 亚洲节点，国内访问快
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./ai_tutor.db
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "https://pytutor.vercel.app,http://localhost:3000"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+      # 以下需要你填入真实值
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: DASHSCOPE_API_KEY
+        sync: false
+      - key: LLM_MAX_TOKENS
+        value: "1024"
+      - key: LLM_TIMEOUT
+        value: "60"

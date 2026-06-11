@@ -10,6 +10,7 @@
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL = API_BASE;  // 导出给其他文件使用
 
 // 内存中存储 token（也可用 localStorage）
 let authToken: string | null = null;

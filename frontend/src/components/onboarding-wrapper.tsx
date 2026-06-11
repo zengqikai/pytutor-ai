@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { LessonPlayer } from "@/components/lesson-player";
@@ -31,7 +32,7 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const token = localStorage.getItem("auth_token");
-      const r = await fetch("http://localhost:8000/api/v1/profile/me", {
+      const r = await fetch(`${API_BASE_URL}/profile/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const resp = await r.json();

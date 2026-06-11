@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { API_BASE_URL } from "@/lib/api";
 import type { Lesson, LessonStep } from "@/data/tutorial-data";
 import { TUTORIAL_LESSONS } from "@/data/tutorial-data";
 
@@ -89,7 +90,7 @@ export function LessonPlayer({ startLessonId, userId, onComplete }: Props) {
   const completeLesson = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      await fetch("http://localhost:8000/api/v1/profile/me/lesson/complete", {
+      await fetch(`${API_BASE_URL}/profile/me/lesson/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ lesson_id: lesson.id }),
@@ -122,7 +123,7 @@ export function LessonPlayer({ startLessonId, userId, onComplete }: Props) {
       if (err) {
         try {
           const token = localStorage.getItem("auth_token");
-          const mcRes = await fetch("http://localhost:8000/api/v1/misconceptions/diagnose", {
+          const mcRes = await fetch(`${API_BASE_URL}/misconceptions/diagnose`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ code, stderr: err }),

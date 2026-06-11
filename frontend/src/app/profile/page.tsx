@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth";
-import { profileAPI } from "@/lib/api";
+import { profileAPI, API_BASE_URL } from "@/lib/api";
 
 export default function ProfilePage() {
   const { user, loadUser } = useAuthStore();
@@ -15,7 +15,7 @@ export default function ProfilePage() {
   const loadPassed = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed", { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${API_BASE_URL}/profile/me/passed`, { headers: { Authorization: `Bearer ${token}` } });
       setPassed((await r.json()).passed || []);
     } catch {}
   };
