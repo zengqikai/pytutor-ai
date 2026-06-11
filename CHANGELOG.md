@@ -391,7 +391,7 @@
 
 **效果**: 聊天响应从 485s → 3-4s；语义检索 41 条 chunk 已索引（1024 维向量）；降级链路：DashScope API → TF-IDF → 无 RAG
 
-### Step 21 - Bug 修复：RAG 索引重建 + 练习对勾误判
+### Step 21 - Bug 修复：RAG 索引重建 + 练习对勾误判 + 双重计数
 **日期**: 2026-06-11
 
 | 分类 | 问题 | 根因 | 修复 |
@@ -399,6 +399,7 @@
 | Bug #20 | AI 聊天卡死 | `SentenceTransformer` 同步下载阻塞事件循环 485s | 15s 超时 + executor 线程 + 失败标记 |
 | Bug #21 | 向量索引写入 0 条 | `db.execute()` 结果被第一个 for 循环耗尽 | `result.all()` 物化 |
 | Bug #22 | 生成题目即显示 ✅ | 按概念标签匹配（通过一题全打勾） | 改为按题目 ID 匹配 + 新增 `/me/passed-ids` 端点 |
+| Bug #23 | 练习完成数翻倍（2 而非 1） | `exercises.py` 手动更新 profile + `record_event()` 内部再更新 = 双重计数；failed 行还有重复 `+= 1` | 移除 `exercises.py` 重复累加，由 `record_event()` 统一管理；前端 `exercises_passed` 替代 `exercises_completed` |
 
 ---
 
@@ -413,6 +414,6 @@
                 student_profiles, student_weaknesses, learning_events)
 API 端点:   21+
 Alembic 迁移: 7 次
-记录 Bug:   22 个
+记录 Bug:   23 个
 技术文档:   14 章
 ```

@@ -35,7 +35,7 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-4 gap-4">
           <StatCard label="当前等级" value={`Lv.${profile.level}`} color="from-indigo-500 to-violet-500" />
-          <StatCard label="练习完成" value={stats.exercises_completed} color="from-emerald-500 to-teal-500" />
+          <StatCard label="练习完成" value={stats.exercises_passed} color="from-emerald-500 to-teal-500" />
           <StatCard label="通过率" value={`${stats.pass_rate}%`} color="from-amber-500 to-orange-500" />
           <StatCard label="使用提示" value={stats.hints_used} color="from-sky-500 to-cyan-500" />
         </div>

@@ -229,15 +229,10 @@ async def submit_exercise_answer(
     profile = await get_or_create_profile(db, current_user.id)
     exp_gained = round(exercise.difficulty * score_pct)
 
-    if all_passed and score_pct > 0:
-        if already_passed == 0:  # 首次通过才计数
-            profile.total_exercises_completed += 1
-            profile.total_exercises_passed += 1
-            if used_hints > 0:
-                profile.total_hints_used += used_hints
-    elif not all_passed:
-        profile.total_exercises_completed += 1
-        profile.total_exercises_completed += 1
+    # record_event() 已经更新了 total_exercises_completed/passed/hints_used
+    # 这里只更新 experience 和 concept_mastery，避免双重计数
+    if all_passed and score_pct > 0 and already_passed == 0 and used_hints > 0:
+        profile.total_hints_used += used_hints
 
     # 累积经验 + 升级（每 300 经验升一级，最低 Lv1）
     import json
