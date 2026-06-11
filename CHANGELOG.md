@@ -315,7 +315,7 @@
 
 ---
 
-## Bug 汇总（共 19 个）
+## Bug 汇总（共 22 个）
 
 | # | 问题 | 解决方案 | 影响文件 |
 |---|------|----------|----------|
@@ -338,6 +338,9 @@
 | 17 | `sanitize_code` 被误删导致 500 | 内联替代代码 | `executor.py` |
 | 18 | `"use client"` 位置错误导致构建失败 | 拆出独立 NavLink 客户端组件 | `layout.tsx` + `nav-link.tsx` |
 | 19 | 练习中心换题不清空状态 | Zustand persist + 切换时 reset | `stores/exercise.ts` |
+| 20 | AI 聊天卡死 485 秒 | SentenceTransformer 同步下载 HuggingFace 模型阻塞事件循环。修复：添加 15s 超时 + executor 线程加载 + 失败后标记跳过 | `chat_service.py`, `vector_store.py`, `main.py` |
+| 21 | RAG 向量索引重建结果被消费 | `db.execute()` 返回的迭代器被第一个 for 循环耗尽，向量库写入拿到空列表。修复：`result.all()` 物化结果 | `services/rag_service.py` |
+| 22 | 练习中心生成题目即显示 ✅ | 用概念标签匹配判断完成状态（通过一题，同标签全打勾）。修复：改为按题目 ID 精确匹配，新增 `/me/passed-ids` 端点 | `profile.py`, `exercises/page.tsx` | |
 
 ---
 
@@ -370,17 +373,46 @@
 
 ---
 
+## Phase 7: RAG 语义向量升级 + Bug 修复
+
+### Step 20 - DashScope Embedding API 替换本地模型
+**日期**: 2026-06-11
+
+**背景**: 本地 `sentence-transformers` 模型（paraphrase-multilingual-MiniLM-L12-v2，~100MB）需从 HuggingFace 下载，在中国网络环境下不可达，导致首次聊天请求阻塞 485 秒。项目已有阿里云百炼 DashScope API Key（用于识图），其 text-embedding API 提供 SOTA 中文语义向量，无需下载模型。
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/rag/embedding.py` | DashScopeEmbedding 类：封装 text-embedding-v3 API（OpenAI 兼容），支持同步/异步、自动批量（max 10/批）、失败降级 |
+| 修改 | `backend/app/rag/vector_store.py` | 用 DashScopeEmbedding 完全替代 SentenceTransformer；移除模型下载/加载/锁/失败标记等 ~100 行代码；新的 ChromaDB collection `python_knowledge_v2`（1024 维） |
+| 修改 | `backend/app/main.py` | 移除模型预加载后台任务；启动时加载项目根目录 `.env`（获取 `DASHSCOPE_API_KEY`）；改为验证 embedding 服务连通性 |
+| 修改 | `backend/app/core/config.py` | 新增 `dashscope_api_key` 和 `embedding_model` 配置项 |
+| 修改 | `backend/.env` | 添加 `EMBEDDING_MODEL=text-embedding-v3` |
+| 修改 | `backend/app/services/rag_service.py` | `search_async` 替代同步 `search`；`is_model_available()` 跳过不可用向量检索；向量搜索带 12s 内部超时 |
+
+**效果**: 聊天响应从 485s → 3-4s；语义检索 41 条 chunk 已索引（1024 维向量）；降级链路：DashScope API → TF-IDF → 无 RAG
+
+### Step 21 - Bug 修复：RAG 索引重建 + 练习对勾误判
+**日期**: 2026-06-11
+
+| 分类 | 问题 | 根因 | 修复 |
+|------|------|------|------|
+| Bug #20 | AI 聊天卡死 | `SentenceTransformer` 同步下载阻塞事件循环 485s | 15s 超时 + executor 线程 + 失败标记 |
+| Bug #21 | 向量索引写入 0 条 | `db.execute()` 结果被第一个 for 循环耗尽 | `result.all()` 物化 |
+| Bug #22 | 生成题目即显示 ✅ | 按概念标签匹配（通过一题全打勾） | 改为按题目 ID 匹配 + 新增 `/me/passed-ids` 端点 |
+
+---
+
 ## 当前项目统计
 
 ```
-总文件数:   60+ (不含 node_modules)
-后端文件:   42
+总文件数:   62+ (不含 node_modules)
+后端文件:   45
 前端文件:   12
 数据库表:   10 (users, chat_sessions, chat_messages, rag_documents, rag_chunks,
                 code_submissions, execution_results, exercises, test_cases,
                 student_profiles, student_weaknesses, learning_events)
-API 端点:   20+
+API 端点:   21+
 Alembic 迁移: 7 次
-记录 Bug:   13 个
+记录 Bug:   22 个
 技术文档:   14 章
 ```

@@ -76,6 +76,33 @@ async def get_passed_exercises(
     return {"passed": passed, "total": len(passed)}
 
 
+@router.get("/me/passed-ids")
+async def get_passed_exercise_ids(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """返回用户已通过的题目 ID 集合（用于前端显示对勾）。"""
+    from sqlalchemy import select
+    from app.models.profile import LearningEvent
+    import json
+    r = await db.execute(
+        select(LearningEvent.detail_json)
+        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed")
+        .order_by(LearningEvent.created_at.desc())
+        .limit(50)
+    )
+    ids = set()
+    for (detail_json,) in r:
+        if detail_json:
+            try:
+                d = json.loads(detail_json)
+                if d.get("exercise_id"):
+                    ids.add(d["exercise_id"])
+            except Exception:
+                pass
+    return {"ids": list(ids), "count": len(ids)}
+
+
 @router.get("/me/recommendations")
 async def get_my_recommendations(
     db: AsyncSession = Depends(get_db),

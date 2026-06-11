@@ -285,15 +285,19 @@ async def send_message(
             "hint_level": msg.hint_level,
         })
 
-    # 步骤 4：RAG 检索相关知识
+    # 步骤 4：RAG 检索相关知识（带超时保护）
     rag_context = None
     try:
+        import asyncio
         from app.schemas.rag import RAGRetrievalRequest
         from app.services.rag_service import format_context_for_llm, retrieve_context
 
-        retrieval_result = await retrieve_context(
-            db,
-            RAGRetrievalRequest(query=request.content, top_k=3),
+        retrieval_result = await asyncio.wait_for(
+            retrieve_context(
+                db,
+                RAGRetrievalRequest(query=request.content, top_k=3),
+            ),
+            timeout=15.0,  # 15 秒超时，超时则降级到无 RAG 模式
         )
         if retrieval_result.results:
             rag_context = format_context_for_llm(retrieval_result.results)
@@ -302,6 +306,8 @@ async def send_message(
                 session_id=session_id,
                 chunk_count=len(retrieval_result.results),
             )
+    except asyncio.TimeoutError:
+        logger.warning("rag_retrieval_timeout", session_id=session_id)
     except Exception as e:
         # RAG 检索失败不影响对话（降级到无知识库模式）
         logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e))

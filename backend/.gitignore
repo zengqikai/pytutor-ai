@@ -52,3 +52,6 @@ Thumbs.db
 logs/
 *.log
 uploads/
+
+# ChromaDB vector store data (binary, regenerated from DB)
+chroma_db/

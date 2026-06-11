@@ -37,6 +37,16 @@ from app.api.router import api_v1_router
 # 因为后续所有模块都会 import get_logger，必须确保日志系统先就绪
 setup_logging()
 
+# 加载项目根目录的 .env（读取 DASHSCOPE_API_KEY 等共享配置）
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path as _Path
+    _root_env = _Path(__file__).resolve().parent.parent.parent / ".env"
+    if _root_env.exists():
+        load_dotenv(_root_env, override=False)  # override=False: 已有环境变量优先
+except Exception:
+    pass
+
 logger = get_logger(__name__)
 
 
@@ -66,16 +76,42 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database_type="SQLite" if settings.is_sqlite else "PostgreSQL",
     )
 
-    # 重建 RAG 检索索引（从数据库加载所有 chunk 到内存）
+    # 重建 TF-IDF 索引（轻量，不加载 embedding 模型）
     try:
         from app.database.session import AsyncSessionFactory
-        from app.services.rag_service import rebuild_index
+        from app.rag.retriever import retriever
+        from app.models.rag import RAGChunk, RAGDocument
+        from sqlalchemy import select as sa_select
 
         async with AsyncSessionFactory() as session:
-            chunk_count = await rebuild_index(session)
-            logger.info("rag_index_rebuilt_on_startup", chunk_count=chunk_count)
+            result = await session.execute(
+                sa_select(RAGChunk, RAGDocument)
+                .join(RAGDocument, RAGChunk.document_id == RAGDocument.id)
+                .where(RAGDocument.is_active == True)
+            )
+            count = 0
+            for chunk, doc in result:
+                retriever.add_chunk(
+                    chunk_id=chunk.id, content=chunk.content,
+                    heading=chunk.heading, concepts=chunk.concepts,
+                    difficulty=chunk.difficulty, document_title=doc.title,
+                    tokens=chunk.tokens or "",
+                )
+                count += 1
+            logger.info("tfidf_index_rebuilt", chunk_count=count)
     except Exception as e:
-        logger.warning("rag_index_rebuild_failed", error=str(e))
+        logger.warning("tfidf_rebuild_failed", error=str(e))
+
+    # 初始化 Embedding 服务（DashScope API，国内可用）
+    try:
+        from app.rag.embedding import get_embedding
+        emb = get_embedding()
+        if emb:
+            logger.info("embedding_service_ready", provider="dashscope", model=emb.model)
+        else:
+            logger.warning("embedding_service_unavailable", reason="DASHSCOPE_API_KEY 未配置")
+    except Exception as e:
+        logger.warning("embedding_init_failed", error=str(e)[:200])
 
     yield  # <-- 应用运行期间停在这里
 

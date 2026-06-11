@@ -10,6 +10,8 @@ RAG 服务模块
 3. 增强回答：检索结果拼入 Prompt → LLM 生成带知识背景的回答
 """
 
+import asyncio
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,9 +148,10 @@ async def rebuild_index(db: AsyncSession) -> int:
         .join(RAGDocument, RAGChunk.document_id == RAGDocument.id)
         .where(RAGDocument.is_active == True)
     )
+    rows = result.all()  # 物化结果，避免被后续循环消耗
 
     count = 0
-    for chunk, doc in result:
+    for chunk, doc in rows:
         retriever.add_chunk(
             chunk_id=chunk.id,
             content=chunk.content,
@@ -170,7 +173,7 @@ async def rebuild_index(db: AsyncSession) -> int:
             "concepts": chunk.concepts or "",
             "difficulty": chunk.difficulty,
         }
-        for chunk, doc in result
+        for chunk, doc in rows
     ]
     rebuild_from_db(all_chunks_for_vector)
 
@@ -201,16 +204,28 @@ async def retrieve_context(
     import time
     start_time = time.perf_counter()
 
-    # 步骤 1：向量检索（ChromaDB） + TF-IDF 混合
-    from app.rag.vector_store import search as vector_search
+    # 步骤 1：向量检索（ChromaDB) + TF-IDF 混合
+    from app.rag.vector_store import is_model_available, search_async as vector_search
 
-    # 向量检索
-    vector_results = vector_search(
-        query=request.query,
-        top_k=request.top_k * 2,
-        difficulty_filter=request.difficulty_filter,
-        concept_filter=request.concept_filter,
-    )
+    # 向量检索（仅在 embedding 模型可用时执行）
+    vector_results = []
+    if is_model_available():
+        try:
+            vector_results = await asyncio.wait_for(
+                vector_search(
+                    query=request.query,
+                    top_k=request.top_k * 2,
+                    difficulty_filter=request.difficulty_filter,
+                    concept_filter=request.concept_filter,
+                ),
+                timeout=12.0,
+            )
+        except (asyncio.TimeoutError, Exception) as e:
+            logger.warning(
+                "vector_search_failed",
+                query=request.query[:60],
+                error=str(e)[:120],
+            )
 
     # TF-IDF 关键词检索（补充精确匹配）
     tfidf_results = retriever.search(

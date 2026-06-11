@@ -19,7 +19,7 @@ export default function ExercisesPage() {
   const [testRunning, setTestRunning] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
   const [displayedHintLevel, setDisplayedHintLevel] = useState(0);
-  const [passedConcepts, setPassedConcepts] = useState<Set<string>>(new Set()); // 当前显示的提示等级
+  const [passedIds, setPassedIds] = useState<Set<string>>(new Set()); // 已通过的题目 ID 集合
 
   useEffect(() => { loadUser(); loadExercises(); loadPassed(); }, []);
   useEffect(() => { loadExercises(); }, [store.difficulty]);
@@ -27,9 +27,9 @@ export default function ExercisesPage() {
   const loadPassed = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed", { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch("http://localhost:8000/api/v1/profile/me/passed-ids", { headers: { Authorization: `Bearer ${token}` } });
       const data = await r.json();
-      setPassedConcepts(new Set((data.passed || []).map((p: any) => p.concept)));
+      setPassedIds(new Set(data.ids || []));
     } catch {}
   };
 
@@ -154,8 +154,7 @@ export default function ExercisesPage() {
             </div>
           )}
           {exercises.map((ex) => {
-            const exConcepts = (ex.concepts || "").split(",").map((c: string) => c.trim());
-            const isDone = exConcepts.some((c: string) => passedConcepts.has(c));
+            const isDone = passedIds.has(ex.id);
             return (
             <button key={ex.id} onClick={() => selectExercise(ex)}
               className={`w-full text-left p-3 rounded-xl transition-all border ${store.selected?.id === ex.id ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/[0.04] hover:border-white/[0.08]"}`}>

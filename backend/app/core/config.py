@@ -146,6 +146,18 @@ class Settings(BaseSettings):
     )
 
     # ==============================
+    # Embedding 配置（DashScope text-embedding API）
+    # ==============================
+    dashscope_api_key: str = Field(
+        default="",  # 从项目根目录 .env 加载
+        description="阿里云百炼 DashScope API Key（用于文本向量化）"
+    )
+    embedding_model: str = Field(
+        default="text-embedding-v3",
+        description="Embedding 模型：text-embedding-v1 | v2 | v3"
+    )
+
+    # ==============================
     # 日志配置
     # ==============================
     log_level: str = Field(
