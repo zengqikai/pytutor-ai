@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
@@ -10,8 +10,6 @@ export function NavAdminLink() {
   useEffect(() => { loadUser(); }, [isAuthenticated]);
 
   if (!user || (user.role !== "admin" && user.role !== "instructor")) return null;
-
-  if (!show) return null;
 
   return (
     <Link href="/admin"
