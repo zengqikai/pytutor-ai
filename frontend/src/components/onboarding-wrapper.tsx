@@ -24,6 +24,11 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const checkOnboarding = async () => {
     setLoading(true);
     try {
+      // 只对学生显示引导弹窗，教师和管理员跳过
+      if (user?.role && user.role !== "student") {
+        setLoading(false);
+        return;
+      }
       const token = localStorage.getItem("auth_token");
       const r = await fetch("http://localhost:8000/api/v1/profile/me", {
         headers: { Authorization: `Bearer ${token}` },
@@ -91,7 +96,7 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* 永久入口：右下角浮动按钮 */}
-      {isAuthenticated && !showOnboarding && !showTutorial && !showDiagnostic && (
+      {isAuthenticated && user?.role === "student" && !showOnboarding && !showTutorial && !showDiagnostic && (
         <button
           onClick={() => {
             const uid = user?.id || "anon";
