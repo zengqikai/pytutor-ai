@@ -545,4 +545,416 @@ layout.tsx                          # 根布局 (Header + Main + OnboardingWrapp
 
 ---
 
-> **最后更新**: 2026-06-12 | **版本**: 2.0 | **总提交**: 40+ | **Bug**: 29 | **Step**: 36
+---
+
+## 11. 核心代码详解
+
+### 11.1 用户认证全链路
+
+#### 11.1.1 密码哈希 (`security/password.py`)
+
+```python
+# 关键函数签名
+def hash_password(password: str) -> str
+def verify_password(plain_password: str, hashed_password: str) -> bool
+```
+
+**为什么不用 passlib？** passlib 1.7.4 依赖 `bcrypt.__about__` 属性，bcrypt 5.0 移除了这个属性，导致 `AttributeError`。直接使用原生 `bcrypt` 库避免此问题。
+
+**72 字节限制处理**：bcrypt 最多处理 72 字节密码。如果用户的 UTF-8 密码超过 72 字节（如长中文密码），先用 SHA256 做预哈希：
+```python
+password_bytes = password.encode("utf-8")       # 字符串 → 字节
+if len(password_bytes) > 72:
+    password_bytes = hashlib.sha256(password_bytes).digest()  # 预哈希
+salt = bcrypt.gensalt()                          # 生成随机盐（12轮）
+hashed = bcrypt.hashpw(password_bytes, salt)     # 哈希
+return hashed.decode("utf-8")                    # bytes → 字符串存DB
+```
+
+**验证时**：`bcrypt.checkpw(plain_bytes, hashed_bytes)` 内部从 hashed 中提取盐值，对 plain 做相同哈希后比较。所以不需要单独存盐——盐已经嵌入哈希结果中了（格式 `$2b$12$salt...hash...`）。
+
+#### 11.1.2 JWT 令牌 (`security/jwt.py`)
+
+```python
+def create_access_token(user_id: str, role: str, expires_delta=None) -> str
+def decode_access_token(token: str) -> Optional[dict]
+```
+
+**JWT 三段式**：`Header.Payload.Signature`，用 `.` 分隔，每段 Base64 编码。
+
+**签发流程**：
+```python
+payload = {
+    "sub": user_id,      # subject — 谁是这个 token 的主人
+    "role": role,         # 角色 — 用于权限判断
+    "exp": expire,        # 过期时间 — 24小时后失效
+    "iat": now,           # 签发时间
+}
+# HMAC-SHA256 签名： Header.Payload 用 secret_key 哈希 → Signature
+token = jwt.encode(payload, settings.secret_key, algorithm="HS256")
+```
+
+**为什么可以信任 JWT？** Signature 是用 `secret_key` 算出来的。攻击者可以解码 Header 和 Payload（Base64 不是加密），也可以修改 Payload 中的 `sub`，但无法伪造 Signature——因为没有 `secret_key`。服务器验证时会发现签名不匹配并拒绝。
+
+**解码流程**：
+```python
+try:
+    payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+    return payload   # {"sub": "...", "role": "...", ...}
+except JWTError:
+    return None      # 过期/签名错/格式错 → 统一返回 None
+```
+
+#### 11.1.3 依赖注入鉴权 (`security/dependencies.py`)
+
+```python
+async def get_current_user(credentials, db) -> User
+def require_role(*allowed_roles) -> Callable
+```
+
+**`get_current_user`** 是 FastAPI 依赖注入链的核心。每个需要登录的端点都通过 `Depends(get_current_user)` 获得当前用户：
+
+```
+HTTP Request → HTTPBearer 提取 "Bearer <token>"
+  → decode_access_token(token) → {"sub": user_id, "role": "student"}
+  → SELECT * FROM users WHERE id = user_id
+  → 检查 is_active
+  → 返回 User 对象
+```
+
+任何一步失败 → `HTTPException(401)`。
+
+**`require_role`** 是"依赖工厂"（闭包模式）：
+```python
+# 调用 require_role(UserRole.ADMIN) 返回一个 FastAPI 依赖函数
+# 该函数内部先调用 get_current_user，再检查 user.role 是否在允许列表中
+# 不在 → HTTPException(403)
+```
+
+---
+
+### 11.2 AI 聊天全链路
+
+#### 11.2.1 发送消息 (`services/chat_service.py:send_message`)
+
+```python
+async def send_message(db, session_id, user, request, model=None) -> dict
+```
+
+**完整流程（7 步）**：
+
+```
+Step 1: 验证会话权限
+  └─ SELECT session + messages WHERE id = session_id
+  └─ 检查 session.student_id == user.id
+
+Step 1.5: 判断是否首条消息
+  └─ SELECT COUNT(*) FROM chat_messages WHERE session_id = ?
+  └─ is_first_message = (count == 0)
+
+Step 2: 保存用户消息
+  └─ INSERT INTO chat_messages (session_id, role="user", content=...)
+
+Step 3: 获取历史消息
+  └─ 从 session.messages 构建 history list[dict]
+  └─ (selectinload 预加载，避免 N+1 查询)
+
+Step 4: RAG 检索 (带 15s 超时)
+  └─ asyncio.wait_for(retrieve_context(...), timeout=15)
+  └─ format_context_for_llm() → 注入 System Prompt
+
+Step 4.5: 误区诊断 (2.0，消息含代码时触发)
+  └─ 正则提取 ```python 代码块
+  └─ asyncio.wait_for(diagnose(code, stderr), timeout=15)
+  └─ 诊断出误区 → 调用 select_strategy() + get_hint_prompt()
+  └─ 注入到 rag_context
+
+Step 5: 调用 AI 导师
+  └─ generate_tutor_response(user_msg, history, level, rag_context, model)
+  └─ 内部调用 LiteLLM → DeepSeek API
+  └─ 2.0: 回复后调用 verify_response() 质量检查
+
+Step 6: 保存 AI 回复
+  └─ INSERT INTO chat_messages (role="assistant", content=..., response_type=...)
+
+Step 7: 返回
+  └─ { "user_message": ..., "assistant_message": ..., "ai_response": ... }
+```
+
+#### 11.2.2 AI 回复生成 (`services/tutor_service.py:generate_tutor_response`)
+
+```python
+async def generate_tutor_response(
+    user_message, conversation_history, student_level="beginner",
+    rag_context=None, model=None
+) -> AIResponse
+```
+
+**Prompt 构建**：
+```
+messages = [
+  SystemMessage("你是 PyTutor，Python 编程导师。用中文回复，简洁明了。"),
+  SystemMessage("参考知识点：\n{rag_context}"),           # RAG 检索结果
+  SystemMessage("学生水平: {level}。提示等级 Level {hint}。"),
+  ...conversation_history[-20:],                            # 最近 20 条
+  UserMessage(user_message),
+]
+```
+
+**回复解析**：AI 回复首行格式为 `<!-- hint:2 concepts:list,append -->`，用正则提取元数据，其余为 Markdown 内容。
+
+**2.0 增强**：生成后调用 `verify_response()` → 不合格（`needs_revision=True` 且 `score < 3`）→ 重新生成一次，更严格控制。
+
+#### 11.2.3 LiteLLM 网关 (`services/llm_service.py:chat_completion`)
+
+```python
+async def chat_completion(messages, model=None, temperature=None,
+                          max_tokens=None, provider="deepseek") -> LLMResponse
+```
+
+**供应商路由**：
+```python
+LLM_ROUTER = {
+    "deepseek": {
+        "model": "deepseek/deepseek-chat",   # 实际解析为 deepseek-v4-flash
+        "api_key": settings.deepseek_api_key,
+        "api_base": "https://api.deepseek.com",
+    },
+    # 后续扩展: qwen, openai 只需加一行配置
+}
+```
+
+**调用**：`litellm.acompletion(model=..., messages=..., temperature=..., max_tokens=..., api_key=..., api_base=..., timeout=60, num_retries=1, fallbacks=None)`
+
+**成本追踪**：`completion_cost(completion_response=response)` 估算 USD 成本。
+
+---
+
+### 11.3 误区诊断全链路
+
+#### 11.3.1 误区定义 (`data/misconceptions.json` + `models/misconception.py`)
+
+每个误区包含：
+```json
+{
+  "code": "M3",
+  "name": "append 返回值误解",
+  "description": "将 append() 的结果赋值给新变量",
+  "typical_patterns": [
+    "\\w+\\s*=\\s*\\w+\\.append\\(",     // 正则: 变量 = 列表.append(
+    "\\w+\\s*=\\s*\\w+\\.sort\\("        // 正则: 变量 = 列表.sort(
+  ],
+  "related_concepts": "list,append,in_place_operation",
+  "recommended_strategy": "progressive_hint"
+}
+```
+
+#### 11.3.2 诊断引擎 (`services/misconception_service.py:diagnose`)
+
+```python
+async def diagnose(db, code: str, stderr: str = "",
+                   exercise_context: str = None) -> dict
+```
+
+**双通道诊断**：
+
+```
+通道 1: 规则匹配（正则 + stderr 关键词）
+  for each misconception in [M1..M8]:
+      for each pattern in mc.typical_patterns:
+          if re.search(pattern, code + stderr):
+              return { "has_misconception": True, "confidence": 0.85, ... }
+
+通道 2: LLM 辅助分类（规则未匹配 + stderr 存在 + 代码 ≤ 30 行）
+  prompt = "列出 8 类误区...学生代码: {code}...错误: {stderr}...JSON回复"
+  response = await chat_completion([UserMessage(prompt)], temperature=0.1)
+  return parse_json(response)
+```
+
+**为什么是双通道？** 规则匹配快速（<1ms）但只能识别已知模式。LLM 能识别变体但需要 API 调用（~500ms）。先用规则，不确定时用 LLM。
+
+**示例诊断**：
+```
+输入: code="new = nums.append(4)", stderr=""
+规则: re.search(r'\w+\s*=\s*\w+\.append\(', code) → True
+输出: { misconception_id: "M3", confidence: 0.85, evidence: "代码匹配误区模式" }
+```
+
+#### 11.3.3 诊断接入点
+
+| 接入点 | 文件 | 触发条件 |
+|--------|------|----------|
+| 练习提交 | `exercises.py:submit` | `not all_passed` |
+| AI 对话 | `chat_service.py:send_message` | 消息含 ```python |
+| 教程编辑器 | `lesson-player.tsx:runCode` | stderr 非空 |
+| 独立 API | `misconceptions.py:POST /diagnose` | 直接调用 |
+
+---
+
+### 11.4 教学策略全链路
+
+#### 11.4.1 策略选择 (`services/pedagogy_service.py:select_strategy`)
+
+```python
+def select_strategy(misconception_id, attempt_count, has_history) -> dict
+```
+
+**决策表**：
+```
+无误区 + 首次       → clarification (追问确认)
+无误区 + 多次       → debugging_guidance (调试引导)
+首次出现某误区      → progressive_hint, Level = min(attempt_count, 2)
+重复误区 ≥3 次      → concept_explanation (概念纠正，Level 1)
+多次失败            → debugging_guidance, Level = min(attempt_count, 4)
+```
+
+#### 11.4.2 渐进提示 (`pedagogy_service.py:get_hint_prompt`)
+
+```python
+def get_hint_prompt(misconception_name: str, level: int) -> str
+```
+
+```
+Level 1: "只给概念提示，不指出代码位置。引导思考而非给答案。"
+Level 2: "给出解决方向，不指出具体行号。用问题引导。"
+Level 3: "指出可疑的代码位置，但不给正确代码。让学生自己改。"
+Level 4: "给出关键代码片段，但保留部分让学生完成。"
+Level 5: "学生已多次尝试，可以给出完整参考答案，附带解释。"
+```
+
+#### 11.4.3 回复验证 (`pedagogy_service.py:verify_response`)
+
+```python
+async def verify_response(ai_message, expected_hint_level,
+                          misconception_id) -> dict
+```
+
+用 LLM rubric 检查：
+- 是否过早给了完整答案？
+- 是否符合 hint level？
+- 是否适合初学者？
+- 是否包含下一步动作？
+
+返回 `{is_valid, score(1-5), issues[], needs_revision}`。不合格 → tutor_service 自动重新生成一次。
+
+---
+
+### 11.5 练习提交全链路 (`api/v1/exercises.py:submit`)
+
+```
+Step 1: 获取练习 + 测试用例 (selectinload)
+Step 2: 对每个测试用例独立执行代码 (docker/subprocess sandbox)
+Step 3: 比较 stdout vs expected_output → passed/failed
+Step 4: [2.0] 未全部通过 → 调用 diagnose(code, stderr) 诊断误区
+Step 5: [2.0] 按 exercise_id 去重 → 首次通过创建 exercise_passed 事件
+Step 6: record_event() → 更新 StudentProfile (total_exercises_passed/completed)
+Step 7: update_weakness() → 维护 StudentWeakness
+Step 8: 返回结构化结果 (test_results + misconception + score_pct)
+```
+
+---
+
+### 11.6 前端核心流程
+
+#### 11.6.1 四入口引导 (`onboarding-wrapper.tsx`)
+
+```
+用户登录 → isAuthenticated=true + user 加载完毕
+  → 检查 user.role === "student" (非学生跳过)
+  → GET /profile/me → onboarding_done?
+    → false → 弹 OnboardingModal
+      → A: 零基础 → LessonPlayer(完整12课)
+      → B: 学过 → DiagnosticFlow(6题诊断) → 按结果跳教程/练习
+      → C: 会基础 → router.push("/exercises")
+      → D: 自由 → 留在 chat
+    → true → 不弹
+
+右下角 🎓 浮动按钮（仅学生）:
+  → 有 pytutor_progress_{userId} → 直接进教程续学
+  → 无 → 弹 OnboardingModal
+```
+
+#### 11.6.2 LessonPlayer 状态机 (`lesson-player.tsx`)
+
+```
+状态: { lessonIdx, stepIdx }
+├── 挂载时: loadProgress(userId, startLessonId) 恢复进度
+├── 步骤切换: advance() → stepIdx++ or completeLesson()
+│   ├── saveProgress(userId, lessonIdx, stepIdx) 每次保存
+│   └── 最后一课完成: localStorage.removeItem(key) 清进度
+├── 退出: handleExit() → 弹确认窗 → saveProgress → onComplete()
+├── 代码运行: runCode()
+│   ├── codeAPI.submit(code, undefined, stdinInput)
+│   ├── 显示 stdout/stderr
+│   └── stderr 非空 → fetch /misconceptions/diagnose → 显示误区卡片
+└── 渲染: createPortal(content, document.body) → z-index 9999
+```
+
+#### 11.6.3 ChatMessage 2.0 徽章 (`chat-message.tsx`)
+
+每个 AI 消息上方显示三个标签（有则显示）：
+```tsx
+{hint_level && <HintBadge level={hint_level} />}            // "概念提示" / "思路引导"
+{misconception_id && <McBadge id={misconception_id} />}     // "🧠 M3"
+{pedagogical_strategy && <StrategyBadge strategy={...} />}  // "📖 渐进提示"
+```
+
+---
+
+## 12. 关键算法伪代码
+
+### 12.1 误区规则匹配
+
+```
+function diagnose(code, stderr):
+    misconceptions = load_json("misconceptions.json")
+    for each mc in misconceptions:
+        text = code + "\n" + stderr
+        for each pattern in mc.typical_patterns:
+            if regex_match(pattern, text):
+                return { id: mc.code, confidence: 0.85, evidence: "规则匹配" }
+
+    # 规则未匹配 → LLM 辅助
+    if stderr and len(code.splitlines()) <= 30:
+        prompt = build_classification_prompt(code, stderr, misconceptions)
+        response = llm_call(prompt, temperature=0.1, max_tokens=200)
+        return parse_json(response)
+
+    return { has_misconception: false }
+```
+
+### 12.2 教学策略决策树
+
+```
+function select_strategy(mc_id, attempts, has_history):
+    if mc_id is None:
+        if attempts <= 1:    return ("clarification", level=1)
+        else:                 return ("debugging_guidance", level=2)
+
+    if not has_history:       return ("progressive_hint", level=min(attempts, 2))
+
+    if attempts >= 3:         return ("concept_explanation", level=1)
+
+    return ("debugging_guidance", level=min(attempts, 4))
+```
+
+### 12.3 练习提交去重
+
+```
+function check_already_passed(db, user_id, exercise_id):
+    return count(SELECT FROM learning_events
+                 WHERE user_id=uid
+                 AND event_type="exercise_passed"
+                 AND detail_json LIKE '%"{exercise_id}"%')  # ← 按题目ID去重
+
+if all_passed and already_passed == 0:
+    event_type = "exercise_passed"   # 首次通过
+elif not all_passed:
+    event_type = "exercise_failed"   # 未通过
+else:
+    event_type = "exercise_retry"    # 重复通过
+```
+
+---
+
+> **最后更新**: 2026-06-12 | **版本**: 2.0 | **总提交**: 40+ | **Bug**: 29 | **Step**: 37
