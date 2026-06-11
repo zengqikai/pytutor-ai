@@ -15,8 +15,15 @@ LLM 服务层 (LiteLLM Gateway)
 import time
 from typing import Optional
 
-import litellm
-from litellm import acompletion, completion_cost
+try:
+    import litellm
+    from litellm import acompletion, completion_cost
+    HAS_LITELLM = True
+except ImportError:
+    litellm = None  # type: ignore
+    acompletion = None  # type: ignore
+    completion_cost = None  # type: ignore
+    HAS_LITELLM = False
 
 from app.core.config import settings
 from app.core.exceptions import LLMException
