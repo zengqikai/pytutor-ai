@@ -41,6 +41,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
   const [running, setRunning] = useState(false);
   const [misconception, setMisconception] = useState<any>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [stdinInput, setStdinInput] = useState("");
 
   // Restore progress on mount
   useEffect(() => {
@@ -108,7 +109,7 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
     setMisconception(null);
     try {
       const { codeAPI } = await import("@/lib/api");
-      const res = await codeAPI.submit(code);
+      const res = await codeAPI.submit(code, undefined, stdinInput);
       const r = res.result || res;
       const out = r.stdout || "";
       const err = r.stderr || "";
@@ -225,7 +226,8 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
             </button>
           </div>
         </div>
-        <div className="flex-1 p-4 bg-[#0a0a14]">
+        {/* Code Editor — top half */}
+        <div className="flex-[2] p-4 bg-[#0a0a14] min-h-0">
           <textarea
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -233,13 +235,30 @@ export function LessonPlayer({ startLessonId, onComplete }: Props) {
             spellCheck={false}
           />
         </div>
-        <div className="border-t border-white/[0.06] p-4 bg-[#060610] min-h-[120px]">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">输出</p>
-          {output ? (
-            <pre className={`text-sm font-mono whitespace-pre-wrap ${output.includes("Error") || output.includes("Traceback") ? "text-rose-400" : "text-emerald-300"}`}>{output}</pre>
-          ) : (
-            <p className="text-sm text-slate-600 italic">点击 ▶ 运行 查看代码输出</p>
-          )}
+        {/* Stdin Input */}
+        <div className="border-t border-white/[0.06] px-4 py-2 bg-[#060610]">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex-shrink-0">输入 (stdin)</span>
+            <input
+              value={stdinInput}
+              onChange={(e) => setStdinInput(e.target.value)}
+              placeholder="如果代码用 input()，在这里输入数据..."
+              className="flex-1 bg-black/40 border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-green-300 font-mono outline-none focus:border-emerald-500/30 placeholder:text-slate-600"
+            />
+          </div>
+        </div>
+        {/* Output — bottom, bigger */}
+        <div className="flex-1 border-t border-white/[0.06] bg-[#060610] min-h-0 overflow-y-auto">
+          <div className="px-4 py-2 border-b border-white/[0.04]">
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">输出</p>
+          </div>
+          <div className="p-4">
+            {output ? (
+              <pre className={`text-sm font-mono whitespace-pre-wrap ${output.includes("Error") || output.includes("Traceback") ? "text-rose-400" : "text-emerald-300"}`}>{output}</pre>
+            ) : (
+              <p className="text-sm text-slate-600 italic">点击 ▶ 运行 查看代码输出</p>
+            )}
+          </div>
         </div>
       </div>
 
