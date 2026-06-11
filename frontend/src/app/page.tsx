@@ -86,9 +86,21 @@ export default function ChatPage() {
     chatStore.addMessage(userMsg); setInput(""); set发送ing(true);
     try {
       const sid = await ensureSession();
-      const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
-      const ai = chatRes.ai_response || {};
-      chatStore.addMessage({ role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts });
+      // SSE 流式接收
+      let fullText = "";
+      chatStore.addMessage({ role: "assistant", content: "" });
+      for await (const chunk of chatAPI.streamMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined)) {
+        if (chunk.token) {
+          fullText += chunk.token;
+          const msgs = [...chatStore.messages];
+          msgs[msgs.length - 1] = { role: "assistant", content: fullText };
+          chatStore.setMessages(msgs);
+        }
+      }
+      if (!fullText) fullText = "抱歉，回复生成失败。";
+      const finalMsgs = [...chatStore.messages];
+      finalMsgs[finalMsgs.length - 1] = { role: "assistant", content: fullText };
+      chatStore.setMessages(finalMsgs);
       loadSessions();
     } catch (e: any) { chatStore.addMessage({ role: "assistant", content: `Error: ${e.message}` }); }
     finally { set发送ing(false); }

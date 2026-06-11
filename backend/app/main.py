@@ -27,6 +27,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.observability.langfuse_setup import setup_langfuse  # noqa: F401
+from app.observability.otel_setup import setup_opentelemetry  # noqa: F401
 from app.database.session import AsyncSessionFactory, engine
 from app.observability.logger import get_logger
 from app.observability.middleware import RequestLoggingMiddleware

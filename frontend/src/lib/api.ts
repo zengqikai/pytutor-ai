@@ -102,6 +102,35 @@ export const chatAPI = {
       body: JSON.stringify({ content, model }),
     }),
 
+  /** SSE 流式消息 */
+  streamMessage: async function* (sessionId: string, content: string, model?: string) {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content, model }),
+    });
+    if (!res.ok) throw new Error("Stream failed");
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No stream body");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") return;
+          try { yield JSON.parse(data); } catch {}
+        }
+      }
+    }
+  },
+
   renameSession: (sessionId: string, title: string) =>
     request<any>(`/chat/sessions/${sessionId}`, {
       method: "PATCH",
