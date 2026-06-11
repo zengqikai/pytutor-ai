@@ -9,6 +9,8 @@ interface Message {
   response_type?: string;
   hint_level?: number;
   related_concepts?: string[];
+  misconception_id?: string;
+  pedagogical_strategy?: string;
 }
 
 interface ChatState {
