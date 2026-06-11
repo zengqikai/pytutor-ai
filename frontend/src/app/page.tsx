@@ -30,6 +30,7 @@ export default function ChatPage() {
   const [codeResult, setCodeResult] = useState<any>(null);
   const [runningCode, set运行ningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [customInput, setCustomInput] = useState("");
   const [editorKey, setEditorKey] = useState(0);
   const [reasoningMode, setReasoningMode] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
@@ -99,7 +100,7 @@ export default function ChatPage() {
     if (!isAuthenticated) { setCodeResult({ stderr: "请先登录后再运行代码" }); return; }
     set运行ningCode(true); setCodeResult(null);
     try {
-      const res = await codeAPI.submit(code);
+      const res = await codeAPI.submit(code, undefined, customInput);
       const result = { ...(res.result || res) };
       setCodeResult(result); set运行ningCode(false);
       if (result.stderr && result.status !== "completed") {
@@ -277,6 +278,18 @@ export default function ChatPage() {
             <div className="flex-1 min-h-0">
               <Editor key={editorKey} height="100%" defaultLanguage="python" theme="vs-dark" value={code} onChange={(v) => setCode(v || "")}
                 options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false }, scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 12 }, automaticLayout: true }} />
+            </div>
+            {/* Stdin 输入 */}
+            <div className="border-t border-white/[0.06] px-3 py-2 bg-[#060610]">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex-shrink-0">输入</span>
+                <input
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  placeholder="stdin（如果代码用 input()）"
+                  className="flex-1 bg-black/40 border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-green-300 font-mono outline-none focus:border-emerald-500/30 placeholder:text-slate-600"
+                />
+              </div>
             </div>
             <div className="flex-1 flex flex-col border-t-2 border-white/[0.06] bg-[#060610] min-h-0 overflow-y-auto">
               <div className="shrink-0 px-5 py-2 border-b border-white/[0.04] flex items-center justify-between">
