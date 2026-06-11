@@ -76,7 +76,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database_type="SQLite" if settings.is_sqlite else "PostgreSQL",
     )
 
-    # 重建 TF-IDF 索引（轻量，不加载 embedding 模型）
+    # 重建 RAG 检索索引（TF-IDF 从 DB 加载到内存；向量索引复用 ChromaDB 持久化数据）
+    # 注：不使用 rag_service.rebuild_index() 以避免启动时触发 embedding API 调用
     try:
         from app.database.session import AsyncSessionFactory
         from app.rag.retriever import retriever
@@ -89,16 +90,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 .join(RAGDocument, RAGChunk.document_id == RAGDocument.id)
                 .where(RAGDocument.is_active == True)
             )
-            count = 0
-            for chunk, doc in result:
+            rows = result.all()  # 物化避免迭代器消耗
+            for chunk, doc in rows:
                 retriever.add_chunk(
                     chunk_id=chunk.id, content=chunk.content,
                     heading=chunk.heading, concepts=chunk.concepts,
                     difficulty=chunk.difficulty, document_title=doc.title,
                     tokens=chunk.tokens or "",
                 )
-                count += 1
-            logger.info("tfidf_index_rebuilt", chunk_count=count)
+            logger.info("tfidf_index_rebuilt", chunk_count=len(rows))
     except Exception as e:
         logger.warning("tfidf_rebuild_failed", error=str(e))
 
