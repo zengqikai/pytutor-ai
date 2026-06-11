@@ -15,8 +15,14 @@
 import asyncio
 from typing import Optional
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
+try:
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+    HAS_CHROMADB = True
+except ImportError:
+    chromadb = None  # type: ignore
+    ChromaSettings = None  # type: ignore
+    HAS_CHROMADB = False
 
 from app.observability.logger import get_logger
 from app.rag.embedding import get_embedding, is_embedding_available
@@ -28,16 +34,18 @@ _chroma_client = None
 _collection = None
 
 
-def get_collection() -> chromadb.Collection:
+def get_collection():
     """获取 ChromaDB collection（延迟加载单例）。"""
     global _chroma_client, _collection
+    if not HAS_CHROMADB:
+        return None
     if _collection is None:
         _chroma_client = chromadb.PersistentClient(
             path="./chroma_db",
             settings=ChromaSettings(anonymized_telemetry=False),
         )
         _collection = _chroma_client.get_or_create_collection(
-            name="python_knowledge_v2",  # v2: 新的 embedding 维度
+            name="python_knowledge_v2",
             metadata={"hnsw:space": "cosine"},
         )
         logger.info("chromadb_collection_ready", name="python_knowledge_v2", count=_collection.count())
@@ -77,6 +85,8 @@ def add_chunks(chunks: list[dict]) -> int:
         return 0
 
     collection = get_collection()
+    if collection is None:
+        return 0
 
     ids = [c["chunk_id"] for c in chunks]
     texts = [c["content"] for c in chunks]
@@ -226,6 +236,8 @@ def _process_search_results(results, concept_filter: Optional[str] = None) -> li
 def clear_collection():
     """清空向量库。"""
     global _collection
+    if not HAS_CHROMADB:
+        return
     if _chroma_client:
         try:
             _chroma_client.delete_collection("python_knowledge_v2")
