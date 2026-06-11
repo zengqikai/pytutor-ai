@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { LessonPlayer } from "@/components/lesson-player";
+import { DiagnosticFlow } from "@/components/diagnostic-flow";
 
 export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuthStore();
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [tutorialStartLesson, setTutorialStartLesson] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
@@ -47,9 +49,8 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
         setShowTutorial(true);
         break;
       case "B":
-        // 学过一点：跳过编辑器介绍，从 print/变量开始
-        setTutorialStartLesson("lesson_1");
-        setShowTutorial(true);
+        // 学过一点：进入基础诊断流程
+        setShowDiagnostic(true);
         break;
       case "C":
         // 会基础想练习 → 直接进练习中心
@@ -66,6 +67,20 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
+      {showDiagnostic && (
+        <DiagnosticFlow onComplete={(result) => {
+          setShowDiagnostic(false);
+          if (!result.skipped) {
+            // 根据诊断结果决定入口
+            if (result.level === "solid") {
+              router.push("/exercises");
+            } else {
+              setTutorialStartLesson("lesson_1");
+              setShowTutorial(true);
+            }
+          }
+        }} />
+      )}
       {showTutorial && (
         <LessonPlayer
           userId={user?.id || "anon"}
@@ -76,7 +91,7 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* 永久入口：右下角浮动按钮 */}
-      {isAuthenticated && !showOnboarding && !showTutorial && (
+      {isAuthenticated && !showOnboarding && !showTutorial && !showDiagnostic && (
         <button
           onClick={() => {
             const uid = user?.id || "anon";
