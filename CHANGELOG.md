@@ -463,7 +463,7 @@
                 misconceptions, misconception_events)
 API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   28 个
+记录 Bug:   29 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
 
@@ -505,6 +505,7 @@ Alembic 迁移: 7 次
 | Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位 | key 改为 `pytutor_progress_{user.id}` |
 | Bug #27 | 管理员用 SQLite 直插的账号无法登录 | bcrypt 哈希格式与 app 不兼容 | 通过 API 注册，再 SQL 升级角色 |
 | Bug #28 | 教师/管理员看到学生弹窗 | OnboardingWrapper 未检查 role | `user.role !== "student"` 跳过 |
+| Bug #29 | 管理员仍看到弹窗（Bug #28 修复不彻底） | `isAuthenticated` 在 `user` 加载完前变 true，角色检查时 `user?.role` 为 undefined | useEffect 等 `user` 就绪后再检查角色 |
 
 ---
 
