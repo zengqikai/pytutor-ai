@@ -17,18 +17,19 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) { setLoading(false); return; }
+    // 等 user 加载完毕再检查，避免 role 未就绪
+    if (!isAuthenticated || !user) { setLoading(false); return; }
     checkOnboarding();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const checkOnboarding = async () => {
+    // 只对学生显示引导弹窗
+    if (user?.role !== "student") {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      // 只对学生显示引导弹窗，教师和管理员跳过
-      if (user?.role && user.role !== "student") {
-        setLoading(false);
-        return;
-      }
       const token = localStorage.getItem("auth_token");
       const r = await fetch("http://localhost:8000/api/v1/profile/me", {
         headers: { Authorization: `Bearer ${token}` },
