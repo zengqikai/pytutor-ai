@@ -3,10 +3,10 @@
 import { useState } from "react";
 
 const options = [
-  { key: "A", label: "我完全没有编程基础", desc: "从零开始，一步步引导你写第一行代码", icon: "🌱" },
-  { key: "B", label: "我学过一点 Python", desc: "巩固基础，学习常见误区和调试技巧", icon: "📗" },
-  { key: "C", label: "我会基础语法，想练习和调试", desc: "进入练习中心，挑战 ACM 模式题目", icon: "💻" },
-  { key: "D", label: "我只想自由提问", desc: "直接进入 AI Tutor 对话", icon: "💬" },
+  { key: "A", label: "我完全没有编程基础", desc: "从零开始，从认识编辑器到for循环，一步步引导", icon: "🌱", btn: "开始新手教程" },
+  { key: "B", label: "我学过一点 Python", desc: "跳过编辑器介绍，从 print 和变量开始学起", icon: "📗", btn: "进入基础课程" },
+  { key: "C", label: "我会基础语法，想练习和调试", desc: "直接进入练习中心，挑战 ACM 模式题目", icon: "💻", btn: "进入练习中心" },
+  { key: "D", label: "我只想自由提问", desc: "直接进入 AI Tutor，想问什么问什么", icon: "💬", btn: "开始对话" },
 ];
 
 export function OnboardingModal({ onComplete }: { onComplete: (level: string) => void }) {
@@ -68,7 +68,7 @@ export function OnboardingModal({ onComplete }: { onComplete: (level: string) =>
           disabled={!selected || submitting}
           className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 transition-all"
         >
-          {submitting ? "设置中..." : selected === "A" ? "开始新手教程" : "进入 PyTutor"}
+          {submitting ? "设置中..." : options.find(o => o.key === selected)?.btn || "进入 PyTutor"}
         </button>
       </div>
     </div>

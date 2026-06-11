@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { LessonPlayer } from "@/components/lesson-player";
 
 export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuthStore();
+  const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStartLesson, setTutorialStartLesson] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,8 +40,24 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
-    if (level === "A") {
-      setShowTutorial(true);
+    switch (level) {
+      case "A":
+        // 零基础：完整教程，从 Lesson 0A 开始
+        setTutorialStartLesson(undefined);
+        setShowTutorial(true);
+        break;
+      case "B":
+        // 学过一点：跳过编辑器介绍，从 print/变量开始
+        setTutorialStartLesson("lesson_1");
+        setShowTutorial(true);
+        break;
+      case "C":
+        // 会基础想练习 → 直接进练习中心
+        router.push("/exercises");
+        break;
+      case "D":
+        // 自由提问 → 留在 AI 对话页（默认行为）
+        break;
     }
   };
 
@@ -47,7 +66,13 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
-      {showTutorial && <LessonPlayer userId={user?.id || "anon"} onComplete={() => setShowTutorial(false)} />}
+      {showTutorial && (
+        <LessonPlayer
+          userId={user?.id || "anon"}
+          startLessonId={tutorialStartLesson}
+          onComplete={() => setShowTutorial(false)}
+        />
+      )}
       {children}
 
       {/* 永久入口：右下角浮动按钮 */}
