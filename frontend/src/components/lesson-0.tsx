@@ -65,7 +65,7 @@ export function Lesson0({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-[#06060f]">
+    <div className="fixed inset-0 z-[100] flex bg-[#06060f]">
       {/* Left: Chat guide */}
       <div className="flex-1 flex flex-col max-w-[600px] border-r border-white/[0.06]">
         <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
@@ -109,9 +109,13 @@ export function Lesson0({ onComplete }: { onComplete: () => void }) {
       <div className="flex-1 flex flex-col bg-[#0a0a14]">
         <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
           <span className="text-sm font-medium text-slate-300">Python 编辑器</span>
-          <button onClick={runCode} disabled={running} className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors">
-            {running ? "运行中..." : "▶ 运行"}
-          </button>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-slate-500">点击运行查看结果 →</p>
+            <button onClick={runCode} disabled={running}
+              className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 animate-pulse">
+              {running ? "⏳ 运行中..." : "▶ 运 行"}
+            </button>
+          </div>
         </div>
         <div className="flex-1">
           <Editor height="100%" defaultLanguage="python" theme="vs-dark" value={code}
