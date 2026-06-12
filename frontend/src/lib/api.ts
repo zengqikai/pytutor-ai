@@ -22,6 +22,7 @@ export function setToken(token: string | null) {
 }
 
 export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
   if (!authToken) {
     authToken = localStorage.getItem("auth_token");
   }
