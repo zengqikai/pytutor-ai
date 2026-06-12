@@ -75,12 +75,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadUser: async () => {
-    if (!getToken()) return;
+    const token = getToken();
+    if (!token) return;
     try {
       const user = await authAPI.getMe();
       set({ user, isAuthenticated: true });
     } catch {
-      set({ isAuthenticated: false });
+      // 网络错误不改变认证状态，保留已有 token
+      if (get().user) return;  // 已有用户信息就不动
+      set({ isAuthenticated: !!token });  // 有 token 就保持登录状态
     }
   },
 }));

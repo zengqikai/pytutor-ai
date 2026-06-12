@@ -42,11 +42,19 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ---- Auth & Init ----
+  const [authChecked, setAuthChecked] = useState(false);
   useEffect(() => {
-    loadUser();
+    const check = async () => {
+      await loadUser();
+      setAuthChecked(true);
+    };
+    check();
+  }, []);
+  useEffect(() => {
+    if (!authChecked) return;
     if (!isAuthenticated) { router.push("/login"); return; }
     loadSessions();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authChecked]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const loadSessions = async () => { try { setSessions(await chatAPI.getSessions()); } catch {} };
