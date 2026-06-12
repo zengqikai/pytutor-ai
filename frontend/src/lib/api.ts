@@ -42,26 +42,34 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  // 加超时控制，防止后端休眠时无限等待
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90000);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
 
-  // 401 → 清除 token，跳转登录
-  if (res.status === 401) {
-    setToken(null);
-    if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-      window.location.href = "/login";
+    // 401 → 清除 token，跳转登录
+    if (res.status === 401) {
+      setToken(null);
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
+      }
+      throw new Error("未登录或登录已过期");
     }
-    throw new Error("未登录或登录已过期");
-  }
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as any).detail || `请求失败 (${res.status})`);
-  }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error((body as any).detail || `请求失败 (${res.status})`);
+    }
 
-  return res.json();
+    return res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ---- Auth APIs ----
