@@ -33,9 +33,10 @@ from app.schemas.ai import ChatMessage, LLMRequest, LLMResponse, TokenUsage
 logger = get_logger(__name__)
 
 # LiteLLM 全局配置
-litellm.drop_params = True       # 自动忽略不支持的参数
-litellm.telemetry = False        # 关闭 LiteLLM 遥测
-litellm.set_verbose = settings.debug
+if HAS_LITELLM:
+    litellm.drop_params = True
+    litellm.telemetry = False
+    litellm.set_verbose = settings.debug
 
 # 供应商路由配置
 LLM_ROUTER = {
