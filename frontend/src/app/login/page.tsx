@@ -17,10 +17,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [status, setStatus] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try { await login(email, password); router.push("/"); } catch {}
+    setStatus("正在唤醒服务器（免费版首次需要30-50秒）...");
+    try { await login(email, password); router.push("/"); } catch { setStatus(""); }
   };
 
   return (
@@ -99,6 +101,9 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              {status && (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 px-4 py-3 rounded-xl text-sm text-center">{status}</div>
+              )}
               <button type="submit" disabled={isLoading}
                 className="glow-hover w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-xl font-medium
                   hover:from-indigo-500 hover:to-violet-500 disabled:opacity-40 transition-all text-sm">
