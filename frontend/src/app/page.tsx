@@ -101,15 +101,8 @@ export default function ChatPage() {
     } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
   };
 
-  if (!isAuthenticated) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center">
-        <span className="text-5xl">🐍</span>
-        <h2 className="text-2xl font-bold text-white mt-4 mb-2">欢迎来到 PyTutor</h2>
-        <p className="text-slate-400">请先登录或注册</p>
-      </div>
-    </div>
-  );
+  useEffect(() => { if (!isAuthenticated) router.push("/login"); }, [isAuthenticated]);
+  if (!isAuthenticated) return null;
 
   return (
     <div className="flex h-[calc(100vh-56px)]">
