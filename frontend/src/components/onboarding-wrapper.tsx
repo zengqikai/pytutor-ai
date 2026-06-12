@@ -17,21 +17,24 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setShowOnboarding(false); setShowTutorial(false); setShowDiagnostic(false);
+      setReady(true); return;
+    }
+
     const token = localStorage.getItem("auth_token");
     if (!token) { setReady(true); return; }
 
-    // 用 token 前 16 位做 key，不等 user 对象加载
     const uid = token.slice(0, 16);
     const done = localStorage.getItem(`onboarding_${uid}`);
     if (done) { setReady(true); return; }
 
-    // 检查是否为学生（从 token 或缓存判断，非学生不弹）
     const cachedRole = localStorage.getItem("user_role");
     if (cachedRole && cachedRole !== "student") { setReady(true); return; }
 
     setShowOnboarding(true);
     setReady(true);
-  }, []);
+  }, [isAuthenticated]);
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
