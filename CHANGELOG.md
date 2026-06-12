@@ -463,7 +463,7 @@
                 misconceptions, misconception_events)
 API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   34 个
+记录 Bug:   36 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
 
@@ -511,6 +511,8 @@ Alembic 迁移: 7 次
 | Bug #32 | SSR 时 `localStorage` 不存在崩溃 | `getToken()` 在 Node.js 端调用 `localStorage.getItem` | `typeof window === "undefined"` 守卫 |
 | Bug #33 | Render 上 `litellm` 无法安装 | pip 静默失败或版本不兼容 | `llm_service` 增加 `openai` SDK 备用通道 |
 | Bug #34 | Vercel Git 自动部署持续失败 | Git 作者 `dev@pytutor.local` 无权限 + Root Directory 未设 `frontend` | 改 Git 配置匹配 Vercel 账号；清空 Root Directory |
+| Bug #35 | Vercel CLI 部署持续报 project name 错误 | 根目录 `vercel.json` 被多次自动生成，导致 monorepo 检测冲突 | 删除旧 Vercel 项目，全新导入时正确设 Root Directory=`frontend` |
+| Bug #36 | AI 回复中代码块无运行按钮 | page.tsx 重写时遗漏 `onRunInEditor` 属性传递 | 恢复 ChatMessage 的 onRunInEditor prop |
 
 ---
 
