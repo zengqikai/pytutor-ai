@@ -87,24 +87,39 @@ async def chat_completion(
     provider_cfg = LLM_ROUTER.get(provider, LLM_ROUTER[DEFAULT_PROVIDER])
     litellm_model = model or provider_cfg["model"]
 
-    # 构建消息
     api_messages = [{"role": m.role, "content": m.content} for m in messages]
-
     start_time = time.perf_counter()
 
-    try:
-        response = await acompletion(
-            model=litellm_model,
+    if not HAS_LITELLM:
+        # Fallback: 直接使用 OpenAI SDK (DeepSeek 兼容)
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(
+            api_key=provider_cfg.get("api_key", settings.deepseek_api_key),
+            base_url=provider_cfg.get("api_base", settings.deepseek_base_url),
+            timeout=settings.llm_timeout,
+        )
+        response = await client.chat.completions.create(
+            model=litellm_model.replace("deepseek/", ""),
             messages=api_messages,
             temperature=temp,
             max_tokens=max_tok,
-            api_key=provider_cfg.get("api_key"),
-            api_base=provider_cfg.get("api_base"),
-            timeout=settings.llm_timeout,
-            # Fallback 配置
-            num_retries=1,
-            fallbacks=[settings.deepseek_fallback_model] if settings.deepseek_fallback_model else None,
         )
+    else:
+        try:
+            response = await acompletion(
+                model=litellm_model,
+                messages=api_messages,
+                temperature=temp,
+                max_tokens=max_tok,
+                api_key=provider_cfg.get("api_key"),
+                api_base=provider_cfg.get("api_base"),
+                timeout=settings.llm_timeout,
+                num_retries=1,
+                fallbacks=[settings.deepseek_fallback_model] if settings.deepseek_fallback_model else None,
+            )
+        except Exception as e:
+            logger.error("llm_call_failed", provider=provider, model=litellm_model, error=str(e))
+            raise LLMException(detail="AI 服务暂时不可用", internal_detail=str(e))
     except Exception as e:
         logger.error("llm_call_failed", provider=provider, model=litellm_model, error=str(e))
         raise LLMException(detail="AI 服务暂时不可用", internal_detail=str(e))
