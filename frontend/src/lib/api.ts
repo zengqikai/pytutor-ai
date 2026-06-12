@@ -52,12 +52,9 @@ async function request<T>(
       signal: controller.signal,
     });
 
-    // 401 → 清除 token，跳转登录
+    // 401 → 清除 token
     if (res.status === 401) {
       setToken(null);
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-        window.location.href = "/login";
-      }
       throw new Error("未登录或登录已过期");
     }
 

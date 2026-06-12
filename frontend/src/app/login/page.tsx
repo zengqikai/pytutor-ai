@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth";
+import { getToken } from "@/lib/api";
 
 const features = [
   { icon: "🧠", title: "AI Tutor", desc: "DeepSeek 驱动的智能导师，实时解答 Python 问题，提供分层提示和代码审查" },
@@ -19,10 +20,13 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [status, setStatus] = useState("");
 
+  // 已有 token 直接进主页
+  useEffect(() => { if (getToken()) router.push("/"); }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("正在唤醒服务器（免费版首次需要30-50秒）...");
-    try { await login(email, password); router.push("/"); } catch { setStatus(""); }
+    try { await login(email, password); router.push("/"); } catch { setStatus("登录失败，请重试"); }
   };
 
   return (
