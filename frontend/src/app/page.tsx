@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Editor from "@monaco-editor/react";
 import { useAuthStore } from "@/stores/auth";
 import { useChatStore } from "@/stores/chat";
-import { chatAPI, codeAPI } from "@/lib/api";
+import { chatAPI, codeAPI, getToken } from "@/lib/api";
 import { ChatMessage } from "@/components/chat-message";
 
 interface Message {
@@ -101,7 +101,7 @@ export default function ChatPage() {
     } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
   };
 
-  useEffect(() => { if (!isAuthenticated) router.push("/login"); }, [isAuthenticated]);
+  useEffect(() => { loadUser().then(() => { if (!getToken()) router.push("/login"); }); }, []);
   if (!isAuthenticated) return null;
 
   return (

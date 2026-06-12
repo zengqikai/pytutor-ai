@@ -24,7 +24,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: false,
-  isAuthenticated: !!getToken(),  // 有 token 就是登录状态
+  isAuthenticated: false,
   error: null,
 
   login: async (email, password) => {
