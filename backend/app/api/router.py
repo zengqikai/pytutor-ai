@@ -40,4 +40,7 @@ api_v1_router.include_router(mc_exercises_router,  prefix="/exercises",     tags
 api_v1_router.include_router(misconceptions_router,prefix="/misconceptions",tags=["误区诊断"])
 api_v1_router.include_router(profile_router,       prefix="/profile",       tags=["画像"])
 api_v1_router.include_router(teacher_router,       prefix="/teacher",       tags=["教师"])
-api_v1_router.include_router(admin_router,         prefix="/admin",         tags=["管理"])
+from app.api.v1.setup import router as setup_router
+
+api_v1_router.include_router(setup_router,  prefix="/setup",  tags=["设置"])
+api_v1_router.include_router(admin_router,  prefix="/admin",  tags=["管理"])
