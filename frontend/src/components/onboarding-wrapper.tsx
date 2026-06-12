@@ -18,20 +18,25 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
-    if (!token || !user || user.role !== "student") { setReady(true); return; }
+    if (!token) { setReady(true); return; }
 
-    // 本地优先：localStorage 记录过就不再弹
-    const done = localStorage.getItem(`onboarding_${user.id}`);
+    // 用 token 前 16 位做 key，不等 user 对象加载
+    const uid = token.slice(0, 16);
+    const done = localStorage.getItem(`onboarding_${uid}`);
     if (done) { setReady(true); return; }
+
+    // 检查是否为学生（从 token 或缓存判断，非学生不弹）
+    const cachedRole = localStorage.getItem("user_role");
+    if (cachedRole && cachedRole !== "student") { setReady(true); return; }
 
     setShowOnboarding(true);
     setReady(true);
-  }, [user]);
+  }, []);
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
-    // 记住已完成
-    if (user?.id) localStorage.setItem(`onboarding_${user.id}`, "1");
+    const token = localStorage.getItem("auth_token") || "";
+    localStorage.setItem(`onboarding_${token.slice(0, 16)}`, "1");
     switch (level) {
       case "A": setShowTutorial(true); break;
       case "B": setShowDiagnostic(true); break;

@@ -60,6 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!getToken()) return;
     try {
       const user = await authAPI.getMe();
+      localStorage.setItem("user_role", user.role);
       set({ user, isAuthenticated: true });
     } catch {
       // 获取用户信息失败不影响登录状态
