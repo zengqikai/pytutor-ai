@@ -42,19 +42,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ---- Auth & Init ----
-  const [authChecked, setAuthChecked] = useState(false);
-  useEffect(() => {
-    const check = async () => {
-      await loadUser();
-      setAuthChecked(true);
-    };
-    check();
-  }, []);
-  useEffect(() => {
-    if (!authChecked) return;
-    if (!isAuthenticated) { router.push("/login"); return; }
-    loadSessions();
-  }, [isAuthenticated, authChecked]);
+  useEffect(() => { loadUser(); loadSessions(); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const loadSessions = async () => { try { setSessions(await chatAPI.getSessions()); } catch {} };
@@ -121,7 +109,7 @@ export default function ChatPage() {
     } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); set运行ningCode(false); }
   };
 
-  if (!isAuthenticated) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
+  if (!isAuthenticated) return null;
 
   return (
     <div className="flex h-[calc(100vh-56px)]">

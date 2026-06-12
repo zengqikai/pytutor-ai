@@ -77,13 +77,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadUser: async () => {
     const token = getToken();
     if (!token) return;
+    // 先信任 token，立即设为已登录（避免后端休眠导致白屏）
+    if (!get().user) set({ isAuthenticated: true });
     try {
       const user = await authAPI.getMe();
       set({ user, isAuthenticated: true });
     } catch {
-      // 网络错误不改变认证状态，保留已有 token
-      if (get().user) return;  // 已有用户信息就不动
-      set({ isAuthenticated: !!token });  // 有 token 就保持登录状态
+      // 网络错误保留 token 登录状态
+      if (!get().user) set({ isAuthenticated: true });
     }
   },
 }));
