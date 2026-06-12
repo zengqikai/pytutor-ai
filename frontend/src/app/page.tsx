@@ -141,7 +141,7 @@ export default function ChatPage() {
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto space-y-5">
-              {messages.map((msg, i) => <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} />)}
+              {messages.map((msg, i) => <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} onRunInEditor={(codeStr: string) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }} />)}
               {sending && <div className="flex gap-3"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">AI</div><div className="glass border-white/[0.06] rounded-xl px-4 py-3"><div className="flex gap-1.5"><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse" /><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse delay-200" /><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse delay-400" /></div></div></div>}
               <div ref={messagesEndRef} />
             </div>
