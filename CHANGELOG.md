@@ -463,7 +463,7 @@
                 misconceptions, misconception_events)
 API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   29 个
+记录 Bug:   34 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
 
@@ -505,7 +505,12 @@ Alembic 迁移: 7 次
 | Bug #26 | 新用户进教程看到旧用户进度 | localStorage key 用 token 前 16 位 | key 改为 `pytutor_progress_{user.id}` |
 | Bug #27 | 管理员用 SQLite 直插的账号无法登录 | bcrypt 哈希格式与 app 不兼容 | 通过 API 注册，再 SQL 升级角色 |
 | Bug #28 | 教师/管理员看到学生弹窗 | OnboardingWrapper 未检查 role | `user.role !== "student"` 跳过 |
-| Bug #29 | 管理员仍看到弹窗（Bug #28 修复不彻底） | `isAuthenticated` 在 `user` 加载完前变 true，角色检查时 `user?.role` 为 undefined | useEffect 等 `user` 就绪后再检查角色 |
+| Bug #29 | 管理员仍看到弹窗 | `isAuthenticated` 在 `user` 加载完前变 true | 等 `user` 就绪后再检查角色 |
+| Bug #30 | 部署后页面不停闪烁 | `api.ts` 401 时 `window.location.href` 强制跳转 + `loadUser` 失败清零 `isAuthenticated` | 删除强制跳转；token 存在即保持登录 |
+| Bug #31 | 退出后新手弹窗残留 | OnboardingWrapper `useEffect([], [])` 只挂载一次 | 依赖 `isAuthenticated`，退出时隐藏全部弹窗 |
+| Bug #32 | SSR 时 `localStorage` 不存在崩溃 | `getToken()` 在 Node.js 端调用 `localStorage.getItem` | `typeof window === "undefined"` 守卫 |
+| Bug #33 | Render 上 `litellm` 无法安装 | pip 静默失败或版本不兼容 | `llm_service` 增加 `openai` SDK 备用通道 |
+| Bug #34 | Vercel Git 自动部署持续失败 | Git 作者 `dev@pytutor.local` 无权限 + Root Directory 未设 `frontend` | 改 Git 配置匹配 Vercel 账号；清空 Root Directory |
 
 ---
 
