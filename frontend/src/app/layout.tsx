@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { NavLink } from "@/components/nav-link";
 import { NavAdminLink } from "@/components/nav-admin-link";
+import { NavTeacherLink } from "@/components/nav-teacher-link";
 import { NavUser } from "@/components/nav-user";
 import { OnboardingWrapper } from "@/components/onboarding-wrapper";
 
@@ -39,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavLink href="/" label="AI 对话" />
             <NavLink href="/exercises" label="练习中心" />
             <NavLink href="/profile" label="学习画像" />
-            <NavLink href="/teacher" label="教学分析" />
+            <NavTeacherLink />
             <NavAdminLink />
             <div className="flex-1" />
             <NavUser />
