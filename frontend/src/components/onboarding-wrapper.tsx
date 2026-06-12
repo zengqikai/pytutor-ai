@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { LessonPlayer } from "@/components/lesson-player";
@@ -15,61 +14,32 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [tutorialStartLesson, setTutorialStartLesson] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // 等 user 加载完毕再检查，避免 role 未就绪
-    if (!isAuthenticated || !user) { setLoading(false); return; }
-    checkOnboarding();
-  }, [isAuthenticated, user]);
+    const token = localStorage.getItem("auth_token");
+    if (!token || !user || user.role !== "student") { setReady(true); return; }
 
-  const checkOnboarding = async () => {
-    // 只对学生显示引导弹窗
-    if (user?.role !== "student") {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("auth_token");
-      const r = await fetch(`${API_BASE_URL}/profile/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const resp = await r.json();
-      const profile = resp.data || resp;
-      if (!profile.onboarding_done) {
-        setShowOnboarding(true);
-      }
-    } catch (e) {
-      console.warn("Onboarding check failed", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 本地优先：localStorage 记录过就不再弹
+    const done = localStorage.getItem(`onboarding_${user.id}`);
+    if (done) { setReady(true); return; }
+
+    setShowOnboarding(true);
+    setReady(true);
+  }, [user]);
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
+    // 记住已完成
+    if (user?.id) localStorage.setItem(`onboarding_${user.id}`, "1");
     switch (level) {
-      case "A":
-        // 零基础：完整教程，从 Lesson 0A 开始
-        setTutorialStartLesson(undefined);
-        setShowTutorial(true);
-        break;
-      case "B":
-        // 学过一点：进入基础诊断流程
-        setShowDiagnostic(true);
-        break;
-      case "C":
-        // 会基础想练习 → 直接进练习中心
-        router.push("/exercises");
-        break;
-      case "D":
-        // 自由提问 → 留在 AI 对话页（默认行为）
-        break;
+      case "A": setShowTutorial(true); break;
+      case "B": setShowDiagnostic(true); break;
+      case "C": router.push("/exercises"); break;
     }
   };
 
-  if (loading) return <>{children}</>;
+  if (!ready) return null;
 
   return (
     <>
@@ -77,45 +47,24 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
       {showDiagnostic && (
         <DiagnosticFlow onComplete={(result) => {
           setShowDiagnostic(false);
-          if (!result.skipped) {
-            // 根据诊断结果决定入口
-            if (result.level === "solid") {
-              router.push("/exercises");
-            } else {
-              setTutorialStartLesson("lesson_1");
-              setShowTutorial(true);
-            }
+          if (!result.skipped && result.level !== "solid") {
+            setTutorialStartLesson("lesson_1");
+            setShowTutorial(true);
+          } else if (!result.skipped) {
+            router.push("/exercises");
           }
         }} />
       )}
       {showTutorial && (
-        <LessonPlayer
-          userId={user?.id || "anon"}
-          startLessonId={tutorialStartLesson}
-          onComplete={() => setShowTutorial(false)}
-        />
+        <LessonPlayer userId={user?.id || "anon"} startLessonId={tutorialStartLesson}
+          onComplete={() => setShowTutorial(false)} />
       )}
       {children}
 
-      {/* 永久入口：右下角浮动按钮 */}
       {isAuthenticated && user?.role === "student" && !showOnboarding && !showTutorial && !showDiagnostic && (
-        <button
-          onClick={() => {
-            const uid = user?.id || "anon";
-            const saved = localStorage.getItem(`pytutor_progress_${uid}`);
-            if (saved) {
-              setShowTutorial(true);
-            } else {
-              setShowOnboarding(true);
-            }
-          }}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all group"
-          title="继续学习"
-        >
+        <button onClick={() => setShowOnboarding(true)}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-110 transition-all group" title="调整学习基础">
           <span className="text-xl">🎓</span>
-          <span className="absolute right-14 bg-gray-900 text-white text-xs px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            调整学习基础
-          </span>
         </button>
       )}
     </>

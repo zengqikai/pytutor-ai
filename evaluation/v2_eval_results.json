@@ -1,0 +1,270 @@
+{
+  "pytutor": [
+    {
+      "case_id": "C01",
+      "expected": "M1",
+      "diagnosed": "M1",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 582
+    },
+    {
+      "case_id": "C02",
+      "expected": "M2",
+      "diagnosed": "M2",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 603
+    },
+    {
+      "case_id": "C03",
+      "expected": "M3",
+      "diagnosed": "M3",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 666
+    },
+    {
+      "case_id": "C04",
+      "expected": "M4",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 766
+    },
+    {
+      "case_id": "C05",
+      "expected": "M5",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 722
+    },
+    {
+      "case_id": "C06",
+      "expected": "M6",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 744
+    },
+    {
+      "case_id": "C07",
+      "expected": "M7",
+      "diagnosed": "M7",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 705
+    },
+    {
+      "case_id": "C08",
+      "expected": "M8",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 685
+    },
+    {
+      "case_id": "C09",
+      "expected": "M1",
+      "diagnosed": "M1",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 712
+    },
+    {
+      "case_id": "C10",
+      "expected": "M3",
+      "diagnosed": "M3",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 716
+    },
+    {
+      "case_id": "C11",
+      "expected": "M2",
+      "diagnosed": "M2",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 707
+    },
+    {
+      "case_id": "C12",
+      "expected": "M4",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 663
+    },
+    {
+      "case_id": "C13",
+      "expected": "M8",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 731
+    },
+    {
+      "case_id": "C14",
+      "expected": "M7",
+      "diagnosed": "M7",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 2269
+    },
+    {
+      "case_id": "C15",
+      "expected": "M6",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 689
+    },
+    {
+      "case_id": "C16",
+      "expected": "M3",
+      "diagnosed": "M3",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 703
+    },
+    {
+      "case_id": "C17",
+      "expected": "M5",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 693
+    },
+    {
+      "case_id": "C18",
+      "expected": "M7",
+      "diagnosed": "M7",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 2071
+    },
+    {
+      "case_id": "C19",
+      "expected": "M8",
+      "diagnosed": "M2",
+      "accurate": false,
+      "scores": {
+        "diagnosis_accuracy": 0.5,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 0.83,
+      "time_ms": 707
+    },
+    {
+      "case_id": "C20",
+      "expected": "M1",
+      "diagnosed": "M1",
+      "accurate": true,
+      "scores": {
+        "diagnosis_accuracy": 1,
+        "hint_appropriate": 1,
+        "no_premature_answer": 1
+      },
+      "total": 1.0,
+      "time_ms": 684
+    }
+  ],
+  "baseline": [],
+  "summary": {
+    "total": 20,
+    "accuracy": 0.55,
+    "avg_score": 0.9235
+  }
+}

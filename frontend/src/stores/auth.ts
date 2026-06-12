@@ -1,11 +1,4 @@
-/**
- * 认证状态管理（Zustand）
- * =========================
- * 管理用户登录状态、token、用户信息。
- *
- * Zustand 是轻量级状态管理库——比 Redux 简单很多。
- * 创建一个 store = 一个 hook，组件直接调用。
- */
+"use client";
 
 import { create } from "zustand";
 import { authAPI, setToken, getToken } from "@/lib/api";
@@ -22,7 +15,6 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => void;
@@ -32,7 +24,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isLoading: false,
-  isAuthenticated: false,
+  isAuthenticated: !!getToken(),  // 有 token 就是登录状态
   error: null,
 
   login: async (email, password) => {
@@ -41,8 +33,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await authAPI.login({ email, password });
       setToken(res.access_token);
       set({ isAuthenticated: true, isLoading: false });
-      // 登录后加载用户信息
-      await get().loadUser();
     } catch (e: any) {
       set({ error: e.message, isLoading: false });
       throw e;
@@ -52,17 +42,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (email, password, displayName) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await authAPI.register({
-        email,
-        password,
-        display_name: displayName,
-      });
+      const res = await authAPI.register({ email, password, display_name: displayName });
       setToken(res.token.access_token);
-      set({
-        user: res.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      set({ user: res.user, isAuthenticated: true, isLoading: false });
     } catch (e: any) {
       set({ error: e.message, isLoading: false });
       throw e;
@@ -75,16 +57,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadUser: async () => {
-    const token = getToken();
-    if (!token) return;
-    // 先信任 token，立即设为已登录（避免后端休眠导致白屏）
-    if (!get().user) set({ isAuthenticated: true });
+    if (!getToken()) return;
     try {
       const user = await authAPI.getMe();
       set({ user, isAuthenticated: true });
     } catch {
-      // 网络错误保留 token 登录状态
-      if (!get().user) set({ isAuthenticated: true });
+      // 获取用户信息失败不影响登录状态
     }
   },
 }));
