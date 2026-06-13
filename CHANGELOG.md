@@ -463,7 +463,7 @@
                 misconceptions, misconception_events)
 API 端点:   25+
 Alembic 迁移: 7 次
-记录 Bug:   37 个
+记录 Bug:   38 个
 版本:      2.0 (Misconception-Aware AI Tutoring)
 ```
 
@@ -514,6 +514,7 @@ Alembic 迁移: 7 次
 | Bug #35 | Vercel CLI 部署持续报 project name 错误 | 根目录 `vercel.json` 被多次自动生成，导致 monorepo 检测冲突 | 删除旧 Vercel 项目，全新导入时正确设 Root Directory=`frontend` |
 | Bug #36 | AI 回复中代码块无运行按钮 | page.tsx 重写时遗漏 `onRunInEditor` 属性传递 | 恢复 ChatMessage 的 onRunInEditor prop |
 | Bug #37 | 未登录时首页黑屏不跳转登录页 | `loadUser()` 需等 Render 后端响应才决定跳转，休眠时卡住 | 不等后端，token 不存在立刻 `router.push("/login")` |
+| Bug #38 | 两个 Vercel 网址行为不一致 | 旧项目连 Git 自动更新，新项目未连 Git 代码过时 | 统一用旧地址 `pytutor-ai-git-main-...`，删除新项目 |
 
 ---
 
