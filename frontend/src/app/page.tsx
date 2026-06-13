@@ -101,7 +101,7 @@ export default function ChatPage() {
     } catch (e: any) { setCodeResult({ stderr: `运行失败: ${e.message}` }); setRunningCode(false); }
   };
 
-  useEffect(() => { loadUser().then(() => { if (!getToken()) router.push("/login"); }); }, []);
+  useEffect(() => { if (!getToken()) { router.push("/login"); return; } loadUser(); loadSessions(); }, []);
   if (!isAuthenticated) return null;
 
   return (
