@@ -8,3 +8,8 @@ __pycache__/
 *.log
 dist/
 build/
+
+.vercel
+docs/screenshots/
+evaluation/v2_eval_results.json
+vercel.json
