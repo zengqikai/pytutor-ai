@@ -29,3 +29,13 @@ async def init_roles(db: AsyncSession = Depends(get_db)):
 
     await db.commit()
     return {"result": result}
+
+
+@router.get("/list-users")
+async def list_users(db: AsyncSession = Depends(get_db)):
+    """列出所有注册用户（调试用）。"""
+    from app.models.user import User
+    from sqlalchemy import select as sa_select
+    r = await db.execute(sa_select(User).order_by(User.created_at.desc()))
+    return [{"email": u.email, "role": u.role.value, "name": u.display_name,
+             "created": u.created_at.isoformat()} for u in r.scalars()]
