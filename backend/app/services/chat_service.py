@@ -358,8 +358,36 @@ async def send_message(
         except Exception as e:
             logger.debug("chat_misconception_skipped", error=str(e)[:100])
 
-    # 步骤 5：调用 AI 导师（2.0 增强：传入误区和教学策略）
+    # 步骤 5：调用 AI 导师（2.0 增强：误区+策略+画像+修正检测）
     try:
+        # 2.0: 画像驱动——注入学生历史信息
+        profile_context = ""
+        try:
+            from app.services.profile_service import get_or_create_profile
+            import json as _json2
+            profile = await get_or_create_profile(db, user.id)
+            recent_mc = []
+            if profile.recent_misconceptions:
+                try: recent_mc = _json2.loads(profile.recent_misconceptions)
+                except: pass
+            if recent_mc:
+                profile_context = f"📊 学生画像：最近出现的误区有 {', '.join(recent_mc[-3:])}。"
+                if profile.hint_dependency == "high":
+                    profile_context += "该学生提示依赖度较高，请降低提示等级鼓励独立思考。"
+                elif profile.hint_dependency == "low":
+                    profile_context += "该学生提示依赖度低，可以适当给更多概念解释。"
+        except Exception:
+            pass
+
+        # 2.0: 修正后总结——检测学生是否从错误修正为正确
+        fix_context = ""
+        if len(history) >= 2:
+            last_user = [m for m in history[-4:] if m.get("role") == "user"]
+            has_code_before = any("```" in m.get("content", "") for m in last_user[:-1])
+            has_code_now = "```" in request.content
+            if has_code_before and has_code_now:
+                fix_context = "🎯 学生刚才修改了代码。如果改对了，请先肯定学生的进步，然后用1句话总结'刚才的问题本质是什么'，帮学生形成长期记忆。"
+
         pedagogy_hint = ""
         if misconception_result:
             from app.services.pedagogy_service import select_strategy, get_hint_prompt
@@ -372,9 +400,13 @@ async def send_message(
                 misconception_result["misconception_name"],
                 strategy["hint_level"],
             )
-            # 将误区信息注入到 rag_context 中
             mc_ctx = f"⚠️ 学生代码已诊断出误区：{misconception_result['misconception_name']}。{pedagogy_hint}"
             rag_context = (rag_context or "") + "\n" + mc_ctx if rag_context else mc_ctx
+
+        # 合并所有上下文
+        full_context = "\n".join(filter(None, [rag_context or "", profile_context, fix_context]))
+        if full_context:
+            rag_context = full_context
 
         ai_response: AIResponse = await generate_tutor_response(
             user_message=request.content,
