@@ -515,7 +515,22 @@ Alembic 迁移: 7 次
 | Bug #36 | AI 回复中代码块无运行按钮 | page.tsx 重写时遗漏 `onRunInEditor` 属性传递 | 恢复 ChatMessage 的 onRunInEditor prop |
 | Bug #37 | 未登录时首页黑屏不跳转登录页 | `loadUser()` 需等 Render 后端响应才决定跳转，休眠时卡住 | 不等后端，token 不存在立刻 `router.push("/login")` |
 | Bug #38 | 两个 Vercel 网址行为不一致 | 旧项目连 Git 自动更新，新项目未连 Git 代码过时 | 统一用旧地址 `pytutor-ai-git-main-...`，删除新项目 |
-| Bug #39 | 本地运行首页空白不跳登录 | 浏览器残留 Vercel 的旧 token，本地后端不认，`loadUser()` 返回 401 后 `isAuthenticated` 保持 false | `localStorage.removeItem("auth_token")` 清除旧 token |
+| Bug #39 | 本地运行首页空白不跳登录 | 浏览器残留 Vercel 的旧 token | 清 localStorage 旧 token |
+
+---
+
+## Phase 11: 基础功能补齐 (Step 38)
+
+### Step 38 — 回复自检前端 + 画像自动更新
+**日期**: 2026-06-17
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `schemas/chat.py` | AIResponse 新增 `verify_score` 字段 |
+| 修改 | `tutor_service.py` | 回复自检分数透传到前端 |
+| 修改 | `chat_service.py` | 聊天中诊断出误区后自动更新 `recent_misconceptions` + `weak_topics` |
+| 修改 | `chat-message.tsx` | AI 回复上方显示质量徽章（✅ 质量 4/5） |
+| 修改 | `page.tsx`, `chat.ts` | Message 接口新增 `verify_score` |
 
 ---
 
