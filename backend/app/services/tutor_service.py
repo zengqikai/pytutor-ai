@@ -122,6 +122,7 @@ async def generate_tutor_response(
             hint_level=hint,
             related_concepts=concepts,
             next_action="ask_question",
+            verify_score=verify_score if verify_score > 0 else None,
         )
 
     except Exception as e:

@@ -327,6 +327,34 @@ async def send_message(
                 logger.info("chat_misconception_detected",
                     code=mc_result.get("misconception_id"),
                     session_id=session_id)
+                # 2.0: 自动更新学习画像
+                try:
+                    from app.services.profile_service import get_or_create_profile
+                    import json as _json
+                    profile = await get_or_create_profile(db, user.id)
+                    mc_code = mc_result.get("misconception_id")
+                    mc_name = mc_result.get("misconception_name", "")
+                    # 更新 recent_misconceptions
+                    recent = []
+                    if profile.recent_misconceptions:
+                        try: recent = _json.loads(profile.recent_misconceptions)
+                        except: pass
+                    recent.append(mc_name or mc_code)
+                    profile.recent_misconceptions = _json.dumps(recent[-5:], ensure_ascii=False)
+                    # 更新 weak_topics
+                    concepts = mc_result.get("related_concepts", [])
+                    if concepts:
+                        weak = []
+                        if profile.weak_topics:
+                            try: weak = _json.loads(profile.weak_topics)
+                            except: pass
+                        for c in concepts:
+                            if c not in weak:
+                                weak.append(c)
+                        profile.weak_topics = _json.dumps(weak, ensure_ascii=False)
+                    await db.commit()
+                except Exception:
+                    pass
         except Exception as e:
             logger.debug("chat_misconception_skipped", error=str(e)[:100])
 

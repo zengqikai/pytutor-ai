@@ -28,6 +28,7 @@ interface Props {
   related_concepts?: string[];
   misconception_id?: string;
   pedagogical_strategy?: string;
+  verify_score?: number;
   userAvatar?: string;
   onRunInEditor?: (code: string) => void;
 }
@@ -42,7 +43,7 @@ const strategyLabels: Record<string, string> = {
   practice_recommendation: "推荐练习",
 };
 
-export function ChatMessage({ role, content, hint_level, related_concepts, misconception_id, pedagogical_strategy, userAvatar, onRunInEditor }: Props) {
+export function ChatMessage({ role, content, hint_level, related_concepts, misconception_id, pedagogical_strategy, verify_score, userAvatar, onRunInEditor }: Props) {
   const isUser = role === "user";
   const displayContent = isUser ? content : normalizeContent(content);
 
@@ -72,6 +73,14 @@ export function ChatMessage({ role, content, hint_level, related_concepts, misco
             {pedagogical_strategy && strategyLabels[pedagogical_strategy] && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                 📖 {strategyLabels[pedagogical_strategy]}
+              </span>
+            )}
+            {verify_score && verify_score > 0 && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border
+                ${verify_score >= 4 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                  verify_score >= 3 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                  'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                ✅ 质量 {verify_score}/5
               </span>
             )}
           </div>

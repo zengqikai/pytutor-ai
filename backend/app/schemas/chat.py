@@ -108,6 +108,10 @@ class AIResponse(BaseModel):
         default=None,
         description="引导学生反思的问题"
     )
+    verify_score: Optional[int] = Field(
+        default=None,
+        description="回复质量评分 1-5，仅 2.0 回复自检开启时有值"
+    )
 
 
 class MessageResponse(BaseModel):

@@ -11,6 +11,7 @@ interface Message {
   related_concepts?: string[];
   misconception_id?: string;
   pedagogical_strategy?: string;
+  verify_score?: number;
 }
 
 interface ChatState {
