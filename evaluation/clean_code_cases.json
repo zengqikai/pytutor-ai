@@ -1,0 +1,112 @@
+[
+  {
+    "case_id": "CLEAN01",
+    "code": "x = 5\nif x == 5:\n    print('five')",
+    "description": "正确的 if == 比较，不触发 M1"
+  },
+  {
+    "case_id": "CLEAN02",
+    "code": "for i in range(10):\n    print(i)",
+    "description": "正常的 range 循环，不触发任何误区"
+  },
+  {
+    "case_id": "CLEAN03",
+    "code": "items = [1,2,3]\nitems.append(4)\nprint(items)",
+    "description": "正确的 append 调用（不赋值），不触发 M3"
+  },
+  {
+    "case_id": "CLEAN04",
+    "code": "items = ['a','b','c']\nfor i in range(len(items)):\n    print(items[i])",
+    "description": "range(len) 使用 i 作下标是正确的，不触发 M4"
+  },
+  {
+    "case_id": "CLEAN05",
+    "code": "def add(a,b):\n    return a+b\nresult = add(3,4)",
+    "description": "正确的 return 用法，不触发 M6"
+  },
+  {
+    "case_id": "CLEAN06",
+    "code": "n = 0\nwhile n < 5:\n    print(n)\n    n += 1",
+    "description": "while 循环有变量更新，不触发 M8"
+  },
+  {
+    "case_id": "CLEAN07",
+    "code": "name = 'Alice'\nprint(f'Hello {name}')",
+    "description": "f-string 正确用法，不触发 M7"
+  },
+  {
+    "case_id": "CLEAN08",
+    "code": "nums = [3,1,2]\nsorted_nums = sorted(nums)\nprint(sorted_nums)",
+    "description": "sorted() 返回新列表可以赋值，不触发 M3"
+  },
+  {
+    "case_id": "CLEAN09",
+    "code": "for item in items:\n    print(item)",
+    "description": "正常遍历，不使用下标，不触发 M4"
+  },
+  {
+    "case_id": "CLEAN10",
+    "code": "while True:\n    user_input = input('>')\n    if user_input == 'quit':\n        break\n    print(user_input)",
+    "description": "while True 有 break，不触发 M8"
+  },
+  {
+    "case_id": "CLEAN11",
+    "code": "def greet(name):\n    print(f'Hello {name}')\n    return name",
+    "description": "函数先 print 后 return，不触发 M6"
+  },
+  {
+    "case_id": "CLEAN12",
+    "code": "for i, item in enumerate(items):\n    print(i, item)",
+    "description": "enumerate 正确使用，不触发 M4"
+  },
+  {
+    "case_id": "CLEAN13",
+    "code": "age = 20\nprint(f'I am {age} years old')",
+    "description": "f-string 中嵌入整数，不触发 M7"
+  },
+  {
+    "case_id": "CLEAN14",
+    "code": "def is_even(n):\n    if n % 2 == 0:\n        return True\n    else:\n        return False",
+    "description": "正确的函数定义，不触发任何误区"
+  },
+  {
+    "case_id": "CLEAN15",
+    "code": "total = 0\nfor num in [1,2,3,4,5]:\n    total += num\nprint(total)",
+    "description": "累加循环，正常用法"
+  },
+  {
+    "case_id": "CLEAN16",
+    "code": "data = {'name':'Alice','age':20}\nfor key in data:\n    print(key, data[key])",
+    "description": "字典遍历，使用 key 作下标是正确的"
+  },
+  {
+    "case_id": "CLEAN17",
+    "code": "numbers = [1,2,3]\nnumbers.extend([4,5])\nprint(numbers)",
+    "description": "extend 不赋值，正确用法"
+  },
+  {
+    "case_id": "CLEAN18",
+    "code": "x = 10\ny = 20\nif x >= y:\n    print('x is larger')\nelse:\n    print('y is larger')",
+    "description": "正确的比较运算符，不触发 M1"
+  },
+  {
+    "case_id": "CLEAN19",
+    "code": "result = int(input('Enter: '))\nprint(result * 2)",
+    "description": "input 后 int 转换，正确用法"
+  },
+  {
+    "case_id": "CLEAN20",
+    "code": "count = 0\nwhile count < 3:\n    print(count)\n    count = count + 1\nprint('Done')",
+    "description": "while 循环有完整条件更新，不触发 M8"
+  },
+  {
+    "case_id": "CLEAN21",
+    "code": "for j in range(0,10,2):\n    print(j)",
+    "description": "（原 C17）正确代码：range(0,10,2)输出什么"
+  },
+  {
+    "case_id": "CLEAN22",
+    "code": "nums = [3,1,4]\npopped = nums.pop()\nprint(popped, nums)",
+    "description": "（原 C41）正确代码：pop返回值对吗"
+  }
+]

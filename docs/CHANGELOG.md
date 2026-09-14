@@ -632,3 +632,90 @@ Alembic 迁移: 7 次
 | 新增 | `backend/app/api/v1/teacher.py` | `GET /teacher/overview` 聚合统计 |
 | 新增 | `frontend/src/app/teacher/page.tsx` | 误区频次 / 薄弱点排行 / 提示依赖 / 学生列表 / 动态 |
 | 修改 | `layout.tsx` | 导航栏新增「教学分析」入口 |
+
+---
+
+## Phase 12: PyTutor 3.0 — 三人算法优化整合 (Steps 40-44)
+
+**日期**: 2026-09-14
+
+> 整合 B（AST 诊断）、E（教学意图转移）、C（质量优化）、A（RAG 优化）四方向，
+> 采用 MASTER-PLAN 的 feature-flag 开关隔离法，全部默认关，逐一验证后转默认开。
+
+### Step 40 — B 组：AST 代码结构分析诊断
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/analysis/` | AST 诊断模块（ast_analyzer + 6 个 NodeVisitor + confidence + error_class + root_cause） |
+| 修改 | `backend/app/services/misconception_service.py` | `diagnose()` 顶部按 `ENABLE_AST_DIAGNOSIS` 分支到 `_ast_diagnose()` |
+| 新增 | `backend/tests/test_ast_analyzer.py` | 48 单元测试 |
+| 新增 | `backend/tests/test_ast_adversarial_v31.py` | 26 对抗性负例测试 |
+| 修改 | `evaluation/v2_test_cases.json` | 20→47 例（修正 3 个误标注用例） |
+| 新增 | `evaluation/clean_code_cases.json` | 20→22 例干净代码（测误报率） |
+
+**Bug 修复**:
+- Bug #40：M7 类型转换检测漏判 `a='hello'; b=123; c=a+b` — `_is_likely_int` 检查 `"int"` 但 `_scan_assignments` 存 `"num"`，类型映射不一致。改为接受 `("int","num")`
+- 测试用例误标注修正：C41（`pop()` 有返回值，非 M3）、C17（正确 range 代码，非 M5）移至 clean 集；C13（for 循环标 M8，无 while）移除
+
+**指标**: Exact Match 92% → **100%**（47/47），Macro F1 0.964 → **1.000**，误报率 **0%**（0/22）
+
+### Step 41 — E 方向：教学意图转移图 + 误区锚定 prompt
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/services/pedagogy/steering.py` | 教学意图转移图（`select_strategy`） |
+| 新增 | `backend/app/services/pedagogy/transition_graph.yaml` | 转移图数据 |
+| 新增 | `backend/app/services/prompts/misconception_anchored.py` | 误区锚定 prompt（`build_system_prompt` + `leaks_answer`） |
+| 修改 | `backend/app/services/chat_service.py` | 按 `ENABLE_PEDAGOGY_STEERING` 注入转移图决策 + 锚定 prompt |
+| 修改 | `backend/app/api/v1/exercises.py` | 接入 `error_class`（第 1 层错误大类，E-FR-02） |
+| 新增 | `backend/tests/test_e_direction.py` | 30 测试 |
+| 新增 | `backend/tests/test_srs32_supplement.py` | 24 测试 |
+
+### Step 42 — C 组：质量与系统优化
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/services/judge_service.py` | Multi-Judge 3 评委评分 + Rubric V2（Task 1+2） |
+| 新增 | `backend/app/services/profile_decay_service.py` | 时间衰减 + 转移矩阵 + Hint 依赖（Task 3+4） |
+| 修改 | `backend/app/services/pedagogy_service.py` | `verify_response()` 按 `ENABLE_MULTI_JUDGE` 路由到 `multi_judge_verify` |
+| 修改 | `backend/app/services/profile_service.py` | 按 `ENABLE_TIME_DECAY` / `ENABLE_CONTENT_RECOMMEND` 接入衰减 + 内容推荐（Task 5） |
+| 修改 | `backend/app/services/llm_service.py` | 追加 `classify_question_complexity()` + `chat_completion_routed()`（Task 6） |
+| 修改 | `backend/app/services/tutor_service.py` | 按 `ENABLE_MULTI_MODEL_ROUTING` 路由（含流式） |
+| 新增 | `backend/tests/test_judge_service.py` | 12 测试 |
+| 新增 | `backend/tests/test_profile_decay.py` | 17 测试 |
+| 新增 | `evaluation/run_judge_eval.py` | Multi-Judge 评估脚本 |
+
+### Step 43 — A 组：RAG 检索优化（核心 4 项）
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/services/rag_service.py` | A1 重排序接线 + A2 加权融合 `_weighted_merge` + A6 上下文压缩 `_format_compressed` |
+| 修改 | `backend/app/rag/splitter.py` | A4 `estimate_tokens` + `_split_by_tokens`（token 窗口 + 重叠） |
+| 修改 | `backend/app/core/config.py` | 新增 `RAG_VECTOR_WEIGHT` / `RAG_CONTEXT_MAX_TOKENS` 参数 |
+| 新增 | `backend/tests/test_rag_optimization.py` | 13 测试 |
+| 新增 | `evaluation/run_rag_eval.py` + `rag_golden.json` | Recall@K / MRR 评测 |
+
+**指标**: Recall@3/5 = **88.9%**，MRR = **0.889**（TF-IDF 基线，均超 MASTER-PLAN 目标 ≥0.85 / ≥0.75）
+
+### Step 44 — Feature Flags 脚手架 + 全量整合
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/core/config.py` | 新增 10 个 `ENABLE_*` flag + `extra="ignore"`（忽略根 .env 的 VISION_MODEL） |
+| 修改 | `backend/.env` | 追加 10 个 flag，最终默认：AST/时间衰减/内容推荐=true，其余=false |
+
+**Bug 修复**:
+- Bug #41：`docker_executor.py` bytes 字面量含中文致 SyntaxError — 改用 `.encode("utf-8")`
+- Bug #42：backend 从根目录运行读到根 .env 的 `VISION_MODEL`（vision.js 专用）触发 pydantic `extra_forbidden` — config 加 `extra="ignore"`
+
+**最终 flag 默认值**:
+
+| Flag | 默认 | 说明 |
+|------|------|------|
+| `ENABLE_AST_DIAGNOSIS` | **true** | AST 诊断已达标（100% EM / 0% FP） |
+| `ENABLE_TIME_DECAY` / `ENABLE_CONTENT_RECOMMEND` | **true** | 纯计算，零 API 成本 |
+| `ENABLE_PEDAGOGY_STEERING` | false | E 方向灰度 |
+| `ENABLE_MULTI_JUDGE` / `ENABLE_MULTI_MODEL_ROUTING` | false | 需 DEEPSEEK_API_KEY |
+| A 组 4 个 flag | false | 验证达标后按需开 |
+
+**测试结果**: **189 passed**（147 基线 + 29 C + 13 A），前端 `npm run build` 通过，`compileall` 全绿。

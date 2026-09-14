@@ -5,6 +5,9 @@ RAG 检索测试
 测试知识库检索和 RAG 增强的聊天。
 """
 import asyncio
+import pytest
+
+pytestmark = pytest.mark.llm
 import sys
 from pathlib import Path
 

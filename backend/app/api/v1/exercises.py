@@ -218,8 +218,21 @@ async def submit_exercise_answer(
     exercise.use_count = (exercise.use_count or 0) + 1
 
     # 2.0: 误区诊断（未全部通过时触发）
+    # SRS 3.2 接线（E-FR-02）：第 1 层错误大类。M 命中与否都归类，
+    # 保证「M 之外的错误不再隐形」——权重/画像坐在完整层上。
     misconception_diagnosis = None
+    error_class = None
     if not (passed == total and total > 0):
+        try:
+            from app.analysis.error_class import classify_error
+            if any_error == "超时":
+                # 超时/被杀：无 stderr 但确实没跑完
+                error_class = classify_error("", ran_ok=False, output_correct=None)
+            else:
+                # 崩溃 → 按异常类型归类；跑通但输出不对 → logic
+                error_class = classify_error(any_error or "", ran_ok=True, output_correct=False)
+        except Exception:
+            pass
         try:
             from app.services.misconception_service import diagnose as mc_diagnose
             stderr_summary = "; ".join([
@@ -273,7 +286,9 @@ async def submit_exercise_answer(
             "exercise_id": exercise.id,
             "score_pct": score_pct if already_passed == 0 else 0,
             "used_hints": used_hints,
-            "viewed_solution": viewed_solution
+            "viewed_solution": viewed_solution,
+            # E-FR-02：第 1 层错误大类进画像事件（失败时非空）
+            "error_class": error_class,
         })
     profile = await get_or_create_profile(db, current_user.id)
     exp_gained = round(exercise.difficulty * score_pct)
@@ -324,4 +339,8 @@ async def submit_exercise_answer(
         "difficulty": exercise.difficulty,
         # 2.0: 误区诊断结果
         "misconception": misconception_diagnosis,
+        # SRS 3.2 E-FR-02：第 1 层错误大类。beyond_misconceptions=True 表示
+        # 有错误但一个 M 都没命中——这正是过去隐形、现在可见的情形。
+        "error_class": error_class,
+        "beyond_misconceptions": bool(error_class) and misconception_diagnosis is None,
     }

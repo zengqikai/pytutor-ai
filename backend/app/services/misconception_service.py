@@ -4,10 +4,13 @@
 
 规则匹配 + LLM 辅助分类双通道诊断 Python 初学者常见误区。
 
+3.0 新增：AST 代码结构分析通道（Feature Flag: ENABLE_AST_DIAGNOSIS）
+
 流程：
 1. 规则匹配：正则扫描代码和错误信息，匹配 8 类已知误区
-2. LLM 辅助：规则不确定时调用 LLM 分类
-3. 返回结构化诊断结果
+2. [3.0] AST 结构分析：当 ENABLE_AST_DIAGNOSIS=true 时优先
+3. LLM 辅助：规则/AST 不确定时调用 LLM 分类
+4. 返回结构化诊断结果（向后兼容）
 """
 
 import json
@@ -18,6 +21,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.misconception import Misconception, MisconceptionEvent
 from app.observability.logger import get_logger
 
@@ -58,6 +62,9 @@ async def diagnose(
     """
     诊断学生代码中的 Python 误区。
 
+    3.0 增强：当 ENABLE_AST_DIAGNOSIS=true 时，优先使用 AST 结构分析；
+    AST 无命中或解析失败时 fallback 到规则匹配 + LLM。
+
     参数:
         db: 数据库会话
         code: 学生代码
@@ -72,8 +79,16 @@ async def diagnose(
             "confidence": float,
             "evidence": str,
             "related_concepts": list[str],
+            # 3.0 新增（向后兼容）
+            "diagnosis_method": "ast" | "regex" | "llm" | "none",
+            "ast_features": dict | None,
         }
     """
+    # ---- 3.0: Feature Flag 分支 ----
+    if settings.ENABLE_AST_DIAGNOSIS:
+        return await _ast_diagnose(db, code, stderr, exercise_context)
+
+    # ---- 旧逻辑：纯正则 + LLM（原封不动） ----
     misconceptions = _load_misconceptions()
     matches = []
 
@@ -83,22 +98,23 @@ async def diagnose(
             matches.append({
                 "misconception_id": mc["code"],
                 "misconception_name": mc["name"],
-                "confidence": 0.85,  # 规则匹配置信度较高
+                "confidence": 0.85,
                 "evidence": f"代码匹配误区模式: {mc['name']}",
                 "related_concepts": (mc.get("related_concepts") or "").split(","),
             })
 
     if matches:
-        # 返回置信度最高的匹配
         best = max(matches, key=lambda m: m["confidence"])
         logger.info("misconception_diagnosed", method="rule", code=best["misconception_id"],
                      confidence=best["confidence"])
         return {
             "has_misconception": True,
+            "diagnosis_method": "regex",
+            "ast_features": None,
             **best,
         }
 
-    # 步骤 2：LLM 辅助分类（规则未匹配但可能有误区）
+    # 步骤 2：LLM 辅助分类
     if code.strip() and stderr and len(code.split("\n")) <= 30:
         try:
             llm_result = await _llm_classify(code, stderr)
@@ -112,6 +128,8 @@ async def diagnose(
                     "confidence": llm_result.get("confidence", 0.5),
                     "evidence": llm_result.get("evidence", "LLM 辅助分类"),
                     "related_concepts": llm_result.get("related_concepts", []),
+                    "diagnosis_method": "llm",
+                    "ast_features": None,
                 }
         except Exception as e:
             logger.warning("llm_misconception_failed", error=str(e)[:200])
@@ -123,6 +141,108 @@ async def diagnose(
         "confidence": 0,
         "evidence": "",
         "related_concepts": [],
+        "diagnosis_method": "none",
+        "ast_features": None,
+    }
+
+
+async def _ast_diagnose(
+    db: AsyncSession,
+    code: str,
+    stderr: str = "",
+    exercise_context: Optional[str] = None,
+) -> dict:
+    """
+    3.0 AST 结构分析诊断通道。
+
+    优先级：
+    1. AST 解析 → 结构分析 (M3/M4/M6/M8) + 信号评分 (M5/M7)
+    2. AST 失败 → M1/M2 检测 + 正则 fallback
+    3. AST 无命中 → LLM 辅助分类
+    """
+    from app.analysis.ast_analyzer import analyze_misconceptions
+
+    student_question = exercise_context or ""
+
+    # ---- Step 1: AST 分析 ----
+    try:
+        ast_findings = analyze_misconceptions(code, stderr, student_question)
+    except Exception as e:
+        logger.warning("ast_analysis_exception", error=str(e)[:200])
+        ast_findings = []
+
+    if ast_findings:
+        # SRS 3.2 接线：排序沿用 visitor 的规则先验（各规则特异性排序，
+        # 评测行为不变），但对外报告的 confidence 换成证据折算值——
+        # 硬编码常数只用于排序，不再冒充置信度（问题清单 A3 的闭环）。
+        from app.analysis.confidence import from_visitor_finding
+
+        for f in ast_findings:
+            try:
+                cr = from_visitor_finding(f, stderr=stderr)
+                f["confidence"] = cr.confidence
+                f["confidence_terms"] = cr.terms
+            except Exception as e:  # 折算失败保留原值，不阻断诊断
+                logger.warning("confidence_engine_failed", error=str(e)[:200])
+
+        best = ast_findings[0]
+        logger.info(
+            "misconception_diagnosed",
+            method="ast",
+            code=best.get("misconception_id"),
+            confidence=best.get("confidence"),
+            ast_finding_count=len(ast_findings),
+        )
+        return {
+            "has_misconception": True,
+            "misconception_id": best.get("misconception_id"),
+            "misconception_name": best.get("misconception_name"),
+            "confidence": best.get("confidence", 0),
+            "evidence": best.get("evidence", ""),
+            "related_concepts": best.get("related_concepts", []),
+            "diagnosis_method": best.get("diagnosis_method", "ast"),
+            "ast_features": best.get("ast_features"),
+            "confidence_terms": best.get("confidence_terms"),
+            # 多误区共存信息不再在服务边界丢弃（root_cause 层的数据来源）
+            "all_findings": [
+                {k: f.get(k) for k in (
+                    "misconception_id", "misconception_name",
+                    "confidence", "evidence", "ast_features",
+                )}
+                for f in ast_findings
+            ],
+        }
+
+    # ---- Step 2: AST 无命中 → fallback 到 LLM ----
+    if code.strip() and stderr and len(code.split("\n")) <= 30:
+        try:
+            llm_result = await _llm_classify(code, stderr)
+            if llm_result and llm_result.get("misconception_id") != "none":
+                logger.info("misconception_diagnosed", method="llm_fallback",
+                             code=llm_result.get("misconception_id"))
+                return {
+                    "has_misconception": True,
+                    "misconception_id": llm_result.get("misconception_id"),
+                    "misconception_name": llm_result.get("misconception_name", ""),
+                    "confidence": llm_result.get("confidence", 0.5),
+                    "evidence": llm_result.get("evidence", "LLM 辅助分类（AST 无命中后 fallback）"),
+                    "related_concepts": llm_result.get("related_concepts", []),
+                    "diagnosis_method": "llm",
+                    "ast_features": None,
+                }
+        except Exception as e:
+            logger.warning("llm_misconception_failed", error=str(e)[:200])
+
+    # ---- Step 3: 完全无命中 ----
+    return {
+        "has_misconception": False,
+        "misconception_id": None,
+        "misconception_name": None,
+        "confidence": 0,
+        "evidence": "",
+        "related_concepts": [],
+        "diagnosis_method": "ast",
+        "ast_features": None,
     }
 
 
@@ -240,3 +360,25 @@ async def get_user_misconceptions(db: AsyncSession, user_id: str, limit: int = 2
         }
         for event, mc in rows
     ]
+
+
+async def get_misconception_history_count(
+    db: AsyncSession,
+    user_id: str,
+    misconception_code: str,
+) -> int:
+    """返回该学生该误区的历史命中次数（不含本次调用后的记录）。
+
+    用于 select_strategy() 计算真实的 attempt_count 和 has_history。
+    """
+    from sqlalchemy import func as sa_func
+    result = await db.execute(
+        select(sa_func.count())
+        .select_from(MisconceptionEvent)
+        .join(Misconception, MisconceptionEvent.misconception_id == Misconception.id)
+        .where(
+            MisconceptionEvent.user_id == user_id,
+            Misconception.code == misconception_code,
+        )
+    )
+    return result.scalar() or 0

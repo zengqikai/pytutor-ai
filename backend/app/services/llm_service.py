@@ -12,6 +12,7 @@ LLM 服务层 (LiteLLM Gateway)
 升级后：LiteLLM 网关 → 任意供应商，一行配置切换
 """
 
+import re
 import time
 from typing import Optional
 
@@ -158,4 +159,119 @@ async def chat_completion(
         model=litellm_model,
         usage=usage,
         finish_reason=choice.finish_reason,
+    )
+
+
+# =============================================================================
+# 多模型路由 (C 方向 Task 6)
+# =============================================================================
+# 文献依据：简单问题走 flash (便宜)、复杂问题走 pro (强推理)
+# 目标: API 成本降低 ≥ 50%
+
+# 复杂度关键词（命中任一视为复杂问题）
+COMPLEX_KEYWORDS = [
+    "为什么", "解释", "分析", "区别", "对比", "区别是什么",
+    "原理", "底层", "机制", "源码", "算法",
+    "递归", "装饰器", "闭包", "生成器", "迭代器",
+    "面向对象", "继承", "多态", "元类", "描述符",
+    "线程", "进程", "协程", "异步", "并发",
+    "内存", "垃圾回收", "GIL", "性能", "优化",
+    "帮我写", "实现一个", "设计", "架构",
+]
+
+# 简单关键词（命中视为简单问题，优先级高于复杂关键词）
+SIMPLE_KEYWORDS = [
+    "什么是", "怎么用", "示例", "例子", "语法",
+    "print", "变量", "列表", "字符串", "字典",
+    "if", "for", "while", "函数", "input",
+]
+
+
+def classify_question_complexity(user_message: str) -> dict:
+    """
+    基于关键词 + 长度启发式对问题复杂度分类。
+
+    返回:
+        {"level": "simple"|"complex", "reason": str, "routed_model": str}
+    """
+    msg_lower = user_message.lower().strip()
+    msg_len = len(user_message)
+
+    # 代码块检测（仅用可靠信号，避免 "def"→"define" / "import"→"important" 误判）
+    has_code_block = "```" in user_message
+    has_def = bool(re.search(r'\bdef\s+\w+\s*\(', user_message))   # "def foo("
+    has_import = bool(re.search(r'(?:^|\n)\s*(?:from\s+\S+\s+)?import\s+\S+', user_message))
+    has_code = has_code_block or has_def or has_import
+
+    # 简单启发式规则
+    simple_hits = [kw for kw in SIMPLE_KEYWORDS if kw in msg_lower]
+    complex_hits = [kw for kw in COMPLEX_KEYWORDS if kw in msg_lower]
+
+    # 判定逻辑
+    if has_code and not complex_hits:
+        # 有代码但无复杂问题 → simple
+        level = "simple"
+        reason = f"代码相关咨询（{len(user_message)}字符）"
+    elif simple_hits and not complex_hits:
+        level = "simple"
+        reason = f"命中简单关键词: {simple_hits[:3]}"
+    elif complex_hits:
+        level = "complex"
+        reason = f"命中复杂关键词: {complex_hits[:3]}"
+    elif msg_len > 200:
+        # 长文本 → 可能是复杂问题
+        level = "complex"
+        reason = f"长文本 ({msg_len} 字符)，可能是复杂问题"
+    else:
+        # 默认简单
+        level = "simple"
+        reason = f"短文本 ({msg_len} 字符)，默认简单路由"
+
+    # 路由到的模型
+    if level == "simple":
+        routed_model = "deepseek-chat"  # 更便宜
+    else:
+        routed_model = "deepseek-v4-pro"  # 更强大
+
+    return {"level": level, "reason": reason, "routed_model": routed_model}
+
+
+async def chat_completion_routed(
+    messages: list["ChatMessage"],
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+) -> "LLMResponse":
+    """
+    多模型路由版 chat_completion (C 方向 Task 6)。
+
+    根据消息复杂度自动选择模型:
+    - simple → deepseek-chat (便宜 ~70% 成本)
+    - complex → deepseek-v4-pro (强推理)
+
+    目标成本降低 ≥ 50%（假设 70% 的请求是 simple）。
+    """
+    from app.core.config import settings
+
+    # 提取最后一条用户消息用于分类
+    user_msg = ""
+    for m in reversed(messages):
+        if m.role == "user":
+            user_msg = m.content
+            break
+
+    classification = classify_question_complexity(user_msg)
+    routed_model = classification["routed_model"]
+
+    logger.info("model_routing",
+                level=classification["level"],
+                reason=classification["reason"],
+                model=routed_model,
+                msg_preview=user_msg[:80])
+
+    # 调用实际 LLM
+    return await chat_completion(
+        messages=messages,
+        model=routed_model,
+        temperature=temperature,
+        max_tokens=max_tokens,
     )

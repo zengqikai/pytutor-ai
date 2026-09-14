@@ -70,4 +70,8 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [
     "integration: tests that require a running backend server",
+    "llm: tests that call a real (billed) LLM/embedding API; excluded by default",
 ]
+# 默认只跑离线单元测试：集成测试需 -m integration（先起 uvicorn），
+# 真实 API 测试需 -m llm（先配 key）。CI/无网环境直接 pytest 即绿。
+addopts = "-m 'not integration and not llm'"

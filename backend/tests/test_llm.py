@@ -12,6 +12,9 @@ LLM 服务测试脚本
 """
 
 import asyncio
+import pytest
+
+pytestmark = pytest.mark.llm
 import sys
 from pathlib import Path
 

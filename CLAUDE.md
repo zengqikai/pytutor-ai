@@ -161,3 +161,51 @@ OnboardingModal（4 选项）
   ALTER TABLE student_profiles ADD COLUMN hint_dependency VARCHAR(20) DEFAULT 'low';
   ALTER TABLE student_profiles ADD COLUMN completed_lessons TEXT;
   ```
+
+---
+
+# PyTutor 3.0 — 三人算法优化（Feature Flag 开关隔离）
+
+## Feature Flags（10 个，默认值）
+
+所有开关在 `backend/app/core/config.py` 定义，`.env` 可覆盖。默认值：
+
+| Flag | 默认 | 方向 | 作用 |
+|------|------|------|------|
+| `ENABLE_AST_DIAGNOSIS` | **true** | B | AST 代码结构分析诊断（替换纯正则） |
+| `ENABLE_PEDAGOGY_STEERING` | false | E | 教学意图转移图 + 误区锚定 prompt |
+| `ENABLE_MULTI_JUDGE` | false | C | 3 评委评分（需 DEEPSEEK_API_KEY） |
+| `ENABLE_TIME_DECAY` | **true** | C | 画像时间衰减 + 转移矩阵 |
+| `ENABLE_CONTENT_RECOMMEND` | **true** | C | Content-Based 练习推荐 |
+| `ENABLE_MULTI_MODEL_ROUTING` | false | C | 多模型路由（简单/复杂分流） |
+| `ENABLE_RAG_RERANK` | false | A | RAG LLM 重排序 |
+| `ENABLE_HYBRID_WEIGHTS` | false | A | 向量+TF-IDF 加权融合 |
+| `ENABLE_TOKEN_CHUNKING` | false | A | token 窗口 + 重叠分块 |
+| `ENABLE_CONTEXT_COMPRESSION` | false | A | RAG 上下文截断压缩 |
+
+## 新增模块
+
+- **AST 诊断**：`backend/app/analysis/`（ast_analyzer + ast_visitors + confidence + error_class + root_cause）
+- **E 方向**：`backend/app/services/pedagogy/steering.py` + `backend/app/services/prompts/misconception_anchored.py`
+- **C 方向**：`backend/app/services/judge_service.py`（Multi-Judge）、`profile_decay_service.py`（衰减+矩阵）
+- **A 方向**：`backend/app/services/rag_service.py`（`_weighted_merge`/`_format_compressed`）、`backend/app/rag/splitter.py`（`estimate_tokens`/`_split_by_tokens`）
+
+## 评测
+
+| 脚本 | 用途 |
+|------|------|
+| `evaluation/run_v2_eval.py --mode ast-only` | 误区诊断（离线，47 正例 + 22 干净代码） |
+| `evaluation/run_judge_eval.py` | Multi-Judge 评分（需 key） |
+| `evaluation/run_rag_eval.py` | RAG Recall@K / MRR（离线，从 backend 目录运行） |
+
+## 常见问题
+
+### backend 从根目录运行报 `extra_forbidden: vision_model`
+- 根 `.env` 的 `VISION_MODEL`（vision.js 专用）被 pydantic 当作未知字段拒绝
+- 已通过 config.py `extra="ignore"` 修复
+
+### 跑 RAG 评测 / 诊断评测
+- 需从 `backend/` 目录运行（`.env` 和 `./ai_tutor.db` 都是相对路径）：
+  ```bash
+  cd backend && python ../evaluation/run_rag_eval.py
+  ```

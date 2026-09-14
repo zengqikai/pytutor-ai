@@ -29,11 +29,15 @@ async def rag_retrieval_node(state: AgentState) -> dict:
     if intent == "general":
         return {"current_step": "rag_retrieval", "rag_context": None}
 
+    import asyncio
     try:
         async with AsyncSessionFactory() as db:
-            result = await retrieve_context(
-                db,
-                RAGRetrievalRequest(query=user_input, top_k=3),
+            result = await asyncio.wait_for(
+                retrieve_context(
+                    db,
+                    RAGRetrievalRequest(query=user_input, top_k=3),
+                ),
+                timeout=5.0,  # F10: Agent 节点超时保护
             )
 
             if result.results:

@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "name": "PyTutor Faithfulness Seed Dataset",
+    "version": "0.1",
+    "purpose": "R2 忠实度基准的种子集：每条含 code / 误区标签 / 应有AST证据摘要 / 类别(positive|hard_negative)。以现有 50+20 例为基础的可扩展骨架，目标扩到 ~150-200 条。",
+    "note": "hard_negative = 结构接近误区但完全正确，用于测 precision 与假阳性（子实验A）。"
+  },
+  "items": [
+    {
+      "id": "P01",
+      "category": "positive",
+      "label": "M3",
+      "code": "items = []\nnew = items.append(5)\nprint(new)",
+      "expected_facts": ["assign_call_result(method=append,is_inplace=True,line=2)"],
+      "gold_explanation_zh": "第 2 行把 append() 的返回值赋给了 new，但 append 是原地方法，返回 None。应直接调用 items.append(5)，不要赋值。"
+    },
+    {
+      "id": "P02",
+      "category": "positive",
+      "label": "M4",
+      "code": "items = ['a', 'b', 'c']\nfor i in items:\n    print(items[i])",
+      "expected_facts": ["for_loop(target=i,iterable=items,line=2)", "subscript(container=items,index=i,line=3)"],
+      "gold_explanation_zh": "第 2 行 for 循环里 i 是元素值不是下标，第 3 行却用 items[i] 当索引访问，会类型错误。应直接使用 i，或改用 range(len(items))。"
+    },
+    {
+      "id": "P03",
+      "category": "positive",
+      "label": "M6",
+      "code": "def add(a, b):\n    print(a + b)",
+      "expected_facts": ["func_def(name=add,has_return=False,line=1)", "print_call(line=2)", "binop(op=Add,line=2)"],
+      "gold_explanation_zh": "函数 add 第 2 行只用 print 输出 a+b，没有 return，调用者拿不到结果。应改成 return a + b。"
+    },
+    {
+      "id": "P04",
+      "category": "positive",
+      "label": "M7",
+      "code": "name = input()\nprint('hello ' + name * 3)",
+      "expected_facts": ["var_type_hint(var=name,type=str(input))", "binop(op=Mult,line=2)"],
+      "gold_explanation_zh": "name 来自 input() 是字符串，与整数运算前要先 int() 转换，否则类型不匹配。"
+    },
+    {
+      "id": "P05",
+      "category": "positive",
+      "label": "M8",
+      "code": "i = 0\nwhile i < 10:\n    print(i)",
+      "expected_facts": ["while_loop(condition=i < 10,line=2)"],
+      "gold_explanation_zh": "第 2 行 while 的条件变量 i 在循环体内从不更新，会无限循环。应在体内加 i += 1。"
+    },
+    {
+      "id": "N01",
+      "category": "hard_negative",
+      "label": "clean",
+      "code": "d = {'a': 1, 'b': 2}\nfor k in d:\n    print(d[k])",
+      "expected_facts": ["for_loop(iterable=d)", "subscript(container=d,index=k)"],
+      "gold_explanation_zh": "这是合法的字典遍历：for k in d 遍历键，d[k] 取对应值，完全正确，不存在误区。"
+    },
+    {
+      "id": "N02",
+      "category": "hard_negative",
+      "label": "clean",
+      "code": "s = [1, 2, 3]\nwhile len(s) > 0:\n    s.pop()",
+      "expected_facts": ["while_loop(condition=len(s) > 0)", "method_call(object=s,method=pop)"],
+      "gold_explanation_zh": "这是会收敛的循环：每次 s.pop() 使列表变短，len(s) 最终为 0 退出，不是无限循环。"
+    },
+    {
+      "id": "N03",
+      "category": "hard_negative",
+      "label": "clean",
+      "code": "def menu():\n    print('1. Start')\n    print('2. Quit')",
+      "expected_facts": ["func_def(name=menu,has_return=False)"],
+      "gold_explanation_zh": "menu 是展示型函数，本来就该只 print 不 return，没有 print/return 混淆问题。"
+    },
+    {
+      "id": "N04",
+      "category": "hard_negative",
+      "label": "clean",
+      "code": "x = input()\nx = int(x)\ny = x * 2\nprint(y)",
+      "expected_facts": ["var_type_hint(var=x,type=num,line=2)"],
+      "gold_explanation_zh": "第 2 行已经用 int() 把 x 转成整数，第 3 行的 x * 2 是合法数值运算，没有类型错误。"
+    },
+    {
+      "id": "N05",
+      "category": "hard_negative",
+      "label": "clean",
+      "code": "items = [1, 2, 3]\nx = items.pop()\nprint(x)",
+      "expected_facts": ["method_call(object=items,method=pop)"],
+      "gold_explanation_zh": "pop() 会返回被移除的元素，把它赋给 x 是完全正确的用法，不是 M3。"
+    }
+  ]
+}

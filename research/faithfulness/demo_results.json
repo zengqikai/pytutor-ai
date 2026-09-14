@@ -1,0 +1,209 @@
+{
+  "summary": {
+    "C1": {
+      "faithfulness_overall": 0.2,
+      "hallucination_overall": 0.8,
+      "faithfulness_positive": 0.233,
+      "faithfulness_hard_negative": 0.167
+    },
+    "C2": {
+      "faithfulness_overall": 1.0,
+      "hallucination_overall": 0.0,
+      "faithfulness_positive": 1.0,
+      "faithfulness_hard_negative": 1.0
+    },
+    "delta_C2_minus_C1": 0.8
+  },
+  "rows": [
+    {
+      "id": "P01",
+      "category": "positive",
+      "label": "M3",
+      "C1": {
+        "faithfulness": 0.333,
+        "hallucination_rate": 0.667,
+        "verifiable": 3,
+        "unverifiable": 1,
+        "explanation": "把 items.append() 的返回值赋给 new（append 是 in-place 方法，返回 None）。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 1,
+        "unverifiable": 3,
+        "explanation": "把 items.append() 的返回值赋给 new（append 是 in-place 方法，返回 None）。对 items 调用 append()。print(new)。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "P02",
+      "category": "positive",
+      "label": "M4",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "for i in items。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "for i in items。print(items[i])。items[i] 下标访问。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "P03",
+      "category": "positive",
+      "label": "M6",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "定义函数 add(a, b)，has_return=False。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "定义函数 add(a, b)，has_return=False。print(a + b)。a Add b。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "P04",
+      "category": "positive",
+      "label": "M7",
+      "C1": {
+        "faithfulness": 0.333,
+        "hallucination_rate": 0.667,
+        "verifiable": 3,
+        "unverifiable": 1,
+        "explanation": "变量 name 疑似类型 str(input)。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 1,
+        "unverifiable": 3,
+        "explanation": "变量 name 疑似类型 str(input)。print('hello ' + name * 3)。'hello ' Add name * 3。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "P05",
+      "category": "positive",
+      "label": "M8",
+      "C1": {
+        "faithfulness": 0.5,
+        "hallucination_rate": 0.5,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "变量 i 疑似类型 num。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "变量 i 疑似类型 num。while i < 10。print(i)。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "N01",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "for k in d。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "for k in d。print(d[k])。d[k] 下标访问。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "N02",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.5,
+        "hallucination_rate": 0.5,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "while len(s) > 0。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 3,
+        "explanation": "while len(s) > 0。对 s 调用 pop()。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "N03",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "定义函数 menu()，has_return=False。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "定义函数 menu()，has_return=False。print('1. Start')。print('2. Quit')。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "N04",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.333,
+        "hallucination_rate": 0.667,
+        "verifiable": 3,
+        "unverifiable": 1,
+        "explanation": "变量 x 疑似类型 str(input)。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 1,
+        "unverifiable": 3,
+        "explanation": "变量 x 疑似类型 str(input)。变量 x 疑似类型 num。x Mult 2。建议对照上面结构逐行检查。"
+      }
+    },
+    {
+      "id": "N05",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 2,
+        "unverifiable": 2,
+        "explanation": "把 items.pop() 的返回值赋给 x。第 99 行还使用了 range 左闭右开区间可能越界。另外这里的 while 循环有无限循环风险。建议多加练习。"
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 0,
+        "unverifiable": 4,
+        "explanation": "把 items.pop() 的返回值赋给 x。对 items 调用 pop()。print(x)。建议对照上面结构逐行检查。"
+      }
+    }
+  ]
+}

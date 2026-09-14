@@ -96,9 +96,21 @@ async def verify_response(
     """
     检查 AI 回复是否符合教学要求。
 
-    用 LLM rubric 检查：是否过早给答案、是否符合 hint level、是否适合初学者。
-    不合格则返回 needs_revision=True。
+    支持两种模式（通过 ENABLE_MULTI_JUDGE 开关切换）：
+    - 单评委模式（默认）：1 次 LLM 评分，简单快速
+    - Multi-Judge 模式（C 方向 Task 1）：3 评委独立评分后中位数聚合
+
+    返回格式统一为：
+    {"is_valid": bool, "score": int, "issues": list[str], "needs_revision": bool,
+     (Multi-Judge 模式下额外包含): "judge_count", "kappa", "agreement", "flagged", ...}
     """
+    # ---- C 方向 Task 1: Multi-Judge 模式 ----
+    from app.core.config import settings
+    if settings.ENABLE_MULTI_JUDGE:
+        from app.services.judge_service import multi_judge_verify
+        return await multi_judge_verify(ai_message, expected_hint_level, misconception_id)
+
+    # ---- 单评委模式（原逻辑，未改动） ----
     if expected_hint_level <= 2 and len(ai_message) > 500:
         # 简单启发式：低级别提示不应太长
         pass

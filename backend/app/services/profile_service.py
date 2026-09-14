@@ -92,6 +92,15 @@ async def record_event(
     elif "hint" in event_type:
         profile.total_hints_used += 1
 
+    # ---- C 方向 Task 4: Hint Dependency 自动量化 ----
+    # 纯计数器运算（零 LLM 调用），始终执行，无需 Feature Flag
+    if "hint" in event_type:
+        from app.services.profile_decay_service import update_hint_dependency
+        try:
+            await update_hint_dependency(db, user_id, profile)
+        except Exception:
+            pass  # 不影响主流程
+
     await db.commit()
 
 
@@ -147,6 +156,8 @@ async def update_weakness(
 
 async def get_weaknesses(db: AsyncSession, user_id: str) -> list[dict]:
     """获取当前未解决的薄弱知识点。"""
+    from app.core.config import settings
+
     result = await db.execute(
         select(StudentWeakness)
         .where(
@@ -157,7 +168,7 @@ async def get_weaknesses(db: AsyncSession, user_id: str) -> list[dict]:
     )
     weaknesses = result.scalars().all()
 
-    return [
+    weak_list = [
         {
             "concept": w.concept,
             "fail_count": w.fail_count,
@@ -167,6 +178,18 @@ async def get_weaknesses(db: AsyncSession, user_id: str) -> list[dict]:
         }
         for w in weaknesses
     ]
+
+    # ---- C 方向 Task 3: 时间衰减 ----
+    if settings.ENABLE_TIME_DECAY and weak_list:
+        from app.services.profile_decay_service import decay_all_weaknesses, TRANSITION_MATRIX_CACHE
+        weak_list = decay_all_weaknesses(weak_list)
+        logger.info("weaknesses_decayed",
+                    user_id=user_id,
+                    count=len(weak_list),
+                    top_before=weak_list[0].get("severity_raw"),
+                    top_after=weak_list[0].get("severity_decayed"))
+
+    return weak_list
 
 
 async def get_recommendation(db: AsyncSession, user_id: str) -> dict:
@@ -178,6 +201,8 @@ async def get_recommendation(db: AsyncSession, user_id: str) -> dict:
     2. 如果无薄弱点 → 推荐学习路径上的下一个知识点
     3. 优先推荐有前置知识已完成的
     """
+    from app.core.config import settings
+
     profile = await get_or_create_profile(db, user_id)
 
     # 解析已掌握的知识点
@@ -192,12 +217,68 @@ async def get_recommendation(db: AsyncSession, user_id: str) -> dict:
     weaknesses = await get_weaknesses(db, user_id)
     if weaknesses:
         weakest = weaknesses[0]
-        return {
-            "action": "review",
-            "concept": weakest["concept"],
-            "reason": f"你在 '{weakest['concept']}' 上失败了 {weakest['fail_count']} 次，建议重点复习。",
-            "severity": weakest["severity"],
-        }
+
+        # ---- C 方向 Task 3: 转移矩阵增强推荐 ----
+        extra_info = ""
+        decay_info = ""
+        risk_warning = ""
+
+        if settings.ENABLE_TIME_DECAY:
+            # 使用衰减后严重度
+            decayed = weakest.get("severity_decayed", weakest["severity"])
+            if decayed < 1.0 and decayed < weakest.get("severity_raw", 1):
+                days = weakest.get("days_since", 0)
+                decay_info = f"（{days:.0f}天前，严重度已自然衰减至 {decayed:.1f}）"
+
+            # 转移矩阵：预测风险概念
+            from app.services.profile_decay_service import TRANSITION_MATRIX_CACHE
+            weak_concepts = [w["concept"] for w in weaknesses[:3]]
+            tm = TRANSITION_MATRIX_CACHE.get()
+            if tm is not None:
+                risks = tm.predict_weakness_risk(weak_concepts)
+                if risks:
+                    risk_concepts = ", ".join(
+                        f"{r['concept']}({r['risk_score']:.0%})" for r in risks[:2]
+                    )
+                    risk_warning = f" 同时注意：{risk_concepts} 也有变弱风险。"
+
+            # 使用衰减后严重度判断是否需要复习
+            if decayed < 1.5:  # 衰减到很低 → 可能已经会了
+                logger.info("recommendation_decay_skip",
+                            user_id=user_id, concept=weakest["concept"],
+                            decayed=decayed)
+                # 不推荐复习，走正常学习路径
+                weaknesses = []
+
+        if weaknesses:
+            severity_val = weakest.get("severity_decayed", weakest["severity"])
+            reason = (
+                f"你在 '{weakest['concept']}' 上失败了 {weakest['fail_count']} 次，"
+                f"建议重点复习。{decay_info}{risk_warning}"
+            )
+            result = {
+                "action": "review",
+                "concept": weakest["concept"],
+                "reason": reason.strip(),
+                "severity": round(float(severity_val), 1),
+            }
+
+            # ---- C 方向 Task 5: Content-Based 练习推荐 ----
+            if settings.ENABLE_CONTENT_RECOMMEND:
+                try:
+                    exercises = await get_content_recommendations(db, user_id, top_k=5)
+                    if exercises:
+                        result["recommended_exercises"] = exercises
+                        result["reason"] += (
+                            f" 为你推荐了 {len(exercises)} 道相关练习题。"
+                        )
+                        logger.info("content_recommend_added",
+                                    user_id=user_id, count=len(exercises),
+                                    top_score=exercises[0]["score"])
+                except Exception:
+                    pass  # 推荐失败不影响主推荐
+
+            return result
 
     # 推荐下一个知识点
     for concept in LEARNING_PATH:
@@ -219,6 +300,134 @@ async def get_recommendation(db: AsyncSession, user_id: str) -> dict:
         "concept": "project",
         "reason": "基础扎实！可以尝试综合项目练习。",
     }
+
+
+# =============================================================================
+# Content-Based 练习推荐 (C 方向 Task 5)
+# =============================================================================
+
+# 知识点描述 (TF-IDF 词汇)
+CONCEPT_KEYWORDS: dict[str, list[str]] = {
+    "variables": ["变量", "赋值", "名字", "值", "类型", "整数", "字符串"],
+    "data_types": ["类型", "int", "str", "float", "bool", "转换", "type"],
+    "string": ["字符串", "拼接", "切片", "format", "f-string", "len", "upper", "lower"],
+    "list": ["列表", "append", "索引", "切片", "遍历", "sort", "pop", "元素"],
+    "dict": ["字典", "键", "值", "key", "value", "items", "get", "遍历"],
+    "tuple": ["元组", "不可变", "打包", "解包", "逗号"],
+    "set": ["集合", "去重", "交集", "并集", "差集", "add", "remove"],
+    "for_loop": ["for", "循环", "range", "遍历", "迭代", "break", "continue"],
+    "while_loop": ["while", "条件", "无限", "计数器", "循环", "break"],
+    "if_statement": ["if", "elif", "else", "条件", "判断", "比较", "布尔"],
+    "function": ["函数", "def", "return", "参数", "调用", "作用域", "lambda"],
+    "class": ["类", "对象", "class", "self", "__init__", "方法", "属性", "继承"],
+    "exception": ["异常", "try", "except", "错误", "raise", "finally", "捕获"],
+    "file_io": ["文件", "open", "read", "write", "with", "路径", "关闭"],
+    "list_comprehension": ["列表推导", "生成器", "推导式", "for in if", "简洁"],
+}
+
+
+def compute_concept_similarity(concept_a: str, concept_b: str) -> float:
+    """
+    基于关键词 Jaccard 相似度计算两个概念的关联度。
+
+    用于推荐系统：匹配学生弱项与练习知识点。
+
+    无需外部 Embedding API，纯本地计算。
+    """
+    kw_a = set(CONCEPT_KEYWORDS.get(concept_a, [concept_a]))
+    kw_b = set(CONCEPT_KEYWORDS.get(concept_b, [concept_b]))
+
+    if not kw_a or not kw_b:
+        return 0.0
+
+    intersection = kw_a & kw_b
+    union = kw_a | kw_b
+
+    if not union:
+        return 0.0
+
+    return round(len(intersection) / len(union), 3)
+
+
+async def get_content_recommendations(
+    db: AsyncSession,
+    user_id: str,
+    top_k: int = 5,
+) -> list[dict]:
+    """
+    Content-Based 练习推荐。
+
+    算法:
+    1. 获取学生弱项概念列表
+    2. 对数据库中所有可用练习，计算概念相似度加权分
+    3. 返回 top-k
+
+    参数:
+        db: 数据库会话
+        user_id: 用户 ID
+        top_k: 推荐数量
+
+    返回:
+        [{"exercise_id": str, "title": str, "score": float, "reason": str}, ...]
+    """
+    from sqlalchemy import select as sa_select
+    from app.models.exercise import Exercise
+
+    # 获取弱项
+    weaknesses = await get_weaknesses(db, user_id)
+    weak_concepts = [w["concept"] for w in weaknesses[:5]]  # top 5 弱项
+
+    if not weak_concepts:
+        return []
+
+    # 获取所有可用练习
+    result = await db.execute(
+        sa_select(Exercise).where(Exercise.is_published == True).limit(100)
+    )
+    exercises = result.scalars().all()
+
+    if not exercises:
+        return []
+
+    # 打分：对每道题，计算与弱项概念的最大相似度 × (1 - 0.1 × difficulty_diff)
+    # difficulty_diff = |练习难度 - 学生等级对应难度|
+    profile = await get_or_create_profile(db, user_id)
+    student_level = profile.level  # 1-10
+    # 映射学生等级到练习难度 (1-5)
+    appropriate_difficulty = max(1, min(5, (student_level + 1) // 2))
+
+    scored = []
+    for ex in exercises:
+        # 解析练习的 concepts（逗号分隔字符串）
+        ex_concepts = [c.strip() for c in (ex.concepts or "python_basics").split(",") if c.strip()]
+
+        # 最佳匹配：弱项概念与练习概念的最大 Jaccard 相似度
+        best_sim = 0.0
+        for wc in weak_concepts:
+            for ec in ex_concepts:
+                sim = compute_concept_similarity(wc, ec)
+                if sim > best_sim:
+                    best_sim = sim
+
+        # 难度惩罚: 难度差距越大，分数越低
+        diff_penalty = 1.0 - 0.1 * abs(ex.difficulty - appropriate_difficulty)
+        diff_penalty = max(0.5, diff_penalty)  # 最低 50% 的权重
+
+        final_score = best_sim * diff_penalty
+
+        if final_score > 0.05:  # 最低相似度阈值
+            scored.append({
+                "exercise_id": ex.id,
+                "title": ex.title,
+                "difficulty": ex.difficulty,
+                "concepts": ex.concepts,
+                "score": round(final_score, 3),
+                "reason": f"与你的弱项 '{weak_concepts[0]}' 相关 (相似度 {best_sim:.0%})",
+            })
+
+    # 按分数降序排列
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
 
 
 async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:

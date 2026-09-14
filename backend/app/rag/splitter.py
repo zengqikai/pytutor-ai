@@ -22,11 +22,60 @@
 import re
 from typing import Optional
 
+from app.core.config import settings
 
-# 最大 chunk 大小（字符数）
+
+# 最大 chunk 大小（字符数，旧逻辑）
 MAX_CHUNK_SIZE = 2000
 # 最小 chunk 大小（太小的 chunk 合并到上一个）
 MIN_CHUNK_SIZE = 100
+
+# Token 窗口参数（A4，ENABLE_TOKEN_CHUNKING=true 时使用）
+MAX_CHUNK_TOKENS = 500
+CHUNK_OVERLAP_TOKENS = 60
+
+
+def estimate_tokens(text: str) -> int:
+    """粗略 token 估算：CJK 字符约 1 字 1 token，其余约 4 字符 1 token。
+
+    用于 chunk 大小控制（A4）和 RAG 上下文预算（A6）。
+    """
+    cjk = sum(1 for c in text if '一' <= c <= '鿿')
+    other = len(text) - cjk
+    return max(1, cjk + other // 4)
+
+
+def _split_by_tokens(paragraphs: list[str], max_tokens: int, overlap_tokens: int) -> list[str]:
+    """A4：按 token 预算切分段落，相邻 chunk 之间保留 overlap_tokens 的重叠。
+
+    段落粒度切分，尽量避免在句子/段落中间断开。
+    """
+    chunks: list[str] = []
+    current: list[str] = []
+    current_tokens = 0
+
+    for para in paragraphs:
+        pt = estimate_tokens(para)
+        if current_tokens + pt > max_tokens and current:
+            # flush 当前 chunk
+            chunks.append("\n\n".join(current))
+            # 构建重叠：从尾部向前取，直到达到 overlap_tokens 预算
+            overlap: list[str] = []
+            overlap_count = 0
+            for prev in reversed(current):
+                prev_t = estimate_tokens(prev)
+                if overlap_count + prev_t > overlap_tokens and overlap:
+                    break
+                overlap.insert(0, prev)
+                overlap_count += prev_t
+            current = overlap
+            current_tokens = overlap_count
+        current.append(para)
+        current_tokens += pt
+
+    if current:
+        chunks.append("\n\n".join(current))
+    return chunks
 
 
 def split_markdown(content: str, title: str = "") -> list[dict]:
@@ -76,8 +125,27 @@ def split_markdown(content: str, title: str = "") -> list[dict]:
             else:
                 sub_heading = section_heading
 
-            # 第三步：如果子段太长，按空行再切分
-            if len(sub) > MAX_CHUNK_SIZE:
+            # 第三步：如果子段太长，进一步切分（A4：按 token 窗口 + 重叠）
+            if settings.ENABLE_TOKEN_CHUNKING:
+                # A4：按 token 预算切分，相邻 chunk 保留重叠
+                if estimate_tokens(sub) > MAX_CHUNK_TOKENS:
+                    paragraphs = sub.split("\n\n")
+                    for piece in _split_by_tokens(paragraphs, MAX_CHUNK_TOKENS, CHUNK_OVERLAP_TOKENS):
+                        chunks.append({
+                            "content": piece.strip(),
+                            "heading": sub_heading,
+                            "chunk_index": chunk_index,
+                        })
+                        chunk_index += 1
+                elif sub.strip():
+                    chunks.append({
+                        "content": sub.strip(),
+                        "heading": sub_heading,
+                        "chunk_index": chunk_index,
+                    })
+                    chunk_index += 1
+            elif len(sub) > MAX_CHUNK_SIZE:
+                # 旧逻辑：按字符数切分
                 paragraphs = sub.split("\n\n")
                 current_chunk = ""
                 for para in paragraphs:

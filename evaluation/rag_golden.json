@@ -1,0 +1,15 @@
+{
+  "name": "RAG 检索 Ground Truth",
+  "description": "查询 → 预期知识点（用于 Recall@K / MRR 评测）。相关 chunk = concepts 与 expected_concepts 有交集。",
+  "cases": [
+    {"id": "g001", "query": "什么是 Python 中的变量？", "expected_concepts": ["variables", "assignment"]},
+    {"id": "g002", "query": "for 循环怎么用？给我一个简单例子", "expected_concepts": ["for_loop", "range"]},
+    {"id": "g003", "query": "for 循环里 range 为什么到 5 就停了？", "expected_concepts": ["for_loop", "range"]},
+    {"id": "g004", "query": "我的代码出错了：NameError: name 'x' is not defined", "expected_concepts": ["variables", "NameError"]},
+    {"id": "g005", "query": "Python 中列表和字典有什么区别？", "expected_concepts": ["list", "dict"]},
+    {"id": "g006", "query": "给我出一道关于 if/else 的练习题", "expected_concepts": ["if_statement", "else"]},
+    {"id": "g008", "query": "帮我写一个函数，计算两个数的最大公约数", "expected_concepts": ["function", "def", "return"]},
+    {"id": "g009", "query": "怎么给列表添加元素？append 怎么用？", "expected_concepts": ["list", "append"]},
+    {"id": "g010", "query": "字符串怎么拼接和格式化？", "expected_concepts": ["string", "format"]}
+  ]
+}

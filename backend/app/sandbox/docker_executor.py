@@ -113,7 +113,7 @@ async def execute_in_docker(code: str, stdin_input: str = "") -> dict:
         except asyncio.TimeoutError:
             proc.kill()
             await proc.wait()
-            stdout_bytes, stderr_bytes = b"", b"[超时] 代码执行超过10秒"
+            stdout_bytes, stderr_bytes = b"", "[超时] 代码执行超过10秒".encode("utf-8")
             timeout_triggered = True
 
         elapsed = (time.perf_counter() - start) * 1000

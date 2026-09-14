@@ -1,0 +1,44 @@
+# E-FR-01 教学转向状态机 · 转移图
+# =================================
+# 规则按**列表顺序**匹配，第一条命中即返回。因此特化规则必须排在通配规则之前。
+#
+# 为什么用配置而非 if-else：
+#   "重复同一误区≥3 次 → 概念重讲" 这类教学决策是需要被教研人员调整的，
+#   埋在代码里就意味着每次调整都要改代码、过 review、发版。放进配置后，
+#   E-FR-01 的验收判定"改配置即可切换分支，无需改代码"才成立。
+
+start: elicit_prediction
+
+# 诊断已经命中误区时的入口。
+#
+# 为什么需要这个键（SRS §4.2.1 的示例图里没有）：
+# 示例图中，progressive_hint / concept_explanation 都只能从 productive_failure
+# 转入。但 E-FR-01 的验收判定要求"同一学生同一误区第 1 次 → progressive_hint"，
+# 而学生第一次提交带误区的代码时 last_intent 是空的（还没经历过预测环节）。
+# 若严格从 start 进入，首次命中只会得到 elicit_prediction，验收判定不可能为真。
+#
+# 因此显式规定：一旦诊断出误区，就直接进入 productive_failure 作为求值起点
+# ——误区的出现本身即是"有成效地卡住"的证据，不必再要求学生先做一次预测。
+entry_on_misconception: productive_failure
+
+# 无任何规则命中时的兜底。显式声明，避免静默返回 None。
+default: progressive_hint
+
+transitions:
+  # --- 预测环节（E-FR-05）---
+  - {from: elicit_prediction,   when: prediction_submitted,     to: productive_failure}
+
+  # --- 误区驱动的两条主分支（E-FR-01 验收判定所依赖）---
+  # 顺序要紧：repeated 必须在 first_time 之前，否则 attempt=3 会被 first_time 拦截。
+  - {from: productive_failure,  when: repeated_same_misconception, to: concept_explanation}
+  - {from: productive_failure,  when: first_time_misconception,    to: progressive_hint}
+
+  # --- 提示无效后升级为反例 ---
+  - {from: progressive_hint,    when: repeated_same_misconception, to: concept_explanation}
+  - {from: concept_explanation, when: still_failing,               to: counterexample}
+  - {from: counterexample,      when: still_failing,               to: concept_explanation}
+
+  # --- 掌握后的收尾。通配规则放最后 ---
+  - {from: progressive_hint,    when: mastery_recovered,        to: advance}
+  - {from: "*",                 when: mastery_recovered,        to: consolidate}
+  - {from: consolidate,         when: always,                   to: advance}

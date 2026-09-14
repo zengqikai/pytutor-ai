@@ -170,6 +170,82 @@ class Settings(BaseSettings):
     )
 
     # ==============================
+    # Feature Flags（算法优化开关）
+    # ==============================
+    # 三人协作（MASTER-PLAN）的算法优化开关隔离法：默认全部关，
+    # 各自独立，合 main 互不影响。逐一验证后按需转默认开。
+    # 全部可通过 .env 或环境变量覆盖（如 ENABLE_AST_DIAGNOSIS=true）。
+
+    # ---- B 方向（连哥）：AST 代码结构分析 ----
+    ENABLE_AST_DIAGNOSIS: bool = Field(
+        default=False,
+        description="B 方向：启用 AST 代码结构分析增强误区诊断（替换纯正则）。"
+                    "默认关 → 走旧正则通道。",
+    )
+
+    # ---- E 方向（SRS 3.2）：教学意图转移图 + 误区锚定 prompt ----
+    ENABLE_PEDAGOGY_STEERING: bool = Field(
+        default=False,
+        description="E 方向：教学意图转移图 + 误区锚定 prompt（灰度开关）。"
+                    "默认关 → 走旧 select_strategy。",
+    )
+
+    # ---- C 方向（clt）：质量与系统优化 ----
+    ENABLE_MULTI_JUDGE: bool = Field(
+        default=False,
+        description="C 方向 Task 1+2：Multi-Judge 3 评委评分 + Rubric V2。"
+                    "默认关 → 走旧单评委 verify_response()。需 DEEPSEEK_API_KEY。",
+    )
+    ENABLE_TIME_DECAY: bool = Field(
+        default=False,
+        description="C 方向 Task 3：画像时间衰减 + 转移矩阵。"
+                    "默认关 → 走旧简单累计。",
+    )
+    ENABLE_CONTENT_RECOMMEND: bool = Field(
+        default=False,
+        description="C 方向 Task 5：Content-Based 练习推荐。"
+                    "默认关 → 走旧线性学习路径。",
+    )
+    ENABLE_MULTI_MODEL_ROUTING: bool = Field(
+        default=False,
+        description="C 方向 Task 6：多模型路由（简单走 flash、复杂走 pro）。"
+                    "默认关 → 走单一模型。",
+    )
+
+    # ---- A 方向：RAG 检索优化 ----
+    ENABLE_RAG_RERANK: bool = Field(
+        default=False,
+        description="A 方向 A1：RAG LLM 重排序接入。默认关 → 跳过重排序。",
+    )
+    ENABLE_HYBRID_WEIGHTS: bool = Field(
+        default=False,
+        description="A 方向 A2：混合检索权重调优（向量 + TF-IDF 加权融合）。"
+                    "默认关 → 向量优先拼接去重。",
+    )
+    ENABLE_TOKEN_CHUNKING: bool = Field(
+        default=False,
+        description="A 方向 A4：按 token 窗口 + 重叠切分 chunk。"
+                    "默认关 → 按字符数切分。",
+    )
+    ENABLE_CONTEXT_COMPRESSION: bool = Field(
+        default=False,
+        description="A 方向 A6：RAG 上下文动态截断 + 压缩。"
+                    "默认关 → 全量输出检索内容。",
+    )
+
+    # ---- A 方向：RAG 调优参数 ----
+    RAG_VECTOR_WEIGHT: float = Field(
+        default=0.6,
+        ge=0.0, le=1.0,
+        description="A 方向 A2：混合检索中向量分数的权重 α（TF-IDF 权重 = 1-α）。",
+    )
+    RAG_CONTEXT_MAX_TOKENS: int = Field(
+        default=1500,
+        ge=1,
+        description="A 方向 A6：RAG 上下文注入的 token 预算上限。",
+    )
+
+    # ==============================
     # pydantic-settings 配置
     # ==============================
     model_config = SettingsConfigDict(
@@ -179,6 +255,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         # 不区分大小写匹配环境变量
         case_sensitive=False,
+        # 忽略 .env 中未声明的字段（如根 .env 的 VISION_MODEL，属 vision.js 专用）
+        extra="ignore",
         # 额外的环境变量前缀（可选，例如所有变量都以 TUTOR_ 开头）
         # env_prefix="TUTOR_",
     )

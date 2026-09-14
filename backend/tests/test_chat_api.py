@@ -5,6 +5,9 @@
 用 httpx 直接调 API（绕过 curl 的编码问题）。
 """
 import asyncio
+import pytest
+
+pytestmark = pytest.mark.integration
 import sys
 from pathlib import Path
 

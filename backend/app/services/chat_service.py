@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.chat import ChatMessage, ChatSession
 from app.models.user import User
+from app.core.config import settings
 from app.observability.logger import get_logger
 from app.schemas.chat import (
     AIResponse,
@@ -285,32 +286,35 @@ async def send_message(
             "hint_level": msg.hint_level,
         })
 
-    # 步骤 4：RAG 检索相关知识（带超时保护）
+    # 步骤 4：RAG 检索相关知识（熔断 + 3s 超时保护）
     rag_context = None
-    try:
-        import asyncio
-        from app.schemas.rag import RAGRetrievalRequest
-        from app.services.rag_service import format_context_for_llm, retrieve_context
+    from app.services.rag_service import RAGBreaker
+    if not RAGBreaker.is_open():
+        try:
+            import asyncio
+            from app.schemas.rag import RAGRetrievalRequest
+            from app.services.rag_service import format_context_for_llm, retrieve_context
 
-        retrieval_result = await asyncio.wait_for(
-            retrieve_context(
-                db,
-                RAGRetrievalRequest(query=request.content, top_k=3),
-            ),
-            timeout=15.0,  # 15 秒超时，超时则降级到无 RAG 模式
-        )
-        if retrieval_result.results:
-            rag_context = format_context_for_llm(retrieval_result.results)
-            logger.info(
-                "rag_context_retrieved",
-                session_id=session_id,
-                chunk_count=len(retrieval_result.results),
+            retrieval_result = await asyncio.wait_for(
+                retrieve_context(
+                    db,
+                    RAGRetrievalRequest(query=request.content, top_k=3),
+                ),
+                timeout=3.0,  # 15s → 3s
             )
-    except asyncio.TimeoutError:
-        logger.warning("rag_retrieval_timeout", session_id=session_id)
-    except Exception as e:
-        # RAG 检索失败不影响对话（降级到无知识库模式）
-        logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e))
+            if retrieval_result.results:
+                rag_context = format_context_for_llm(retrieval_result.results)
+                RAGBreaker.record_ok()
+                logger.info(
+                    "rag_context_retrieved",
+                    session_id=session_id,
+                    chunk_count=len(retrieval_result.results),
+                )
+        except (asyncio.TimeoutError, Exception) as e:
+            RAGBreaker.record_fail()
+            logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e)[:100])
+    else:
+        logger.info("rag_circuit_open", session_id=session_id)
 
     # 步骤 4.5：误区诊断（如果消息中包含代码）
     misconception_result = None
@@ -327,34 +331,16 @@ async def send_message(
                 logger.info("chat_misconception_detected",
                     code=mc_result.get("misconception_id"),
                     session_id=session_id)
-                # 2.0: 自动更新学习画像
-                try:
-                    from app.services.profile_service import get_or_create_profile
-                    import json as _json
-                    profile = await get_or_create_profile(db, user.id)
-                    mc_code = mc_result.get("misconception_id")
-                    mc_name = mc_result.get("misconception_name", "")
-                    # 更新 recent_misconceptions
-                    recent = []
-                    if profile.recent_misconceptions:
-                        try: recent = _json.loads(profile.recent_misconceptions)
-                        except: pass
-                    recent.append(mc_name or mc_code)
-                    profile.recent_misconceptions = _json.dumps(recent[-5:], ensure_ascii=False)
-                    # 更新 weak_topics
-                    concepts = mc_result.get("related_concepts", [])
-                    if concepts:
-                        weak = []
-                        if profile.weak_topics:
-                            try: weak = _json.loads(profile.weak_topics)
-                            except: pass
-                        for c in concepts:
-                            if c not in weak:
-                                weak.append(c)
-                        profile.weak_topics = _json.dumps(weak, ensure_ascii=False)
-                    await db.commit()
-                except Exception:
-                    pass
+                # v3.1（F2/F9 修复）：误区事件记录**延后**到策略选择之后。
+                # 原实现在这里就 record_misconception_event，导致随后
+                # get_misconception_history_count 把"本次"也算进历史，
+                # 使 has_history 永远为 True、attempt_count 多计 1，
+                # 令 B-FR-13 的"首次→progressive_hint"分支不可达。
+                # 正确顺序：先查历史 → 选策略 → 生成回复 → 再记事件。
+                # 保存诊断出的代码片段，供延后记录使用。
+                misconception_result["_code_snippet"] = (
+                    code_to_check[:500] if code_to_check else ""
+                )
         except Exception as e:
             logger.debug("chat_misconception_skipped", error=str(e)[:100])
 
@@ -391,16 +377,73 @@ async def send_message(
         pedagogy_hint = ""
         if misconception_result:
             from app.services.pedagogy_service import select_strategy, get_hint_prompt
+            from app.services.misconception_service import get_misconception_history_count
+            mc_id = misconception_result["misconception_id"]
+            # 从数据库获取该学生该误区的真实历史命中次数
+            prior_count = await get_misconception_history_count(db, user.id, mc_id)
             strategy = select_strategy(
-                misconception_result["misconception_id"],
-                attempt_count=len([m for m in history if m.get("role") == "assistant"]) + 1,
-                has_history=False,
+                misconception_id=mc_id,
+                attempt_count=prior_count + 1,       # 真实累计次数
+                has_history=(prior_count > 0),        # 真实历史
             )
-            pedagogy_hint = get_hint_prompt(
-                misconception_result["misconception_name"],
-                strategy["hint_level"],
-            )
-            mc_ctx = f"⚠️ 学生代码已诊断出误区：{misconception_result['misconception_name']}。{pedagogy_hint}"
+            # F2/F9：在"查历史之后"才记录本次事件，保证 has_history/attempt_count
+            # 反映的是"本次之前"的历史，不把本次算进去。
+            try:
+                from app.services.misconception_service import record_misconception_event
+                await record_misconception_event(
+                    db, user.id, mc_id or "",
+                    misconception_result.get("confidence", 0.8),
+                    misconception_result.get("evidence", ""),
+                    code_snippet=misconception_result.get("_code_snippet", ""),
+                    submission_id="",
+                )
+            except Exception:
+                pass
+
+            if settings.ENABLE_PEDAGOGY_STEERING:
+                # SRS 3.2 接线（E-FR-01）：转移图决定教学意图，
+                # 锚定 prompt 决定表达约束（不泄露答案 + 置信度调语气）。
+                try:
+                    from app.services.pedagogy.steering import (
+                        StudentState, select_strategy as steering_select,
+                    )
+                    from app.services.prompts.misconception_anchored import (
+                        build_system_prompt,
+                    )
+                    state = StudentState(
+                        active_misconceptions=[mc_id] if mc_id else [],
+                        attempt_count=prior_count + 1,
+                    )
+                    decision = steering_select(state)
+                    anchored = build_system_prompt(
+                        mc_id or "?",
+                        float(misconception_result.get("confidence", 0.5)),
+                    )
+                    mc_ctx = (
+                        f"[教学意图: {decision.intent.value}"
+                        f"（{decision.matched_rule}）]\n{anchored}"
+                    )
+                    logger.info(
+                        "pedagogy_steering_decision",
+                        intent=decision.intent.value,
+                        hint_level=decision.hint_level,
+                        rule=decision.matched_rule,
+                        session_id=session_id,
+                    )
+                except Exception as e:
+                    # 转移图/锚定 prompt 失败 → 回退旧策略文案，不断链
+                    logger.warning("pedagogy_steering_failed", error=str(e)[:200])
+                    pedagogy_hint = get_hint_prompt(
+                        misconception_result["misconception_name"],
+                        strategy["hint_level"],
+                    )
+                    mc_ctx = f"⚠️ 学生代码已诊断出误区：{misconception_result['misconception_name']}。{pedagogy_hint}"
+            else:
+                pedagogy_hint = get_hint_prompt(
+                    misconception_result["misconception_name"],
+                    strategy["hint_level"],
+                )
+                mc_ctx = f"⚠️ 学生代码已诊断出误区：{misconception_result['misconception_name']}。{pedagogy_hint}"
             rag_context = (rag_context or "") + "\n" + mc_ctx if rag_context else mc_ctx
 
         # 合并所有上下文
@@ -423,6 +466,29 @@ async def send_message(
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))
         # 即使 AI 失败，用户消息也要保存
         await db.commit()
+        # F6: LLM 不可用但有 AST 误区诊断时，用模板兜底，degrade 而非 fail
+        if misconception_result:
+            fallback_msg = (
+                f"我注意到一个常见的思路点：**{misconception_result['misconception_name']}**。\n\n"
+                f"{misconception_result.get('evidence', '')}\n\n"
+                f"（AI 导师暂时繁忙，先给你这条基于代码结构的提示，稍后可以再问我细节。）"
+            )
+            assistant_msg = ChatMessage(
+                session_id=session_id, role="assistant",
+                content=fallback_msg, response_type="code_feedback", hint_level=1,
+            )
+            db.add(assistant_msg)
+            await db.commit()
+            return {
+                "user_message": MessageResponse.model_validate(user_msg),
+                "assistant_message": MessageResponse.model_validate(assistant_msg),
+                "ai_response": AIResponse(
+                    response_type="code_feedback", message=fallback_msg,
+                    hint_level=1, related_concepts=[], next_action="ask_question",
+                    misconception_id=misconception_result.get("misconception_id"),
+                ),
+                "degraded": True,
+            }
         raise HTTPException(
             status_code=503,
             detail="AI 服务暂时不可用，请稍后重试",

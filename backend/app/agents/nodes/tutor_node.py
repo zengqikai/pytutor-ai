@@ -45,8 +45,12 @@ async def tutor_response_node(state: AgentState) -> dict:
         messages.append(LLMMessage(role=msg["role"], content=msg["content"]))
     messages.append(LLMMessage(role="user", content=user_input))
 
+    import asyncio
     try:
-        llm_response = await chat_completion(messages=messages, temperature=0.7)
+        llm_response = await asyncio.wait_for(
+            chat_completion(messages=messages, temperature=0.7),
+            timeout=60.0,  # F10: Agent 节点超时保护
+        )
         raw = llm_response.content.strip()
 
         hint = hint_level

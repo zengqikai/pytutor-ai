@@ -11,15 +11,44 @@ RAG 服务模块
 """
 
 import asyncio
+import time
 
 from sqlalchemy import select
+
+
+# =============================================================================
+# RAG 熔断器（进程内，轻量）
+# =============================================================================
+
+class RAGBreaker:
+    """RAG 检索熔断器。连续失败 N 次后进入 open 状态，跳过 RAG。"""
+
+    _fail_count: int = 0
+    _open_until: float = 0.0
+    THRESHOLD: int = 3
+    COOLDOWN: int = 30  # 秒
+
+    @classmethod
+    def is_open(cls) -> bool:
+        return time.time() < cls._open_until
+
+    @classmethod
+    def record_fail(cls):
+        cls._fail_count += 1
+        if cls._fail_count >= cls.THRESHOLD:
+            cls._open_until = time.time() + cls.COOLDOWN
+
+    @classmethod
+    def record_ok(cls):
+        cls._fail_count = 0
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.rag import RAGChunk, RAGDocument
 from app.observability.logger import get_logger
 from app.rag.retriever import HybridRetriever, retriever
 from app.rag.reranker import rerank_with_llm
-from app.rag.splitter import simple_tokenize, split_markdown
+from app.rag.splitter import estimate_tokens, simple_tokenize, split_markdown
 from app.schemas.rag import RAGRetrievalRequest, RAGRetrievalResponse, RAGRetrievalResult
 
 logger = get_logger(__name__)
@@ -185,6 +214,41 @@ async def rebuild_index(db: AsyncSession) -> int:
 # 检索
 # =============================================================================
 
+def _weighted_merge(vector_results: list[dict], tfidf_results: list[dict]) -> list[dict]:
+    """A2：向量 + TF-IDF 加权融合。
+
+    score = α·vector_score + (1-α)·tfidf_score，α = settings.RAG_VECTOR_WEIGHT。
+    只出现在单一路径的 chunk 直接用该路径分数。
+    """
+    alpha = settings.RAG_VECTOR_WEIGHT
+    merged: dict[str, dict] = {}
+
+    for r in vector_results:
+        merged[r["chunk_id"]] = {"data": r, "v": r.get("score", 0.0), "t": None}
+    for r in tfidf_results:
+        cid = r["chunk_id"]
+        if cid in merged:
+            merged[cid]["t"] = r.get("score", 0.0)
+        else:
+            merged[cid] = {"data": r, "v": None, "t": r.get("score", 0.0)}
+
+    result = []
+    for cid, entry in merged.items():
+        v, t = entry["v"], entry["t"]
+        if v is not None and t is not None:
+            combined = alpha * v + (1 - alpha) * t
+        elif v is not None:
+            combined = v
+        else:
+            combined = t
+        d = entry["data"].copy()
+        d["score"] = round(combined, 4)
+        result.append(d)
+
+    result.sort(key=lambda x: x.get("score", 0), reverse=True)
+    return result
+
+
 async def retrieve_context(
     db: AsyncSession,
     request: RAGRetrievalRequest,
@@ -235,13 +299,18 @@ async def retrieve_context(
         concept_filter=request.concept_filter,
     )
 
-    # 合并去重（向量优先，TF-IDF 补充）
-    seen = set()
-    candidates = []
-    for r in vector_results + tfidf_results:
-        if r["chunk_id"] not in seen:
-            seen.add(r["chunk_id"])
-            candidates.append(r)
+    # 合并去重
+    if settings.ENABLE_HYBRID_WEIGHTS:
+        # A2：向量 + TF-IDF 加权融合（score = α·vector + (1-α)·tfidf）
+        candidates = _weighted_merge(vector_results, tfidf_results)
+    else:
+        # 旧逻辑：向量优先，TF-IDF 补充
+        seen = set()
+        candidates = []
+        for r in vector_results + tfidf_results:
+            if r["chunk_id"] not in seen:
+                seen.add(r["chunk_id"])
+                candidates.append(r)
 
     if not candidates:
         return RAGRetrievalResponse(
@@ -251,8 +320,15 @@ async def retrieve_context(
             retrieval_time_ms=0,
         )
 
-    # 步骤 2：简化为直接取 Top-K（跳过 LLM 重排序以加速）
-    reranked = candidates[:request.top_k]
+    # 步骤 2：重排序（A1：LLM 重排序，开关控制）
+    if settings.ENABLE_RAG_RERANK:
+        try:
+            reranked = await rerank_with_llm(request.query, candidates, request.top_k)
+        except Exception as e:
+            logger.warning("rag_rerank_failed", query=request.query[:60], error=str(e)[:120])
+            reranked = candidates[:request.top_k]
+    else:
+        reranked = candidates[:request.top_k]
 
     # 步骤 3：更新检索统计
     chunk_ids = [r["chunk_id"] for r in reranked]
@@ -321,6 +397,10 @@ def format_context_for_llm(retrieval_results: list[RAGRetrievalResult]) -> str:
     if not retrieval_results:
         return ""
 
+    # A6：上下文压缩（开关控制）
+    if settings.ENABLE_CONTEXT_COMPRESSION:
+        return _format_compressed(retrieval_results)
+
     parts = []
     for i, result in enumerate(retrieval_results, 1):
         heading = result.heading or result.document_title
@@ -331,3 +411,44 @@ def format_context_for_llm(retrieval_results: list[RAGRetrievalResult]) -> str:
         )
 
     return "\n\n".join(parts)
+
+
+def _format_compressed(retrieval_results: list[RAGRetrievalResult]) -> str:
+    """A6：按 token 预算压缩 RAG 上下文。
+
+    策略：
+    - 高相关 chunk（排序靠前）保留全文，直到预算的 ~70%。
+    - 剩余 chunk 压缩为「标题 + 首句」。
+    """
+    budget = settings.RAG_CONTEXT_MAX_TOKENS
+    full_budget = int(budget * 0.7)
+
+    parts = []
+    used = 0
+    for i, result in enumerate(retrieval_results, 1):
+        heading = result.heading or result.document_title
+        if used < full_budget:
+            body = result.content
+            used += estimate_tokens(result.content)
+        else:
+            # 压缩：标题 + 首句
+            first_sentence = _first_sentence(result.content)
+            body = f"{first_sentence} …（已压缩）"
+            used += estimate_tokens(body)
+        parts.append(
+            f"[知识点 {i}] {heading}\n"
+            f"内容: {body}\n"
+            f"相关度: {result.score}"
+        )
+
+    return "\n\n".join(parts)
+
+
+def _first_sentence(text: str, max_len: int = 80) -> str:
+    """取文本首句（按中文句号/换行截断），用于压缩展示。"""
+    text = (text or "").strip()
+    for sep in ("。", "\n", ". "):
+        idx = text.find(sep)
+        if idx != -1:
+            return text[:idx + 1].strip()
+    return text[:max_len]

@@ -8,6 +8,8 @@ API 集成测试
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.integration
 class TestHealthCheck:

@@ -68,6 +68,18 @@ def calculate_hint_level(history: list[dict], question: str) -> int:
     return 1
 
 
+async def _llm_chat(messages: list[LLMMessage], temperature: float, model: str | None = None):
+    """C 方向 Task 6：根据开关在单模型与多模型路由之间切换。
+
+    开 → chat_completion_routed()（简单走 deepseek-chat、复杂走 deepseek-v4-pro）
+    关 → 原单模型 chat_completion()（行为不变）
+    """
+    if settings.ENABLE_MULTI_MODEL_ROUTING:
+        from app.services.llm_service import chat_completion_routed
+        return await chat_completion_routed(messages=messages, temperature=temperature)
+    return await chat_completion(messages=messages, temperature=temperature, model=model)
+
+
 async def generate_tutor_response(
     user_message: str,
     conversation_history: list[dict],
@@ -93,7 +105,7 @@ async def generate_tutor_response(
     messages.append(LLMMessage(role="user", content=user_message))
 
     try:
-        llm_response = await chat_completion(messages=messages, temperature=0.7, model=model)
+        llm_response = await _llm_chat(messages, 0.7, model)
         raw = llm_response.content.strip()
 
         # 解析首行元数据标记
@@ -127,7 +139,7 @@ async def generate_tutor_response(
                 logger.info("tutor_response_revision", score=verify_score)
                 messages.append(LLMMessage(role="system",
                     content="上一轮回复不合格。请确保：1) 不给完整答案 2) 符合提示等级 3) 用初学者能理解的语言。重新回复。"))
-                llm_response2 = await chat_completion(messages=messages, temperature=0.5, model=model)
+                llm_response2 = await _llm_chat(messages, 0.5, model)
                 raw = llm_response2.content.strip()
                 # 再次解析元数据
                 meta_match2 = re.match(r'<!--\s*hint:(\d+)\s*(?:concepts:(.+?))?\s*-->', raw)
@@ -186,6 +198,10 @@ async def generate_tutor_response_stream(
 
     provider_cfg = {"model": f"deepseek/{s.deepseek_model}", "api_key": s.deepseek_api_key, "api_base": s.deepseek_base_url}
     litellm_model = model or provider_cfg["model"]
+    if s.ENABLE_MULTI_MODEL_ROUTING:
+        # C 方向 Task 6：流式也走多模型路由
+        from app.services.llm_service import classify_question_complexity
+        litellm_model = f"deepseek/{classify_question_complexity(user_message)['routed_model']}"
 
     try:
         response = await litellm.acompletion(
