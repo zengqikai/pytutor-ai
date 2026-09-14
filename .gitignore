@@ -13,6 +13,7 @@ build/
 docs/screenshots/
 evaluation/v2_eval_results.json
 evaluation/rag_eval_results.json
+evaluation/judge_eval_results.json
 vercel.json
 
 # 队友交付物原始文件夹（已整合进 backend/，不进 git）

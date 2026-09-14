@@ -719,3 +719,27 @@ Alembic 迁移: 7 次
 | A 组 4 个 flag | false | 验证达标后按需开 |
 
 **测试结果**: **189 passed**（147 基线 + 29 C + 13 A），前端 `npm run build` 通过，`compileall` 全绿。
+
+---
+
+## Phase 13: 端到端验证 Bug 修复 (Steps 45)
+
+**日期**: 2026-09-14
+
+> 启动后端走通「注册→登录→对话→画像」全流程时发现并修复的 bug。
+
+### Step 45 — 对话 500 错误 + Multi-Judge JSON 健壮性
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/services/rag_service.py` | 检索统计 `db.commit()` 加 try/except + `db.rollback()`，失败不阻断检索、不毒化会话 |
+| 修改 | `backend/app/services/chat_service.py` | RAG 检索超时 3s→10s（DashScope 向量检索约 2-3s）；两处 except 块补 `db.rollback()` 防会话污染 |
+| 修改 | `backend/app/services/judge_service.py` | `max_tokens` 600→1200（避免 `finish_reason=length` 截断 JSON）；加 `response_format={"type":"json_object"}` 强制合法 JSON |
+| 修改 | `backend/app/services/llm_service.py` | `chat_completion` 新增 `response_format` 参数透传 |
+
+**Bug 修复**:
+- Bug #43：对话 500 `PendingRollbackError` — 根因是 RAG 检索内部 `db.commit()` 在 3s 超时取消时中断，遗留空异常污染会话，后续 commit 连锁失败。修复：commit 加 rollback 保护 + 超时放宽到 10s + except 块补 rollback
+- Bug #44：Multi-Judge `finish_reason=length` JSON 截断 — `max_tokens` 600 不够容纳 V2 CoT 推理链
+- Bug #45：Multi-Judge JSON 解析失败（reasoning 字符串破坏 JSON）— 加 `response_format={"type":"json_object"}` 强制结构化输出
+
+**端到端验证结果**：注册→登录→创建会话→代码对话（`a='hello'; b=123; c=a+b`）→ 正确诊断 M7 + 共情式引导回复（不给答案）；画像接口 200。Multi-Judge 实测 Kappa 0.4050（moderate，评委真实分歧，无 fallback 掩盖）。

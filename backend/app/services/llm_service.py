@@ -67,6 +67,7 @@ async def chat_completion(
     temperature: Optional[float] = None,
     max_tokens: Optional[int] = None,
     provider: str = DEFAULT_PROVIDER,
+    response_format: Optional[dict] = None,
 ) -> LLMResponse:
     """
     LiteLLM 统一调用接口。
@@ -77,6 +78,7 @@ async def chat_completion(
         temperature: nil = 用配置
         max_tokens: nil = 用配置
         provider: 供应商（deepseek/qwen/openai）
+        response_format: 结构化输出（如 {"type": "json_object"}），nil = 默认
 
     返回:
         LLMResponse
@@ -105,6 +107,7 @@ async def chat_completion(
                 messages=api_messages,
                 temperature=temp,
                 max_tokens=max_tok,
+                response_format=response_format,
             )
         else:
             response = await acompletion(
@@ -116,6 +119,7 @@ async def chat_completion(
                 api_base=provider_cfg.get("api_base"),
                 timeout=settings.llm_timeout,
                 num_retries=1,
+                response_format=response_format,
                 fallbacks=[settings.deepseek_fallback_model] if settings.deepseek_fallback_model else None,
             )
     except Exception as e:

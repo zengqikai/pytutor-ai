@@ -330,18 +330,20 @@ async def retrieve_context(
     else:
         reranked = candidates[:request.top_k]
 
-    # 步骤 3：更新检索统计
+    # 步骤 3：更新检索统计（非关键副作用，失败不阻断检索、不毒化会话）
     chunk_ids = [r["chunk_id"] for r in reranked]
     if chunk_ids:
-        _ = await db.execute(
-            select(RAGChunk).where(RAGChunk.id.in_(chunk_ids))
-        )
-        chunks_to_update = (await db.execute(
-            select(RAGChunk).where(RAGChunk.id.in_(chunk_ids))
-        )).scalars().all()
-        for chunk in chunks_to_update:
-            chunk.retrieval_count += 1
-        await db.commit()
+        try:
+            chunks_to_update = (await db.execute(
+                select(RAGChunk).where(RAGChunk.id.in_(chunk_ids))
+            )).scalars().all()
+            for chunk in chunks_to_update:
+                chunk.retrieval_count += 1
+            await db.commit()
+        except Exception as e:
+            # 统计更新失败不影响检索结果；回滚避免 PendingRollbackError 污染后续 commit
+            await db.rollback()
+            logger.warning("retrieval_count_update_failed", error=str(e)[:120])
 
     elapsed = (time.perf_counter() - start_time) * 1000
 

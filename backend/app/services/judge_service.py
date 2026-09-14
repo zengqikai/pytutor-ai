@@ -382,7 +382,7 @@ async def _single_judge(
     单个评委评分 (V2 增强版)。
 
     使用行为锚定 Rubric + 误区特定指导 + Few-shot 校准 + CoT + 证据锚定。
-    max_tokens 提升至 600 以容纳 CoT 推理链。
+    max_tokens 提升至 1200 以容纳 CoT 推理链（600 会导致 finish_reason=length 截断）。
 
     参数:
         ai_message: AI 回复内容
@@ -405,7 +405,8 @@ async def _single_judge(
         response = await chat_completion(
             messages=[ChatMessage(role="user", content=prompt)],
             temperature=temperature,
-            max_tokens=600,  # V2 增加以容纳 CoT 推理链
+            max_tokens=1200,  # V2 增加以容纳 CoT 推理链（避免 JSON 截断）
+            response_format={"type": "json_object"},  # 强制 JSON 输出，避免 reasoning 字符串破坏解析
         )
 
         elapsed = (time.perf_counter() - start) * 1000

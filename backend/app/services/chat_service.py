@@ -300,7 +300,7 @@ async def send_message(
                     db,
                     RAGRetrievalRequest(query=request.content, top_k=3),
                 ),
-                timeout=3.0,  # 15s → 3s
+                timeout=10.0,  # DashScope 向量检索约 2-3s，3s 太紧会导致取消中断
             )
             if retrieval_result.results:
                 rag_context = format_context_for_llm(retrieval_result.results)
@@ -312,6 +312,10 @@ async def send_message(
                 )
         except (asyncio.TimeoutError, Exception) as e:
             RAGBreaker.record_fail()
+            try:
+                await db.rollback()  # 取消/失败可能中断内部 commit，回滚避免污染会话
+            except Exception:
+                pass
             logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e)[:100])
     else:
         logger.info("rag_circuit_open", session_id=session_id)
@@ -464,7 +468,11 @@ async def send_message(
             ai_response.pedagogical_strategy = "progressive_hint"
     except Exception as e:
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))
-        # 即使 AI 失败，用户消息也要保存
+        # 即使 AI 失败，用户消息也要保存。先回滚重置会话（可能已被之前的 flush 失败污染）
+        try:
+            await db.rollback()
+        except Exception:
+            pass
         await db.commit()
         # F6: LLM 不可用但有 AST 误区诊断时，用模板兜底，degrade 而非 fail
         if misconception_result:
