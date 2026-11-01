@@ -7,15 +7,14 @@
     GET  /api/v1/code/submissions/{id} - 获取提交详情
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.database.session import get_db
 from app.models.submission import CodeSubmission
 from app.models.user import User
-from app.schemas.code import CodeSubmitRequest, CodeSubmitResponse
+from app.schemas.code import AnalyzeErrorRequest, CodeSubmitRequest, CodeSubmitResponse
 from app.security.dependencies import get_current_user
 from app.services.code_service import submit_and_execute
 
@@ -60,12 +59,12 @@ async def submit_code(
 
 @router.post("/analyze")
 async def analyze_error(
-    body: dict,
+    body: AnalyzeErrorRequest,
     current_user: User = Depends(get_current_user),
 ):
     """独立错误分析接口——不影响代码执行速度。"""
-    code = body.get("code", "")
-    stderr = body.get("stderr", "")
+    code = body.code
+    stderr = body.stderr
 
     if not stderr.strip():
         return {"explanation": "", "concepts": []}
@@ -111,11 +110,11 @@ async def get_submission(
     submission = result.scalar_one_or_none()
 
     if not submission:
-        return {"detail": "提交记录不存在"}
+        raise HTTPException(status_code=404, detail="提交记录不存在")
 
     # 权限检查
     if current_user.role == "student" and submission.user_id != current_user.id:
-        return {"detail": "无权访问"}
+        raise HTTPException(status_code=403, detail="无权访问该提交记录")
 
     return {
         "id": submission.id,

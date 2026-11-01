@@ -1024,3 +1024,24 @@ Top-5 上下文 251 → 315 token（估算）。Hybrid 仍与向量一致（`ENA
 
 **测试结果**：**267 passed, 12 deselected**；`ruff --select E9,F63,F7,F82 app tests` 通过；
 `tsc --noEmit` 无错误；`TestClient` 启动 lifespan 后 `/api/v1/health` → `api/database healthy`。
+
+#### Step 62 补充 — 复查发现的接口契约问题
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/schemas/misconception.py` | `DiagnoseRequest`（code ≤20k、stderr ≤5k、exercise_id ≤64） |
+| 修改 | `backend/app/schemas/code.py` / `exercise.py` | `AnalyzeErrorRequest`（code ≤50k、stderr ≤10k）；`ExercisePublishRequest` |
+| 修改 | `backend/app/api/v1/admin.py` / `code.py` / `misconceptions.py` | 缺资源改抛 404/403；`body: dict` 换成模型；`diagnose` 校验 `exercise_id` 存在性 |
+| 新增测试 | `backend/tests/test_api_error_contract.py` | 5 个用例：404/403/长度上限 |
+
+**Bug 修复**:
+- Bug #73：找不到资源时仍返回 `200 {"detail": "..."}`（`GET /admin/students/{id}`、
+  `PATCH /admin/exercises/{id}`、`GET /code/submissions/{id}`），前端 `res.ok` 为真，
+  把错误当成功渲染
+- Bug #74：`POST /code/analyze`、`POST /misconceptions/diagnose` 收 `body: dict`，
+  代码长度无上限且直接拼进 LLM prompt；`diagnose` 的 `exercise_id` 也不校验，
+  可写出一条挂着不存在练习的事件
+- Bug #75：7 处裸 `except:` 会把 `CancelledError` / `KeyboardInterrupt` 一起吞掉，
+  异步任务取消后继续往下跑 → 统一为 `except Exception`
+
+**测试结果**：**272 passed, 12 deselected**；ruff 错误门通过。

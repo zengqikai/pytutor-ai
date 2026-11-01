@@ -467,7 +467,7 @@ async def submit_exercise_answer(
     mastery = {}
     if profile.concept_mastery_json:
         try: mastery = json.loads(profile.concept_mastery_json)
-        except: pass
+        except Exception: pass
     # 更新经验值
     total_exp = mastery.get("_total_exp", 0) + exp_gained
     mastery["_total_exp"] = total_exp

@@ -370,7 +370,7 @@ async def send_message(
             recent_mc = []
             if profile.recent_misconceptions:
                 try: recent_mc = _json2.loads(profile.recent_misconceptions)
-                except: pass
+                except Exception: pass
             if recent_mc:
                 profile_context = f"📊 学生画像：最近出现的误区有 {', '.join(recent_mc[-3:])}。"
                 from app.services.profile_service import normalize_hint_dependency

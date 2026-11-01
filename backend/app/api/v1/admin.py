@@ -21,7 +21,8 @@ from app.models.exercise import Exercise
 from app.models.rag import RAGDocument
 from app.models.submission import CodeSubmission
 from app.models.profile import LearningEvent
-from app.security.dependencies import get_current_user, require_role
+from app.schemas.exercise import ExercisePublishRequest
+from app.security.dependencies import require_role
 
 router = APIRouter()
 
@@ -40,11 +41,11 @@ async def student_detail(
 ):
     """查看单个学生的学习记录。"""
     from app.models.profile import StudentProfile
-    from app.models.submission import CodeSubmission, ExecutionResult
 
     r = await db.execute(select(User).where(User.id == student_id))
     user = r.scalar_one_or_none()
-    if not user: return {"detail": "学生不存在"}
+    if not user:
+        raise HTTPException(status_code=404, detail="学生不存在")
 
     r = await db.execute(select(StudentProfile).where(StudentProfile.user_id == student_id))
     profile = r.scalar_one_or_none()
@@ -71,8 +72,10 @@ async def student_detail(
     for e in r.scalars():
         detail = {}
         if e.detail_json:
-            try: detail = json.loads(e.detail_json)
-            except: pass
+            try:
+                detail = json.loads(e.detail_json)
+            except Exception:
+                detail = {}
         # 优先用 detail 里的 title，其次从题库 concept 映射，最后用原始 concept
         title = detail.get("title") or concept_map.get(e.concept or "") or e.concept or "练习"
         events.append({
@@ -338,7 +341,7 @@ async def admin_exercises(
 @router.patch("/exercises/{exercise_id}")
 async def toggle_exercise(
     exercise_id: str,
-    body: dict,
+    body: ExercisePublishRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
@@ -346,8 +349,7 @@ async def toggle_exercise(
     r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
     ex = r.scalar_one_or_none()
     if not ex:
-        return {"detail": "不存在"}
-    if "is_published" in body:
-        ex.is_published = bool(body["is_published"])
-        await db.commit()
+        raise HTTPException(status_code=404, detail="练习不存在")
+    ex.is_published = body.is_published
+    await db.commit()
     return {"id": ex.id, "is_published": ex.is_published}

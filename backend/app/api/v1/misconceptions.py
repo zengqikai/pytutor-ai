@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
 from app.models.user import User
+from app.schemas.misconception import DiagnoseRequest
 from app.security.dependencies import get_current_user
 from app.services.misconception_service import (
     diagnose,
@@ -24,7 +25,7 @@ router = APIRouter()
 
 @router.post("/diagnose")
 async def diagnose_code(
-    body: dict,
+    body: DiagnoseRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -37,9 +38,19 @@ async def diagnose_code(
     返回：
         {has_misconception, misconception_id, confidence, evidence, ...}
     """
-    code = body.get("code", "")
-    stderr = body.get("stderr", "")
-    exercise_id = body.get("exercise_id", "")
+    code = body.code
+    stderr = body.stderr
+    exercise_id = body.exercise_id
+
+    # 传入的练习 ID 必须是真实存在的，否则事件会挂在一个悬空外键上
+    if exercise_id:
+        from app.models.exercise import Exercise
+        from sqlalchemy import select as sa_select
+        exists = (await db.execute(
+            sa_select(Exercise.id).where(Exercise.id == exercise_id)
+        )).scalar_one_or_none()
+        if not exists:
+            exercise_id = ""
 
     result = await diagnose(db, code=code, stderr=stderr)
 

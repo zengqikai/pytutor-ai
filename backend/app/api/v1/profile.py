@@ -121,7 +121,6 @@ async def complete_onboarding(
     请求体：{"skill_level": "A/B/C/D"}
     A=零基础 B=学过一点 C=会基础想练习 D=自由提问
     """
-    from app.services.profile_service import record_event, get_or_create_profile
     import json
 
     level = body.skill_level
@@ -172,7 +171,6 @@ async def complete_lesson(
     current_user: User = Depends(get_current_user),
 ):
     """记录课程完成。"""
-    from app.services.profile_service import record_event
     lesson_id = body.lesson_id
     await record_event(db, current_user.id, "lesson_completed", concept=lesson_id)
     return {"lesson_id": lesson_id, "status": "completed"}

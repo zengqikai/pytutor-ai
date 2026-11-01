@@ -487,7 +487,7 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
     mastery = {}
     if profile.concept_mastery_json:
         try: mastery = json.loads(profile.concept_mastery_json)
-        except: pass
+        except Exception: pass
     total_exp = mastery.get("_total_exp", 0)
     next_level_exp = (profile.level) * 300
     onboarding_done = mastery.get("_onboarding") is not None
@@ -498,13 +498,13 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
     completed = []
     if profile.weak_topics:
         try: weak_topics = json.loads(profile.weak_topics)
-        except: pass
+        except Exception: pass
     if profile.recent_misconceptions:
         try: recent_mc = json.loads(profile.recent_misconceptions)
-        except: pass
+        except Exception: pass
     if profile.completed_lessons:
         try: completed = json.loads(profile.completed_lessons)
-        except: pass
+        except Exception: pass
 
     return {
         "level": profile.level,

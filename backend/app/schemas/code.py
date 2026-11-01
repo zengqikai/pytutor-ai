@@ -4,7 +4,6 @@
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -15,6 +14,16 @@ class CodeSubmitRequest(BaseModel):
     exercise_id: str | None = Field(default=None, description="关联的练习 ID")
     session_id: str | None = Field(default=None, description="关联的聊天会话 ID")
     stdin: str = Field(default="", description="标准输入数据（模拟 input()）")
+
+
+class AnalyzeErrorRequest(BaseModel):
+    """独立错误分析请求。
+
+    限长是必需的：分析结果会拼进 LLM prompt，未限长时可被塞进整本文件
+    （也会绕过沙箱直接让服务端着 LLM 生成一次）。
+    """
+    code: str = Field(default="", max_length=50_000, description="学生代码")
+    stderr: str = Field(default="", max_length=10_000, description="执行 stderr")
 
 
 class ExecutionResultResponse(BaseModel):

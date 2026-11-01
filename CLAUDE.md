@@ -353,3 +353,7 @@ C2 都未优于 C1（配对差为负，95% CI 含 0），不能宣称证据注�
   500 响应与 `/health` 不回显异常详情；lifespan 异常在生产直接抛出终止启动。
 - 登录失败路径对不存在的用户也跑一次 bcrypt（`_get_dummy_hash()`），避免邮箱枚举；
   注册 `IntegrityError` 返回 409。
+- 接口错误一律走 `HTTPException`：找不到 404、越权 403。不要再 `return {"detail": ...}`，
+  前端会把 200 当成功。请求体用 Pydantic 模型限长（`AnalyzeErrorRequest` /
+  `DiagnoseRequest` / `ExercisePublishRequest`），不要用 `body: dict`。
+- 不要写裸 `except:`（连 `CancelledError` 一起吞）；JSON 解析失败用 `except Exception`。

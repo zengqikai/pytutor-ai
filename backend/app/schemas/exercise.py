@@ -13,6 +13,11 @@ class ExerciseGenerateRequest(BaseModel):
     count: int = Field(default=1, ge=1, le=3, description="生成数量")
 
 
+class ExercisePublishRequest(BaseModel):
+    """发布/取消发布练习。"""
+    is_published: bool = Field(..., description="true=发布，false=下架")
+
+
 class SubmitExerciseRequest(BaseModel):
     """提交答案请求。
 
