@@ -422,7 +422,7 @@ GET    /api/v1/exercises/{id}
 POST   /api/v1/exercises/{id}/submit
 POST   /api/v1/exercises/{id}/hint
 GET    /api/v1/exercises/{id}/solution
-POST   /api/v1/exercises/seed-mc-exercises   (2.0)
+POST   /api/v1/exercises/seed-mc-exercises   (2.0, 仅 admin/teacher，幂等)
 ```
 
 ### 画像
@@ -844,12 +844,17 @@ async def verify_response(ai_message, expected_hint_level,
 ```
 Step 1: 获取练习 + 测试用例 (selectinload)
 Step 2: 对每个测试用例独立执行代码 (docker/subprocess sandbox)
+        → status="unavailable" 时直接返回"未判定"（不写画像、不发奖励）
 Step 3: 比较 stdout vs expected_output → passed/failed
 Step 4: [2.0] 未全部通过 → 调用 diagnose(code, stderr) 诊断误区
-Step 5: [2.0] 按 exercise_id 去重 → 首次通过创建 exercise_passed 事件
-Step 6: record_event() → 更新 StudentProfile (total_exercises_passed/completed)
-Step 7: update_weakness() → 维护 StudentWeakness
-Step 8: 返回结构化结果 (test_results + misconception + score_pct)
+Step 5: 统计提示/看答案：hint_requested 计数取服务端 LearningEvent；
+        本次是否"看了答案" = 累计 solution_viewed 是否超过此前尝试记录的
+        solution_views_total 基线（不看事件时间顺序）
+Step 6: 判定通过 = 全部用例通过 且 score_pct > 0 且本次未看答案；
+        首次通过（此前无 score>0 的 passed 事件）才发奖励
+Step 7: record_event() → 更新 StudentProfile (total_exercises_passed/completed)
+Step 8: update_weakness() → 维护 StudentWeakness
+Step 9: 返回结构化结果 (test_results + misconception + score_pct)
 ```
 
 ---

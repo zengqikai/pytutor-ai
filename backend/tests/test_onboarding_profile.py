@@ -22,7 +22,7 @@ import app.models.prompt  # noqa: F401
 import app.models.rag  # noqa: F401
 import app.models.submission  # noqa: F401
 import app.models.user  # noqa: F401
-from app.api.v1.profile import complete_onboarding
+from app.api.v1.profile import OnboardingRequest, complete_onboarding
 from app.api.v1.teacher import teacher_overview
 from app.database.base import Base
 from app.models.user import User, UserRole
@@ -59,14 +59,14 @@ async def test_diagnosis_results_reach_profile(db):
     student = await make_user(db, "s-onboarding")
 
     resp = await complete_onboarding(
-        body={
+        body=OnboardingRequest(**{
             "skill_level": "B",
             "diagnosis": {
                 "level": "beginner",
                 "weak": ["for_loop", "function"],
                 "misconceptions": ["M5", "M6"],
             },
-        },
+        }),
         db=db,
         current_user=student,
     )
@@ -89,7 +89,7 @@ async def test_teacher_dashboard_sees_diagnosed_weaknesses(db):
     teacher = await make_user(db, "t-view", role=UserRole.INSTRUCTOR)
 
     await complete_onboarding(
-        body={"skill_level": "A", "diagnosis": {"weak": ["while_loop"]}},
+        body=OnboardingRequest(skill_level="A", diagnosis={"weak": ["while_loop"]}),
         db=db,
         current_user=student,
     )
@@ -105,7 +105,7 @@ async def test_second_account_does_not_inherit_profile(db):
     second = await make_user(db, "s-second")
 
     await complete_onboarding(
-        body={"skill_level": "B", "diagnosis": {"weak": ["list"], "misconceptions": ["M3"]}},
+        body=OnboardingRequest(skill_level="B", diagnosis={"weak": ["list"], "misconceptions": ["M3"]}),
         db=db,
         current_user=first,
     )
@@ -120,7 +120,7 @@ async def test_onboarding_without_diagnosis_is_harmless(db):
     """A/D 这类没有诊断数据的入口不能因为缺字段而 500。"""
     student = await make_user(db, "s-no-diagnosis")
 
-    resp = await complete_onboarding(body={"skill_level": "D"}, db=db, current_user=student)
+    resp = await complete_onboarding(body=OnboardingRequest(skill_level="D"), db=db, current_user=student)
     assert resp["weak_count"] == 0
 
     profile = await get_or_create_profile(db, student.id)

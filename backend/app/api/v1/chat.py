@@ -18,6 +18,7 @@ from app.database.session import get_db
 from app.models.user import User
 from app.schemas.chat import (
     CreateSessionRequest,
+    RenameSessionRequest,
     SendMessageRequest,
     SessionListItem,
     SessionResponse,
@@ -105,9 +106,9 @@ async def delete_chat_session(
     result = await db.execute(sa_select(ChatSession).where(ChatSession.id == session_id))
     session = result.scalar_one_or_none()
     if not session:
-        return {"detail": "会话不存在"}
+        raise HTTPException(status_code=404, detail="会话不存在")
     if session.student_id != current_user.id:
-        return {"detail": "无权操作"}
+        raise HTTPException(status_code=403, detail="无权操作")
     await db.delete(session)
     await db.commit()
     return {"detail": "已删除"}
@@ -116,7 +117,7 @@ async def delete_chat_session(
 @router.patch("/sessions/{session_id}")
 async def rename_chat_session(
     session_id: str,
-    body: dict,
+    body: RenameSessionRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -127,13 +128,11 @@ async def rename_chat_session(
     result = await db.execute(sa_select(ChatSession).where(ChatSession.id == session_id))
     session = result.scalar_one_or_none()
     if not session:
-        return {"detail": "会话不存在"}
+        raise HTTPException(status_code=404, detail="会话不存在")
     if session.student_id != current_user.id:
-        return {"detail": "无权操作"}
-    title = body.get("title", "").strip()
-    if title:
-        session.title = title[:100]
-        await db.commit()
+        raise HTTPException(status_code=403, detail="无权操作")
+    session.title = body.title.strip()[:100]
+    await db.commit()
     return {"id": session.id, "title": session.title}
 
 

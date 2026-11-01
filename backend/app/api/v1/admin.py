@@ -9,7 +9,8 @@
     GET  /api/v1/admin/logs     - 最近操作日志
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,12 @@ from app.models.profile import LearningEvent
 from app.security.dependencies import get_current_user, require_role
 
 router = APIRouter()
+
+
+class UpdateUserRequest(BaseModel):
+    """修改用户角色/状态。字段都可选，只改传了的那些。"""
+    role: str | None = Field(default=None, description="student / instructor / admin")
+    is_active: bool | None = Field(default=None)
 
 
 @router.get("/students/{student_id}")
@@ -96,39 +103,38 @@ async def exercise_records(
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.INSTRUCTOR)),
 ):
     """查看某道题的提交记录：哪些学生通过了，按时间排序。"""
-    from app.models.profile import LearningEvent
-    import json
+    from app.services.exercise_stats import (
+        detail_score,
+        is_counted_pass,
+        load_attempt_events,
+    )
 
-    # 取题目概念
     ex_r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
     exercise = ex_r.scalar_one_or_none()
     if not exercise:
-        return {"records": []}
+        raise HTTPException(status_code=404, detail="练习不存在")
 
-    concepts = [c.strip() for c in (exercise.concepts or "").split(",")] if exercise.concepts else [exercise.title]
+    # 按 exercise_id 精确匹配（以前按 concepts 匹配，同一知识点下的题会串）
+    events = await load_attempt_events(db, exercise_id=exercise_id)
 
-    # 查所有匹配概念的学习事件
-    r = await db.execute(
-        select(LearningEvent)
-        .where(LearningEvent.concept.in_(concepts))
-        .order_by(LearningEvent.created_at.desc())
-        .limit(100)
-    )
+    # 一次性取用户，避免每条事件一次查询
+    user_ids = {e["user_id"] for e in events}
+    users: dict[str, User] = {}
+    if user_ids:
+        rows = (await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()
+        users = {u.id: u for u in rows}
+
     records = []
-    for e in r.scalars():
-        ur = await db.execute(select(User).where(User.id == e.user_id))
-        user = ur.scalar_one_or_none()
-        detail = {}
-        if e.detail_json:
-            try: detail = json.loads(e.detail_json)
-            except: pass
+    for e in reversed(events[-100:]):
+        user = users.get(e["user_id"])
+        detail = e["detail"]
         records.append({
             "student_name": user.display_name if user else "?",
             "student_email": user.email if user else "",
-            "passed": e.event_type == "exercise_passed",
-            "score_pct": detail.get("score_pct", 0),
+            "passed": is_counted_pass(e["event_type"], detail),
+            "score_pct": detail_score(detail),
             "used_hints": detail.get("used_hints", 0),
-            "time": e.created_at.isoformat(),
+            "time": e["created_at"].isoformat(),
         })
     return {"records": records}
 
@@ -193,23 +199,42 @@ async def list_users(
 @router.patch("/users/{user_id}")
 async def update_user(
     user_id: str,
-    body: dict,
+    body: UpdateUserRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN)),
 ):
-    """修改用户角色或状态。"""
+    """修改用户角色或状态。
+
+    返回 404/400 而不是 200 + {"detail": ...}：前端拿到 200 就会当成修改成功。
+    """
     r = await db.execute(select(User).where(User.id == user_id))
     user = r.scalar_one_or_none()
     if not user:
-        return {"detail": "用户不存在"}
+        raise HTTPException(status_code=404, detail="用户不存在")
 
-    if "role" in body:
+    new_role = user.role
+    if body.role is not None:
         try:
-            user.role = UserRole(body["role"])
+            new_role = UserRole(body.role)
         except ValueError:
-            return {"detail": f"无效角色: {body['role']}"}
-    if "is_active" in body:
-        user.is_active = bool(body["is_active"])
+            raise HTTPException(status_code=400, detail=f"无效角色: {body.role}")
+
+    new_active = user.is_active if body.is_active is None else body.is_active
+
+    # 不能把最后一个管理员降级或停用，否则没人能再进后台
+    demoting = user.role == UserRole.ADMIN and (
+        new_role != UserRole.ADMIN or not new_active
+    )
+    if demoting:
+        admins_left = (await db.execute(
+            select(func.count()).select_from(User)
+            .where(User.role == UserRole.ADMIN, User.is_active.is_(True))
+        )).scalar() or 0
+        if admins_left <= 1:
+            raise HTTPException(status_code=400, detail="不能停用/降级最后一个管理员")
+
+    user.role = new_role
+    user.is_active = new_active
 
     await db.commit()
     return {"id": user.id, "role": user.role.value, "is_active": user.is_active}
@@ -231,16 +256,10 @@ async def student_overview(
         .limit(100)
     )
     students = []
-    # 预加载所有学生的通过数（去重：同一知识点只算一次）
-    from app.models.profile import LearningEvent
-    event_counts = {}
-    all_events = (await db.execute(
-        select(LearningEvent.user_id, func.count(func.distinct(LearningEvent.concept)))
-        .where(LearningEvent.event_type == "exercise_passed")
-        .group_by(LearningEvent.user_id)
-    )).all()
-    for uid, cnt in all_events:
-        event_counts[uid] = cnt
+    # 通过数 = 计分通过的不重复**题目**数（以前按 concept 去重，
+    # 同一知识点下做对两题只算一次，看答案得 0 分的也算通过）
+    from app.services.exercise_stats import passed_count_by_user
+    event_counts = await passed_count_by_user(db)
 
     for user, profile in r:
         students.append({
@@ -294,31 +313,17 @@ async def admin_exercises(
     )
     exercises = r.scalars().all()
 
-    # 从 LearningEvent 统计每个题目的使用次数和通过率
-    from app.models.profile import LearningEvent
-    stats_map = {}
-    all_events = (await db.execute(
-        select(LearningEvent.concept, LearningEvent.event_type, func.count())
-        .where(LearningEvent.event_type.in_(["exercise_passed", "exercise_failed"]))
-        .group_by(LearningEvent.concept, LearningEvent.event_type)
-    )).all()
-    for concept, etype, cnt in all_events:
-        if concept not in stats_map:
-            stats_map[concept] = {"total": 0, "passed": 0}
-        stats_map[concept]["total"] += cnt
-        if etype == "exercise_passed":
-            stats_map[concept]["passed"] += cnt
+    # 按 exercise_id 统计每道题的使用次数和通过率。
+    # 以前按 concept 聚合：同一知识点下的所有题共享同一份数字，题目越多错得越多。
+    from app.services.exercise_stats import aggregate_by_exercise, load_attempt_events
+
+    stats_map = aggregate_by_exercise(await load_attempt_events(db))
 
     result = []
     for e in exercises:
-        total = 0
-        passed = 0
-        if e.concepts:
-            for c in e.concepts.split(","):
-                c = c.strip()
-                if c in stats_map:
-                    total += stats_map[c]["total"]
-                    passed += stats_map[c]["passed"]
+        stat = stats_map.get(e.id, {})
+        total = stat.get("attempts", 0)
+        passed = stat.get("passed", 0)
         result.append({
             "id": e.id, "title": e.title, "difficulty": e.difficulty,
             "concepts": e.concepts, "source": e.source,

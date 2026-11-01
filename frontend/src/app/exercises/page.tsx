@@ -23,7 +23,8 @@ export default function ExercisesPage() {
   const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => { loadUser(); loadExercises(); loadPassed(); }, []);
+  useEffect(() => { loadUser(); loadPassed(); }, []);
+  // 加载题库只跟着难度走：之前 mount 时两处一起调，首次进入会请求两次
   useEffect(() => { loadExercises(); }, [store.difficulty]);
 
   // 判定"通过"的唯一口径：必须有测试结果、用例数 > 0、且全部通过。
@@ -80,11 +81,9 @@ export default function ExercisesPage() {
       const res = await fetch(`${API_BASE_URL}/exercises/${store.selected.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          code: store.userCode,
-          used_hints: displayedHintLevel,       // 仅作下限参考，服务端以事件记录为准
-          viewed_solution: store.showSolution,
-        }),
+        // 只提交代码。提示次数和"是否看过答案"由服务端 LearningEvent 统计，
+        // 带上 used_hints / viewed_solution 反而会让粘住的 showSolution 把分数压成 0
+        body: JSON.stringify({ code: store.userCode }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || typeof data !== "object") {

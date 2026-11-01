@@ -71,7 +71,9 @@ async def teacher_overview(
     mc_rows = (await db.execute(
         select(Misconception.code, Misconception.name, sa_func.count(MisconceptionEvent.id))
         .join(Misconception, MisconceptionEvent.misconception_id == Misconception.id, isouter=True)
-        .group_by(Misconception.code)
+        # PostgreSQL 要求 SELECT 的非聚合列都出现在 GROUP BY 里；
+        # 只按 code 分组、却选了 name，SQLite 放过、PostgreSQL 直接报错。
+        .group_by(Misconception.code, Misconception.name)
         .order_by(sa_func.count(MisconceptionEvent.id).desc())
     )).all()
     misconception_stats = [

@@ -12,6 +12,7 @@
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -21,6 +22,17 @@ from app.security.password import hash_password, verify_password
 from app.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+# 邮箱不存在时也走一遍 bcrypt 的占位哈希（值本身无意义，只为对齐耗时）。
+# 延迟生成：模块导入时不付这 ~250ms。
+_dummy_hash: str | None = None
+
+
+def _get_dummy_hash() -> str:
+    global _dummy_hash
+    if _dummy_hash is None:
+        _dummy_hash = hash_password("dummy-password-for-timing")
+    return _dummy_hash
 
 
 # =============================================================================
@@ -72,7 +84,17 @@ async def register_user(
         display_name=request.display_name,
     )
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        # 并发注册同一邮箱：上面的查询只会有一个请求先通过，另一个撞唯一索引。
+        # 不捕获的话用户看到的是 500。
+        await db.rollback()
+        logger.warning("register_email_exists_race", email=request.email)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="该邮箱已被注册",
+        )
     await db.refresh(user)  # 获取数据库生成的 id、created_at 等
 
     # 步骤 3.5：创建学习画像（SRS FR-PROFILE-001）
@@ -135,7 +157,18 @@ async def login_user(
     user = result.scalar_one_or_none()
 
     # 步骤 2：验证（统一错误提示，防止枚举攻击）
-    if user is None or not verify_password(password, user.password_hash):
+    if user is None:
+        # 邮箱不存在时也要跑一次 bcrypt：直接短路会让"存在"比"不存在"慢
+        # 几十毫秒，攻击者据此就能判断哪些邮箱注册过。
+        verify_password(password, _get_dummy_hash())
+        logger.warning("login_failed", email=email)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="邮箱或密码错误",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(password, user.password_hash):
         logger.warning("login_failed", email=email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

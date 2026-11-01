@@ -13,6 +13,22 @@ class ExerciseGenerateRequest(BaseModel):
     count: int = Field(default=1, ge=1, le=3, description="生成数量")
 
 
+class SubmitExerciseRequest(BaseModel):
+    """提交答案请求。
+
+    只接受代码本身。提示次数和"是否看过答案"由服务端 LearningEvent 统计，
+    前端传来的 used_hints / viewed_solution 一律忽略（Pydantic 默认丢弃额外字段）。
+    """
+    code: str = Field(..., min_length=1, max_length=20_000, description="学生的 Python 代码")
+
+
+class ExerciseHintRequest(BaseModel):
+    """分层提示请求。"""
+    hint_level: int = Field(default=1, ge=1, le=5, description="提示等级 1-5")
+    code: str = Field(default="", max_length=20_000, description="当前代码（可选）")
+    failed_info: str = Field(default="", max_length=4_000, description="失败信息（可选）")
+
+
 class TestCaseSchema(BaseModel):
     """测试用例。"""
     input_data: str | None = None

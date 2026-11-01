@@ -46,11 +46,8 @@ export default function ChatPage() {
   const [runningCode, setRunningCode] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-  const [reasoningMode, setReasoningMode] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [menuSession, setMenuSession] = useState<string | null>(null);
-  const [pinnedSessions, setPinnedSessions] = useState<Set<string>>(new Set());
   const [customInput, setCustomInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -72,18 +69,19 @@ export default function ChatPage() {
     try { const s = await chatAPI.getSession(id); chatStore.setMessages(s.messages || []); } catch {}
   };
 
-  const startRename = (s: any) => { setMenuSession(null); setEditingSession(s.id); setEditTitle(s.title || ""); };
+  const startRename = (s: any) => { setEditingSession(s.id); setEditTitle(s.title || ""); };
   const saveRename = async () => {
     if (!editingSession || !editTitle.trim()) { setEditingSession(null); return; }
     try { await chatAPI.renameSession(editingSession, editTitle.trim()); setSessions((p) => p.map((s) => s.id === editingSession ? { ...s, title: editTitle.trim() } : s)); } catch {}
     setEditingSession(null);
   };
-  const deleteSession = async (id: string) => { /* unchanged */ };
-  const togglePin = (id: string) => { setMenuSession(null); setPinnedSessions((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); };
-
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const aPin = pinnedSessions.has(a.id) ? 1 : 0; const bPin = pinnedSessions.has(b.id) ? 1 : 0; return bPin - aPin;
-  });
+  const deleteSession = async (id: string) => {
+    try {
+      await chatAPI.deleteSession(id);
+      setSessions((p) => p.filter((s) => s.id !== id));
+      if (activeSession === id) newSession();
+    } catch {}
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
@@ -91,7 +89,7 @@ export default function ChatPage() {
     chatStore.addMessage(userMsg); setInput(""); setSending(true);
     try {
       const sid = await ensureSession();
-      const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
+      const chatRes = await chatAPI.sendMessage(sid, content);
       const ai = chatRes.ai_response || {};
       chatStore.addMessage({
         role: "assistant",
@@ -136,9 +134,27 @@ export default function ChatPage() {
           <button onClick={newSession} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-2.5 rounded-xl text-sm font-medium hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/15"><PlusIcon /> 新对话</button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {sortedSessions.map((s) => (
+          {sessions.map((s) => (
             <div key={s.id} className={`group flex items-center rounded-xl transition-all relative ${activeSession === s.id ? "bg-indigo-500/10" : "hover:bg-white/[0.04]"}`}>
-              <button onClick={() => { setMenuSession(null); loadSession(s.id); }} className="flex-1 text-left px-3 py-2.5 text-sm truncate text-slate-400">{s.title || "未命名"}</button>
+              {editingSession === s.id ? (
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={saveRename}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setEditingSession(null); }}
+                  className="flex-1 mx-2 my-1 px-2 py-1 text-sm bg-white/[0.06] border border-indigo-500/30 rounded-lg text-slate-200 outline-none"
+                />
+              ) : (
+                <button onClick={() => loadSession(s.id)} onDoubleClick={() => startRename(s)} className="flex-1 text-left px-3 py-2.5 text-sm truncate text-slate-400">{s.title || "未命名"}</button>
+              )}
+              {editingSession !== s.id && (
+                <button
+                  onClick={() => deleteSession(s.id)}
+                  title="删除会话"
+                  className="opacity-0 group-hover:opacity-100 px-2 py-1 mr-1 text-xs text-slate-500 hover:text-rose-400 transition-opacity"
+                >✕</button>
+              )}
             </div>
           ))}
         </div>

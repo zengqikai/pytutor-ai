@@ -104,7 +104,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             else:
                 logger.info("knowledge_base_already_present")
     except Exception as e:
-        logger.warning("schema_init_failed", error=str(e)[:200])
+        # 开发环境允许"带病启动"（比如本地库还没迁移，方便静态调试）；
+        # 生产环境表/种子没建起来，应用起来也是错的，必须直接启动失败。
+        logger.error("schema_init_failed", error=str(e)[:200])
+        if settings.app_env.lower() == "production":
+            raise
 
     # 重建 RAG 检索索引（TF-IDF 从 DB 加载到内存；向量索引复用 ChromaDB 持久化数据）
     # 注：不使用 rag_service.rebuild_index() 以避免启动时触发 embedding API 调用
@@ -131,6 +135,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 )
             logger.info("tfidf_index_rebuilt", chunk_count=len(rows))
     except Exception as e:
+        # 索引重建失败不致命：聊天会退化成无 RAG，但服务仍可用
         logger.warning("tfidf_rebuild_failed", error=str(e))
 
     # 初始化 Embedding 服务（DashScope API，chromadb 可能不可用则跳过）
@@ -235,14 +240,18 @@ def create_app() -> FastAPI:
             exc_info=True,  # 记录完整堆栈信息
         )
 
+        # 细节只给开发环境。生产环境哪怕 DEBUG 被误配成 true 也不能把
+        # 异常字符串（可能含 SQL、路径、密钥片段）返回给客户端。
+        expose_detail = settings.debug and settings.app_env.lower() != "production"
+
         return JSONResponse(
             status_code=500,
             content={
                 "data": None,
-                "message": "服务器内部错误" if not settings.debug else str(exc),
+                "message": str(exc) if expose_detail else "服务器内部错误",
                 "error": {
                     "type": type(exc).__name__,
-                    "detail": str(exc) if settings.debug else "请联系管理员",
+                    "detail": str(exc) if expose_detail else "请联系管理员",
                 },
             },
         )
@@ -281,7 +290,8 @@ def create_app() -> FastAPI:
                 "api": "healthy",
                 "database": db_status,
             },
-            "error": db_error,
+            # 健康检查是公开端点，生产环境不回显数据库错误细节
+            "error": db_error if (settings.debug and settings.app_env.lower() != "production") else None,
             "timestamp": datetime.utcnow().isoformat(),
         }
 

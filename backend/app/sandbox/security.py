@@ -34,13 +34,36 @@ FORBIDDEN_FUNCTIONS = [
 ]
 
 
-def check_code_safety(code: str) -> Tuple[bool, str]:
+# 子进程模式没有文件系统隔离，额外拦截这几类能直接读服务端文件的写法。
+# 注意：这仍然只是"抬高门槛"，不是安全边界——真正的隔离只有 Docker。
+STRICT_FORBIDDEN_MODULES = ["importlib", "runpy", "pkgutil", "importlib.util"]
+STRICT_FORBIDDEN_PATTERNS = [
+    (r"\bopen\s*\(", "子进程模式禁止文件读写（open）"),
+    (r"\b__builtins__\b", "禁止访问 __builtins__"),
+    (r"\bsys\s*\.\s*modules\b", "禁止访问 sys.modules"),
+    (r"\bglobals\s*\(", "禁止使用 globals()"),
+    (r"\blocals\s*\(", "禁止使用 locals()"),
+    (r"\bvars\s*\(", "禁止使用 vars()"),
+]
+
+
+def check_code_safety(code: str, strict: bool = False) -> Tuple[bool, str]:
     """
     静态检查代码安全性。
     返回 (is_safe, reason): True=安全，False=拦截原因。
+
+    strict=True 供 subprocess 模式使用：额外禁止文件访问和模块动态加载。
     """
     # 去掉注释和字符串后再检查，减少误杀
     cleaned = _remove_strings_and_comments(code)
+
+    if strict:
+        for module in STRICT_FORBIDDEN_MODULES:
+            if re.search(rf"\b(?:import|from)\s+{re.escape(module)}\b", cleaned):
+                return False, f"子进程模式禁止导入模块: {module}"
+        for pattern, reason in STRICT_FORBIDDEN_PATTERNS:
+            if re.search(pattern, cleaned):
+                return False, reason
 
     # 1. 检查危险模块导入
     for module in FORBIDDEN_MODULES:

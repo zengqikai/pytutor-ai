@@ -21,7 +21,7 @@ pydantic-settings 是 pydantic 的扩展，专门用于管理应用配置。
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -208,6 +208,14 @@ class Settings(BaseSettings):
         default=10, ge=1,
         description="注册/登录每分钟每 IP 的最大请求数（防爆破）。",
     )
+    TRUST_PROXY_HEADERS: bool = Field(
+        default=False,
+        description=(
+            "是否采信 X-Forwarded-For。默认 False：直连部署时该头可以被客户端"
+            "随便伪造，每个请求换一个假 IP 就能绕过登录限流。只有确定前面有"
+            "可信反向代理（且会覆写该头）时才设为 True。"
+        ),
+    )
 
     # ==============================
     # Feature Flags（算法优化开关）
@@ -308,6 +316,26 @@ class Settings(BaseSettings):
         # 额外的环境变量前缀（可选，例如所有变量都以 TUTOR_ 开头）
         # env_prefix="TUTOR_",
     )
+
+    @model_validator(mode="after")
+    def _validate_production(self) -> "Settings":
+        """生产环境不允许带着开发默认值启动。
+
+        DEBUG=True 会把异常字符串直接吐给客户端，默认 secret_key 等于谁都能
+        伪造 JWT——这两种情况在 development 下无所谓，在 production 下必须直接
+        启动失败，而不是"跑起来再说"。
+        """
+        if self.app_env.lower() != "production":
+            return self
+
+        problems = []
+        if self.debug:
+            problems.append("DEBUG 必须设为 false")
+        if self.secret_key in ("", "change-me-to-a-random-string") or len(self.secret_key) < 32:
+            problems.append("SECRET_KEY 必须换成 ≥32 位的随机字符串")
+        if problems:
+            raise ValueError("生产环境配置不安全：" + "；".join(problems))
+        return self
 
 
 # =============================================================================

@@ -248,6 +248,8 @@ OnboardingModal（4 选项）
   `unavailable`，只能演示聊天/RAG；完整判题需本地或 Docker Compose。
 - 进程内限流 `backend/app/core/rate_limit.py`：普通 API 120 次/分/IP，登录注册
   10 次/分/IP（`RATE_LIMIT_ENABLED` 可关）。多 worker 时每个进程各算一份。
+- `X-Forwarded-For` **默认不信任**（`TRUST_PROXY_HEADERS=false`），否则伪造该头即可
+  一条请求换一个 IP 绕过限流。只有服务放在自己控制的反向代理后面才打开。
 - 空库必须 `alembic upgrade head`；生产不跑 `create_all()`。CI 会用空库验证迁移链。
 
 ## 判题与奖励
@@ -256,6 +258,12 @@ OnboardingModal（4 选项）
 - 首次奖励幂等：`rewarded = all_passed and score_pct > 0 and already_passed == 0`。
 - 提示次数、看答案行为由服务端 `LearningEvent` 统计（`hint_requested` / `solution_viewed`），
   不信任前端传来的 `used_hints` / `viewed_solution`。
+- **本次是否看了答案**不能用"往事件表里倒序扫"判断：SQLite `CURRENT_TIMESTAMP` 只到秒，
+  UUID 主键也没有时间序。做法是累计计数：`solution_viewed` 总数 > 此前尝试
+  `detail_json` 里记录的 `solution_views_total` 才算本次看过。
+- 本次看过答案 → `score_pct = 0`、不发首通奖励（`exercise_passed` 不写入）。
+- 答题事件统一走 `backend/app/services/exercise_stats.py`（`load_attempt_events` /
+  `is_counted_pass` / `passed_exercise_ids`），不要再在路由里各写一份 SQL。
 - 参考答案闸门：学生需通过该题或累计尝试 ≥3 次（`SOLUTION_ATTEMPT_THRESHOLD`），教师/管理员不限。
 
 ## 画像字段格式
@@ -303,3 +311,45 @@ C2 都未优于 C1（配对差为负，95% CI 含 0），不能宣称证据注�
 
 `docs/REPRODUCIBILITY.md` 记录了基线提交、开关矩阵、数据库路径规则、数据集哈希、
 评测口径和"已实现/已启用/已验证"对照表。改数据集或开关后请同步更新。
+
+---
+
+# 工程边界补充（2026-11 全量代码审计）
+
+## 沙箱执行（`backend/app/sandbox/`）
+
+- 子进程**只继承白名单环境变量**（`PATH/SYSTEMROOT/WINDIR/COMSPEC/TEMP/TMP/HOME/
+  USERPROFILE/LANG/LC_ALL` + `PYTHONIOENCODING/PYTHONUTF8/PYTHONHASHSEED`）。
+  不要再传 `os.environ`：学生会读到 `DEEPSEEK_API_KEY` / `DASHSCOPE_API_KEY`。
+- 公开入口（`execute_student_code` / `execute_student_code_plain`）一律 `strict=True`：
+  额外拦截 `open(`、`__builtins__`、`sys.modules`、`globals/locals/vars`、
+  `importlib` / `runpy` / `pkgutil`。命中返回 `status="blocked"`，不执行。
+- 超时 10s、输出上限 100KB（`MAX_OUTPUT_SIZE`），超限截断并在 stdout 末尾加提示；
+  超时在 Windows 用 `taskkill /T` 杀整棵进程树（`sandbox/process.py`）。
+- 每次运行用独立临时目录作 cwd，`importlib` 白名单外的东西读不到项目文件。
+- Docker 容器名带 `uuid4` 片段，超时与 `finally` 都 `docker rm -f`；绝不要用固定容器名。
+
+## 聊天（`services/chat_service.py`）
+
+- 模型名必须过 `resolve_model_choice()`：只接受 `deepseek-chat` / `deepseek-v4-pro`
+  （可带 `deepseek/` 前缀），其它一律 400。不要直接把请求里的 `model` 透传给 litellm。
+- 用户消息在进入 RAG/LLM 前先 `commit + refresh`；RAG 失败只降级不 rollback；
+  LLM 失败走 `_recover_user_message()` 后返回 503，保证消息不丢。
+
+## RAG 写入/删除（`services/rag_service.py`、`api/v1/rag.py`）
+
+- 向量写入/删除必须 `await asyncio.to_thread(...)`（DashScope 的 `httpx` 是同步的）。
+- `ingest_document` 用循环里拿到的 chunk 对象构造向量数据，**不要**读 `doc.chunks`
+  ——async 会话里未加载的 relationship 会抛 `MissingGreenlet`，接口 500、启动种子写不进向量库。
+- 删除文档要三处一起清：DB `RAGChunk` → TF-IDF `remove_chunk` → ChromaDB `delete_chunks`。
+- `POST /rag/documents` 的 `chunk_count` 取 `getattr(doc, "_chunk_count", 0)`，不查 relationship。
+
+## 鉴权与配置
+
+- `POST /exercises/seed-mc-exercises` 仅 admin/teacher；幂等比对用带 `[M1]` 前缀的完整标题，
+  并顺手清掉历史重复行。
+- `TRUST_PROXY_HEADERS` 默认 `false`。
+- `APP_ENV=production` 启动校验：拒绝 `DEBUG=true`、拒绝弱/短 `SECRET_KEY`；
+  500 响应与 `/health` 不回显异常详情；lifespan 异常在生产直接抛出终止启动。
+- 登录失败路径对不存在的用户也跑一次 bcrypt（`_get_dummy_hash()`），避免邮箱枚举；
+  注册 `IntegrityError` 返回 409。

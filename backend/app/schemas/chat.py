@@ -46,6 +46,16 @@ class SendMessageRequest(BaseModel):
     model: str | None = Field(default=None, description="模型选择：默认 deepseek-chat，可选 deepseek-v4-pro")
 
 
+class RenameSessionRequest(BaseModel):
+    """重命名会话请求。"""
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="新标题",
+    )
+
+
 # =============================================================================
 # 响应 Schema
 # =============================================================================

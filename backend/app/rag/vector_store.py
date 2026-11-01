@@ -111,6 +111,28 @@ def add_chunks(chunks: list[dict]) -> int:
     return len(chunks)
 
 
+def delete_chunks(chunk_ids: list[str]) -> int:
+    """从向量库删除指定 chunk（删文档/重建索引时用）。
+
+    ChromaDB 的 delete 对不存在的 id 是幂等的，所以重复调用安全。
+    """
+    if not chunk_ids:
+        return 0
+
+    collection = get_collection()
+    if collection is None:
+        return 0
+
+    try:
+        collection.delete(ids=list(chunk_ids))
+    except Exception as e:
+        logger.error("vector_delete_failed", count=len(chunk_ids), error=str(e)[:200])
+        return 0
+
+    logger.info("chunks_deleted_from_vectordb", count=len(chunk_ids))
+    return len(chunk_ids)
+
+
 # =============================================================================
 # 检索
 # =============================================================================
@@ -132,7 +154,7 @@ def search(
         return []
 
     collection = get_collection()
-    if collection.count() == 0:
+    if collection is None or collection.count() == 0:
         return []
 
     try:
@@ -175,7 +197,7 @@ async def search_async(
         return []
 
     collection = get_collection()
-    if collection.count() == 0:
+    if collection is None or collection.count() == 0:
         return []
 
     # 异步获取查询向量

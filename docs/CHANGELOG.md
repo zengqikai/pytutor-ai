@@ -960,3 +960,67 @@ Top-5 上下文 251 → 315 token（估算）。Hybrid 仍与向量一致（`ENA
 | 修改 | `docs/FAITHFULNESS-SPOTCHECK.md` | 抽样说明改为每桶 5 条、固定 seed、脚本路径 |
 
 **口径**：图中右栏仍只画同集卡片；留出集只进表格与 CSV，避免读者把 25/30 误读成同集结果。
+
+### Step 62 — 全量代码审计修复（功能可用性 / 数据正确性 / 安全边界）
+
+审计范围：后端全部路由与服务、沙箱三层、RAG 写入删除、前端练习与对话页。
+原则：先补能复现问题的测试，再改代码；不含论文/证据类内容。
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/sandbox/process.py` | 输出限额读取 `communicate_with_limit`；Windows `taskkill /T` 杀进程树 |
+| 修改 | `backend/app/sandbox/executor.py` | 合并为单一 `_run_python`；环境变量白名单；独立临时目录作 cwd；强制 `strict=True`；输出上限 100KB |
+| 修改 | `backend/app/sandbox/security.py` | `STRICT_FORBIDDEN_MODULES/PATTERNS`；`check_code_safety(code, strict)` |
+| 修改 | `backend/app/sandbox/docker_executor.py` | 容器名带 `uuid4`；超时与 `finally` 都 `docker rm -f`；输出限额 |
+| 修改 | `backend/app/services/chat_service.py` | `resolve_model_choice()` 白名单；用户消息先落库；RAG 失败不 rollback；LLM 失败 `_recover_user_message()` + 503 |
+| 修改 | `backend/app/api/v1/chat.py` / `schemas/chat.py` | 删除返回 404/403；改名用 `RenameSessionRequest`（1–100 字符） |
+| 修改 | `backend/app/services/rag_service.py` / `rag/vector_store.py` | 向量写入改 `asyncio.to_thread`；新增 `delete_chunks`；`search` 在 collection 为空时安全返回 |
+| 修改 | `backend/app/api/v1/rag.py` | 导入/删除/详情走 404；删除三处一起清；`chunk_count` 不再读 lazy relationship；列表用 `GROUP BY` 计数 |
+| 修改 | `backend/app/api/v1/exercises.py` / `schemas/exercise.py` | 请求体模型化并限长；按 `solution_views_total` 判定"本次看答案"；`exercise_stats` 统一统计 |
+| 新增 | `backend/app/services/exercise_stats.py` | 答题事件读取/聚合：`load_attempt_events`、`is_counted_pass`、`passed_exercise_ids`、`passed_count_by_user` |
+| 修改 | `backend/app/api/v1/admin.py` / `profile.py` / `teacher.py` | 按题目而非概念统计；批量取用户；`group_by` 补全字段；最后一个管理员不可降级/禁用 |
+| 修改 | `backend/app/api/v1/misconception_exercises.py` | 种子接口限 admin/teacher；幂等比对带前缀标题；清理历史重复行 |
+| 修改 | `backend/app/core/config.py` / `rate_limit.py` | `TRUST_PROXY_HEADERS` 默认 false；生产配置校验（debug/弱密钥直接拒绝） |
+| 修改 | `backend/app/main.py` | 生产不回显异常详情；lifespan 异常在生产重新抛出 |
+| 修改 | `backend/app/services/auth_service.py` / `code_service.py` / `exercise_service.py` / `misconception_service.py` | 登录 dummy bcrypt；注册并发 409；代码运行校验会话/题目归属；参考解答预检；服务层只 `flush` 不 `commit` |
+| 修改 | `frontend/src/app/exercises/page.tsx` / `page.tsx` / `lib/api.ts` / `lesson-player.tsx` | 练习列表去重请求；提交体只传 `code`；删除/重命名会话实现；去掉死 SSE 代码；进度越界钳制 |
+| 新增测试 | `tests/test_chat_resilience.py` / `test_rag_ingest.py` / `test_exercise_scoring.py` / `test_seed_mc_exercises.py` | 13 个用例覆盖下列每个 Bug |
+| 修改测试 | `tests/test_onboarding_profile.py` / `test_rate_limit.py` | 适配请求体模型；新增伪造 XFF 不能绕过限流的用例 |
+
+**Bug 修复**:
+- Bug #54：`ingest_document` 用 `doc.chunks` 构造向量数据，async 会话里 relationship 未加载
+  抛 `MissingGreenlet` → `POST /rag/documents` 500，启动时知识库种子永远写不进向量库
+- Bug #55：删除 RAG 文档只清 DB 和 TF-IDF，ChromaDB 残留 → 已删文档仍被检索到
+- Bug #56：聊天 RAG 检索异常时 `await db.rollback()`，把尚未提交的用户消息一并回滚，
+  随后 `refresh` 抛 `InvalidRequestError`，整轮对话 500
+- Bug #57：LLM 生成失败分支先 rollback 再 commit，看似"保存用户消息"，实际什么都没保存
+- Bug #58：`SendMessageRequest.model` 任意字符串直接透传给 litellm，`openai/gpt-4o` 也能通；
+  且 `model=None` 时回落到 `request.model` 再次绕过校验
+- Bug #59：看过参考答案后同一次提交仍拿满分与首次通关奖励。原实现靠"倒序扫描事件"，
+  而 SQLite `CURRENT_TIMESTAMP` 只到秒、UUID 主键无时间序，判定不可靠 → 改单调计数
+- Bug #60：管理端"已完成题目"按 `concept` 去重、`/me/passed` 只取最近 50 条，
+  多用户时还会串数据 → 统一按 `user_id + exercise_id` 聚合
+- Bug #61：误区专项练习种子接口无鉴权，学生也能写库；幂等判断拿无前缀 `title` 比
+  入库的 `[M1] 标题`，永远不相等 → 每调用一次多插 16 道题
+- Bug #62：沙箱子进程继承完整环境变量，学生代码可 `os.environ["DEEPSEEK_API_KEY"]` 读到密钥
+- Bug #63：strict 安全检查未接入，`open('.env')`、`importlib` 可执行；超时/输出上限
+  只在部分路径生效 → 公开入口统一 `strict=True` + 100KB 截断
+- Bug #64：Docker 容器名固定，并发运行互相顶掉；超时只 kill 进程不删容器，留下僵尸容器
+- Bug #65：限流默认信任 `X-Forwarded-For`，客户端伪造该头即可每条请求换一个 IP
+- Bug #66：生产环境可带着 `DEBUG=true` 或弱 `SECRET_KEY` 启动；500 响应与 `/health`
+  在任何环境都回显异常详情；lifespan 初始化异常被 `try/except` 吞掉
+- Bug #67：登录时用户不存在直接返回，bcrypt 时间差可枚举已注册邮箱；并发同邮箱注册
+  撞唯一键抛 500 而不是 409
+- Bug #68：删除会话/文档、管理员改用户等接口返回 `200 + {"detail": ...}`，前端无法区分失败；
+  管理员可把最后一个管理员降级或禁用，锁死后台
+- Bug #69：请求体无校验：会话改名可为空/超长，提交代码无长度上限，
+  `hint_level` 可越界；`used_hints` / `viewed_solution` 由前端传入即可影响评分
+- Bug #70：代码运行接口不校验 `session_id` / `exercise_id` 归属与存在性 →
+  可把消息写进别人的会话或不存在的题目
+- Bug #71：参考解答从不预检，测试用例写错的坏题会直接发给学生 → 发布前跑一遍，
+  不过则置 `is_published=False` 并跳过，不返回给前端
+- Bug #72：前端练习中心在 `store` 每次变化时重拉题目列表；提交体字段与后端不一致；
+  会话删除/重命名只有 UI 没有实现；本地进度越界时 `lesson-player` 直接白屏
+
+**测试结果**：**267 passed, 12 deselected**；`ruff --select E9,F63,F7,F82 app tests` 通过；
+`tsc --noEmit` 无错误；`TestClient` 启动 lifespan 后 `/api/v1/health` → `api/database healthy`。

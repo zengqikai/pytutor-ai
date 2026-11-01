@@ -21,8 +21,13 @@ function loadProgress(userId: string, startLessonId?: string) {
     const raw = localStorage.getItem(getStorageKey(userId));
     if (raw) {
       const saved = JSON.parse(raw);
+      // 课程数据改版后旧进度可能越界（lessonIdx/stepIdx 指向已不存在的课）。
+      // 不夹紧的话 lesson 为 undefined，组件直接 return null —— 整页空白。
       if (typeof saved.lessonIdx === "number" && typeof saved.stepIdx === "number") {
-        return saved;
+        const lessonIdx = Math.min(Math.max(0, saved.lessonIdx), TUTORIAL_LESSONS.length - 1);
+        const stepCount = TUTORIAL_LESSONS[lessonIdx]?.steps.length ?? 1;
+        const stepIdx = Math.min(Math.max(0, saved.stepIdx), stepCount - 1);
+        return { lessonIdx, stepIdx };
       }
     }
   } catch {}

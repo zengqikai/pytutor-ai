@@ -8,8 +8,9 @@
 边界：
 - 只在**当前进程**内计数。多 worker / 多实例部署时每人一份计数，
   真实上限是配置值 × 进程数；生产应换成 Redis 或网关层限流。
-- 代理部署时优先取 `X-Forwarded-For` 的第一跳；若代理未清洗该头，
-  客户端可以伪造，因此只应在可信反代后依赖它。
+- `X-Forwarded-For` 默认**不采信**（`TRUST_PROXY_HEADERS=False`）：直连部署下
+  客户端能随便伪造，每个请求换个假 IP 就绕过了登录限流。只有前面确实有可信
+  反向代理并会覆写该头时才打开。
 """
 
 from __future__ import annotations
@@ -31,9 +32,15 @@ SKIP_PREFIXES = ("/api/v1/health", "/docs", "/openapi.json", "/redoc")
 
 
 def client_key(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """客户端标识。
+
+    只有 TRUST_PROXY_HEADERS=True 时才读 `X-Forwarded-For`：直连部署下
+    任何人都能加这个头，每次换一个假 IP 就等于没有限流。
+    """
+    if settings.TRUST_PROXY_HEADERS:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 

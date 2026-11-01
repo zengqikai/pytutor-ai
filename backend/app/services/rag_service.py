@@ -101,6 +101,7 @@ async def ingest_document(
     chunks_data = split_markdown(content, title)
 
     # 步骤 3：创建 chunk 记录并加入索引
+    vector_chunks: list[dict] = []
     for chunk_data in chunks_data:
         tokens = simple_tokenize(chunk_data["content"])
         tokens_str = " ".join(tokens)
@@ -129,20 +130,21 @@ async def ingest_document(
             tokens=tokens_str,
         )
 
-    # 同步写入向量库
-    from app.rag.vector_store import add_chunks as add_to_vector
-
-    vector_chunks = [
-        {
+        vector_chunks.append({
             "chunk_id": chunk.id,
             "content": chunk.content,
             "heading": chunk.heading or "",
             "concepts": concepts or "",
             "difficulty": difficulty,
-        }
-        for chunk in doc.chunks
-    ]
-    add_to_vector(vector_chunks)
+        })
+
+    # 写入向量库。必须用上面本地收集的列表：
+    # `doc.chunks` 是未加载的 lazy relationship，在 async 会话里访问会抛
+    # MissingGreenlet（POST /rag/documents 曾经 500，种子数据也永远没进向量库）。
+    # embedding 走同步 HTTP，放线程池里避免卡住事件循环。
+    from app.rag.vector_store import add_chunks as add_to_vector
+
+    await asyncio.to_thread(add_to_vector, vector_chunks)
 
     logger.info(
         "document_ingested",
@@ -204,7 +206,8 @@ async def rebuild_index(db: AsyncSession) -> int:
         }
         for chunk, doc in rows
     ]
-    rebuild_from_db(all_chunks_for_vector)
+    # 同 ingest：embedding 是同步 HTTP 调用，放到线程池里执行
+    await asyncio.to_thread(rebuild_from_db, all_chunks_for_vector)
 
     logger.info("index_rebuilt", tfidf_count=count, vector_count=len(all_chunks_for_vector))
     return count

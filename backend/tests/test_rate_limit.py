@@ -8,10 +8,11 @@ from app.core.config import settings
 from app.core.rate_limit import RateLimitMiddleware
 
 
-def make_client(monkeypatch, api_limit=2, auth_limit=1, enabled=True):
+def make_client(monkeypatch, api_limit=2, auth_limit=1, enabled=True, trust_proxy=False):
     monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", enabled)
     monkeypatch.setattr(settings, "RATE_LIMIT_PER_MINUTE", api_limit)
     monkeypatch.setattr(settings, "AUTH_RATE_LIMIT_PER_MINUTE", auth_limit)
+    monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", trust_proxy)
 
     app = FastAPI()
     app.add_middleware(RateLimitMiddleware)
@@ -62,7 +63,16 @@ def test_disable_switch(monkeypatch):
 
 
 def test_clients_are_counted_separately(monkeypatch):
-    client = make_client(monkeypatch, api_limit=1)
+    """可信反代场景：TRUST_PROXY_HEADERS=True 时按 X-Forwarded-For 分桶。"""
+    client = make_client(monkeypatch, api_limit=1, trust_proxy=True)
     assert client.get("/api/v1/ping", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 200
     assert client.get("/api/v1/ping", headers={"X-Forwarded-For": "2.2.2.2"}).status_code == 200
     assert client.get("/api/v1/ping", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 429
+
+
+def test_forwarded_for_is_ignored_by_default(monkeypatch):
+    """默认不采信 X-Forwarded-For：伪造头换 IP 不能绕过登录限流。"""
+    client = make_client(monkeypatch, auth_limit=1)
+    assert client.post("/api/v1/auth/login", headers={"X-Forwarded-For": "1.1.1.1"}).status_code == 200
+    resp = client.post("/api/v1/auth/login", headers={"X-Forwarded-For": "9.9.9.9"})
+    assert resp.status_code == 429

@@ -64,6 +64,25 @@ alembic upgrade head
 多 worker / 多实例时每个进程各算一份，真实上限是配置 × 进程数。公网部署应换成
 Redis 或网关限流；本实现只用于单实例和开发环境。
 
+### 5.1 客户端 IP 与反向代理
+
+限流按客户端 IP 计数。`X-Forwarded-For` **默认不信任**（`TRUST_PROXY_HEADERS=false`）：
+客户端可以任意伪造该头，信任它等于让人一条请求换一个 IP 绕过限流。
+
+只有把服务放在自己控制的反向代理后面（Render/Render Cron、Nginx、Cloudflare 等会覆盖
+而不是透传该头）时才设 `TRUST_PROXY_HEADERS=true`。判断方法：直连端口时伪造
+`X-Forwarded-For` 必须**不能**改变限流结果（`backend/tests/test_rate_limit.py` 有对应用例）。
+
+### 5.2 生产配置校验
+
+`APP_ENV=production` 时启动期会拒绝以下配置（`config.py` 的 `_validate_production`）：
+
+- `DEBUG=true`
+- `SECRET_KEY` 为空、弱值或短于 32 字符
+
+另外生产环境不再把异常详情写进 500 响应和 `/health` 的 `error` 字段，lifespan 初始化
+异常会直接终止启动（不再 `try/except` 吞掉）。
+
 ## 6. 不可宣称
 
 - "生产级安全"：沙箱只在单机 Docker 下验证过，没有做逃逸测试/资源上限压测。

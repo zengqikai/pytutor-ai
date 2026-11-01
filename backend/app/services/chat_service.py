@@ -31,6 +31,67 @@ from app.services.tutor_service import generate_tutor_response
 
 logger = get_logger(__name__)
 
+# 前端只能选这两个模型。直接把这个字段透传给 litellm 意味着客户端可以写到
+# 任意 provider（例如 "openai/gpt-4o"），既绕开成本控制也会拿别的供应商 key 去请求。
+SUPPORTED_CHAT_MODELS = ("deepseek-chat", "deepseek-v4-pro")
+
+
+def resolve_model_choice(model: str | None) -> str | None:
+    """把前端传来的模型名规范成 litellm 形式（deepseek/xxx），白名单外直接 400。
+
+    前端历史版本传的是裸名（`deepseek-v4-pro`），litellm 不认，会抛
+    "LLM Provider NOT provided"，所以这里统一补上 provider 前缀。
+    """
+    if not model or not model.strip():
+        return None
+
+    name = model.strip()
+    if "/" in name:
+        provider, _, rest = name.partition("/")
+        if provider != "deepseek" or rest not in SUPPORTED_CHAT_MODELS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"不支持的模型：{model}",
+            )
+        return name
+
+    if name not in SUPPORTED_CHAT_MODELS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"不支持的模型：{model}",
+        )
+    return f"deepseek/{name}"
+
+
+async def _recover_user_message(
+    db: AsyncSession,
+    user_msg: ChatMessage,
+    session_id: str,
+    content: str,
+) -> ChatMessage:
+    """AI 生成失败时，保证用户消息已经落库且实例可用。
+
+    之前这里是 `rollback()` + `commit()`：回滚把刚 add 的实例踢出了会话，
+    随后的 commit 什么也没保住，"即使 AI 失败也要保存用户消息"实际没生效。
+    """
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+
+    try:
+        await db.refresh(user_msg)
+        return user_msg
+    except Exception:
+        pass
+
+    # 极端情况（实例已被 rollback 分离）：重建一条再保存
+    recovered = ChatMessage(session_id=session_id, role="user", content=content)
+    db.add(recovered)
+    await db.commit()
+    await db.refresh(recovered)
+    return recovered
+
 
 # =============================================================================
 # 会话管理
@@ -208,6 +269,10 @@ async def send_message(
     )
     is_first_message = (count_result.scalar() or 0) == 0
 
+    # 步骤 1.8：模型白名单（拒绝把任意 provider/model 透传给 litellm）。
+    # 兼容两种传法：显式参数优先，其次是请求体里的 model 字段。
+    model = resolve_model_choice(model or request.model)
+
     # 步骤 2：保存用户消息
     user_msg = ChatMessage(
         session_id=session_id,
@@ -215,6 +280,10 @@ async def send_message(
         content=request.content,
     )
     db.add(user_msg)
+    # 先落库再走 RAG/LLM：retrieve_context 内部会 commit 检索计数，rollback 时
+    # 又会把尚未提交的用户消息一起丢掉（历史上表现为 refresh 抛 InvalidRequestError）。
+    await db.commit()
+    await db.refresh(user_msg)
 
     # 步骤 3：获取对话历史（不含刚保存的用户消息）
     history = []
@@ -249,12 +318,11 @@ async def send_message(
                     session_id=session_id,
                     chunk_count=len(retrieval_result.results),
                 )
-        except (asyncio.TimeoutError, Exception) as e:
+        except Exception as e:
+            # 不 rollback：用户消息上一步已经提交，这里回滚只会白白拆掉后续要用的
+            # 会话状态，还会让 `db.refresh(user_msg)` 抛 InvalidRequestError。
+            # RAG 是可选增强，失败就当作没有上下文。
             RAGBreaker.record_fail()
-            try:
-                await db.rollback()  # 取消/失败可能中断内部 commit，回滚避免污染会话
-            except Exception:
-                pass
             logger.warning("rag_retrieval_failed", session_id=session_id, error=str(e)[:100])
     else:
         logger.info("rag_circuit_open", session_id=session_id)
@@ -447,12 +515,17 @@ async def send_message(
             turn_meta["quality_reviewed"] = True
     except Exception as e:
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))
-        # 即使 AI 失败，用户消息也要保存。先回滚重置会话（可能已被之前的 flush 失败污染）
+        # 即使 AI 失败，用户消息也要保存。用户消息在第 2 步已经提交，
+        # 这里只负责清掉失败事务并让实例可用于响应。
         try:
-            await db.rollback()
-        except Exception:
-            pass
-        await db.commit()
+            user_msg = await _recover_user_message(db, user_msg, session_id, request.content)
+        except Exception as recover_error:
+            logger.error("user_message_recover_failed", session_id=session_id,
+                         error=str(recover_error)[:120])
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="AI 服务暂时不可用，且消息未能保存，请稍后重试",
+            )
         # F6: LLM 不可用但有 AST 误区诊断时，用模板兜底，degrade 而非 fail
         if misconception_result:
             fallback_msg = (
@@ -469,6 +542,7 @@ async def send_message(
             )
             db.add(assistant_msg)
             await db.commit()
+            await db.refresh(assistant_msg)
             return {
                 "user_message": MessageResponse.model_validate(user_msg),
                 "assistant_message": MessageResponse.model_validate(assistant_msg),

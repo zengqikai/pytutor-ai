@@ -393,7 +393,10 @@ async def record_misconception_event(
         logger.warning("profile_misconception_update_failed",
                        user_id=user_id, error=str(exc)[:200])
 
-    await db.commit()
+    # 只 flush 不 commit：这里在请求中途，commit 会把调用方尚未写完的其它
+    # 改动（消息、画像、经验值）一起提前提交，失败时也无法整体回滚。
+    # 统一交给调用方或 get_db 的收尾 commit。
+    await db.flush()
     return event
 
 

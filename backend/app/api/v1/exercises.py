@@ -9,13 +9,20 @@
     POST   /api/v1/exercises/{id}/submit - 提交答案（执行测试用例）
 """
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
 from app.models.exercise import Exercise
 from app.models.user import User, UserRole
-from app.schemas.exercise import ExerciseGenerateRequest, ExerciseResponse
+from app.schemas.exercise import (
+    ExerciseGenerateRequest,
+    ExerciseHintRequest,
+    ExerciseResponse,
+    SubmitExerciseRequest,
+)
 from app.security.dependencies import get_current_user, require_role
 from app.services.exercise_service import generate_exercises, get_exercise, list_exercises
 
@@ -27,6 +34,17 @@ SOLUTION_ATTEMPT_THRESHOLD = 3
 # 只有这些事件才算"尝试过这道题"。hint_requested / solution_viewed 也带
 # exercise_id，若不排除，反复要提示就能凑够次数骗开答案。
 ATTEMPT_EVENT_TYPES = frozenset({"exercise_passed", "exercise_failed", "exercise_retry"})
+
+
+def _event_score(detail_json: str | None) -> int:
+    """从 LearningEvent.detail_json 里取出 score_pct（读不出来按 0 处理）。"""
+
+    if not detail_json:
+        return 0
+    try:
+        return int(json.loads(detail_json).get("score_pct") or 0)
+    except (ValueError, TypeError, AttributeError):
+        return 0
 
 
 def solution_denial_reason(
@@ -78,7 +96,7 @@ async def generate_exercise_list(
 @router.post("/{exercise_id}/hint")
 async def get_exercise_hint(
     exercise_id: str,
-    body: dict,
+    body: ExerciseHintRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -90,11 +108,11 @@ async def get_exercise_hint(
     r = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
     exercise = r.scalar_one_or_none()
     if not exercise:
-        return {"detail": "练习不存在"}
+        raise HTTPException(status_code=404, detail="练习不存在")
 
-    level = body.get("hint_level", 1)
-    user_code = body.get("code", "")
-    failed_info = body.get("failed_info", "")
+    level = body.hint_level
+    user_code = body.code
+    failed_info = body.failed_info
 
     # 2.0: 误区诊断 + 教学策略 → 渐进式提示
     misconception = None
@@ -217,14 +235,14 @@ async def get_exercise_detail(
     is_teacher = current_user.role in (UserRole.INSTRUCTOR, UserRole.ADMIN)
     exercise = await get_exercise(db, exercise_id, include_solution=is_teacher)
     if not exercise:
-        return {"detail": "练习不存在"}
+        raise HTTPException(status_code=404, detail="练习不存在")
     return exercise
 
 
 @router.post("/{exercise_id}/submit")
 async def submit_exercise_answer(
     exercise_id: str,
-    code: dict,
+    body: SubmitExerciseRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -245,9 +263,9 @@ async def submit_exercise_answer(
     )
     exercise = result.scalar_one_or_none()
     if not exercise:
-        return {"detail": "练习不存在"}
+        raise HTTPException(status_code=404, detail="练习不存在")
 
-    user_code = code.get("code", "")
+    user_code = body.code
 
     # ACM 模式：每个测试用例独立执行，stdin 传入 input_data
     from app.sandbox.runner import execute_student_code as _execute
@@ -348,35 +366,43 @@ async def submit_exercise_answer(
     # 联动学习画像：记录事件 + 更新薄弱点 + 独立完成度评分
     from app.services.profile_service import record_event, update_weakness, get_or_create_profile
     from app.models.profile import LearningEvent
-    from sqlalchemy import select, func as _sa_func
+    from sqlalchemy import select
 
     all_passed = passed == total and total > 0
 
     # 独立完成度评分：提示次数/是否看过答案一律以后端事件为准。
-    # 前端传值只作为下限参考——学生的请求体可以改，服务端的账不能。
     event_rows = (await db.execute(
-        select(LearningEvent.event_type, LearningEvent.created_at, LearningEvent.id)
+        select(LearningEvent.event_type, LearningEvent.detail_json)
         .where(
             LearningEvent.user_id == current_user.id,
             LearningEvent.detail_json.like(f'%"{exercise.id}"%'),
         )
-        .order_by(LearningEvent.created_at, LearningEvent.id)
     )).all()
 
     # 提示次数：这道题一共要过几次提示，累计计算——试得越多、要得越多，分越低
-    server_hints = sum(1 for e in event_rows if e[0] == "hint_requested")
+    server_hints = sum(1 for etype, _ in event_rows if etype == "hint_requested")
 
-    # 看答案：只看"上一次提交之后"是否看过。看过一次不等于永久作废，
-    # 学生重新独立做出来仍然应该计分。
-    viewed_in_this_attempt = False
-    for etype, _, _ in reversed(event_rows):
+    # 看答案：判断"本次提交之前有没有看过"，不能靠事件时间排序——
+    # SQLite 的 CURRENT_TIMESTAMP 只有秒级精度，同一秒内的 hint/view/提交
+    # 顺序是不可靠的，UUID 主键也没有时间含义。
+    # 改用累计计数：每次提交把"当时看过答案的总次数"存进 detail，
+    # 下次提交时若当前次数更大，就说明中间看过答案。
+    solution_views_total = sum(1 for etype, _ in event_rows if etype == "solution_viewed")
+    previous_views_baseline = 0
+    for etype, detail_json in event_rows:
         if etype in ATTEMPT_EVENT_TYPES:
-            break
-        if etype == "solution_viewed":
-            viewed_in_this_attempt = True
+            try:
+                stored = int(json.loads(detail_json or "{}").get("solution_views_total") or 0)
+            except (ValueError, TypeError):
+                stored = 0
+            previous_views_baseline = max(previous_views_baseline, stored)
+    viewed_in_this_attempt = solution_views_total > previous_views_baseline
 
-    used_hints = max(server_hints, int(code.get("used_hints", 0) or 0))
-    viewed_solution = viewed_in_this_attempt or bool(code.get("viewed_solution", False))
+    # 只认服务端事件。之前用 max(server_hints, 前端值) 并把前端的
+    # viewed_solution=True 直接采信，前端一个粘住的 showSolution 就能把
+    # 真做对的提交判成 0 分。
+    used_hints = server_hints
+    viewed_solution = viewed_in_this_attempt
 
     if all_passed:
         if viewed_solution:
@@ -391,38 +417,53 @@ async def submit_exercise_answer(
         score_pct = 0        # 未通过 → 0%
         # 未通过时仍记录尝试次数
 
-    # 去重检查：按题目 ID 判断是否首次通过（而非按概念标签）
-    already_passed = (await db.execute(
-        select(_sa_func.count()).select_from(LearningEvent)
-        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed",
+    # "已经通过过"只统计计分通过（score_pct > 0）：
+    # 看答案做出来的提交会记一条 exercise_passed 事件，但从来没真正独立完成；
+    # 若把它算进来，学生之后再独立做对时 already_passed > 0，奖励和
+    # exercise_passed 事件都永远不会再发——被一次看答案永久锁死。
+    prior_pass_events = (await db.execute(
+        select(LearningEvent.detail_json)
+        .where(LearningEvent.user_id == current_user.id,
+               LearningEvent.event_type == "exercise_passed",
                LearningEvent.detail_json.like(f'%"{exercise.id}"%'))
-    )).scalar() or 0
+    )).scalars().all()
+    already_passed = sum(1 for d in prior_pass_events if _event_score(d) > 0)
 
-    # 首次通过该题目才创建 exercise_passed 事件
-    await record_event(db, current_user.id,
-        "exercise_passed" if (all_passed and already_passed == 0) else ("exercise_failed" if not all_passed else "exercise_retry"),
+    counted_pass = all_passed and score_pct > 0
+    first_counted_pass = counted_pass and already_passed == 0
+
+    if first_counted_pass:
+        event_type = "exercise_passed"
+    elif not all_passed:
+        event_type = "exercise_failed"
+    else:
+        # 全对但没计分（看过答案），或已经通过过：只算一次重试，不写通过事件
+        event_type = "exercise_retry"
+
+    await record_event(db, current_user.id, event_type,
         concept=(exercise.concepts.split(",")[0] if exercise.concepts else exercise.title),
         detail={
             "title": exercise.title,
             "exercise_id": exercise.id,
-            "score_pct": score_pct if already_passed == 0 else 0,
+            "score_pct": score_pct,
             "used_hints": used_hints,
             "viewed_solution": viewed_solution,
+            # 下一次提交据此判断"这之间有没有又去看答案"
+            "solution_views_total": solution_views_total,
             # E-FR-02：第 1 层错误大类进画像事件（失败时非空）
             "error_class": error_class,
         })
     profile = await get_or_create_profile(db, current_user.id)
 
-    # 只有"首次通过且计分"才发奖励。重复提交同一道已通过的题不能刷经验、
+    # 只有"首次计分通过"才发奖励。重复提交同一道已通过的题不能刷经验、
     # 刷掌握度，否则把提交按钮点十次就能升级。
-    rewarded = bool(all_passed and score_pct > 0 and already_passed == 0)
+    rewarded = first_counted_pass
     exp_gained = round(exercise.difficulty * score_pct) if rewarded else 0
 
     # record_event() 已经更新了 total_exercises_completed/passed/hints_used，
     # 这里只更新 experience 和 concept_mastery，避免双重计数
 
     # 累积经验 + 升级（每 300 经验升一级，最低 Lv1）
-    import json
     mastery = {}
     if profile.concept_mastery_json:
         try: mastery = json.loads(profile.concept_mastery_json)
@@ -442,8 +483,9 @@ async def submit_exercise_answer(
     # 更新薄弱点状态：失败 → 记录/加重；通过 → 把对应弱项标记为已解决
     if exercise.concepts:
         for concept in exercise.concepts.split(","):
+            # 只有计分通过才算"掌握了这个知识点"；看答案凑出的全对不算
             await update_weakness(
-                db, current_user.id, concept.strip(), is_success=all_passed
+                db, current_user.id, concept.strip(), is_success=counted_pass
             )
 
     await db.commit()
@@ -464,10 +506,10 @@ async def submit_exercise_answer(
         "sandbox_unavailable": sandbox_unavailable,
         "score_pct": score_pct,
         "score_label": "⚠️ 执行服务不可用，未判定" if sandbox_unavailable else
+                       "📖 参考答案辅助（不计分）" if (all_passed and viewed_solution) else
                        "✅ 已通过（重复提交不再计分）" if (already_passed > 0 and all_passed) else
                        "⭐ 完全独立完成！" if score_pct == 100 else
                        "🌟 提示帮助完成" if score_pct >= 50 else
-                       "📖 参考答案辅助（不计分）" if viewed_solution else
                        "❌ 未通过" if not all_passed else "",
         "exp_gained": exp_gained,
         "difficulty": exercise.difficulty,

@@ -9,11 +9,13 @@
 """
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
 from app.models.user import User
 from app.security.dependencies import get_current_user
+from app.services.exercise_stats import load_attempt_events, passed_exercise_ids
 from app.services.profile_service import (
     get_or_create_profile,
     get_profile_summary,
@@ -24,6 +26,17 @@ from app.services.profile_service import (
 )
 
 router = APIRouter()
+
+
+class OnboardingRequest(BaseModel):
+    """新手引导完成请求。skill_level: A 零基础 / B 学过一点 / C 会基础 / D 自由提问"""
+    skill_level: str = Field(default="B", pattern="^[ABCD]$")
+    diagnosis: dict = Field(default_factory=dict)
+
+
+class LessonCompleteRequest(BaseModel):
+    """课程完成请求。"""
+    lesson_id: str = Field(default="lesson_0", max_length=64, pattern=r"^[A-Za-z0-9_\-]+$")
 
 
 @router.get("/me")
@@ -49,33 +62,36 @@ async def get_passed_exercises(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """查看自己通过了哪些题目（去重）。"""
-    from sqlalchemy import select
-    from app.models.profile import LearningEvent
-    r = await db.execute(
-        select(LearningEvent)
-        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed")
-        .order_by(LearningEvent.created_at.desc())
-        .limit(50)
-    )
-    seen = set()
-    passed = []
-    import json
-    for e in r.scalars():
-        concept = e.concept or "练习"
-        if concept in seen:
+    """查看自己通过了哪些题目。
+
+    按 **exercise_id** 去重、只认计分通过（score_pct > 0）：
+    以前按 concept 去重，同一知识点下做对第二题不会显示，看答案得 0 分的
+    却会显示成"已通过"。
+    """
+    from app.services.exercise_stats import detail_score, is_counted_pass
+
+    events = await load_attempt_events(db, user_id=current_user.id)
+
+    # 每道题保留最新一次计分通过
+    by_exercise: dict[str, dict] = {}
+    for e in events:
+        ex_id = e["exercise_id"]
+        if not ex_id or not is_counted_pass(e["event_type"], e["detail"]):
             continue
-        seen.add(concept)
-        detail = {}
-        if e.detail_json:
-            try: detail = json.loads(e.detail_json)
-            except: pass
-        passed.append({
-            "concept": concept,
-            "score_pct": detail.get("score_pct", 0),
-            "used_hints": detail.get("used_hints", 0),
-            "time": e.created_at.isoformat(),
-        })
+        by_exercise[ex_id] = e
+
+    passed = [
+        {
+            "exercise_id": ex_id,
+            "concept": e["concept"] or e["detail"].get("title") or "练习",
+            "score_pct": detail_score(e["detail"]),
+            "used_hints": e["detail"].get("used_hints", 0),
+            "time": e["created_at"].isoformat(),
+        }
+        for ex_id, e in sorted(
+            by_exercise.items(), key=lambda kv: kv[1]["created_at"], reverse=True
+        )
+    ]
     return {"passed": passed, "total": len(passed)}
 
 
@@ -84,31 +100,18 @@ async def get_passed_exercise_ids(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """返回用户已通过的题目 ID 集合（用于前端显示对勾）。"""
-    from sqlalchemy import select
-    from app.models.profile import LearningEvent
-    import json
-    r = await db.execute(
-        select(LearningEvent.detail_json)
-        .where(LearningEvent.user_id == current_user.id, LearningEvent.event_type == "exercise_passed")
-        .order_by(LearningEvent.created_at.desc())
-        .limit(50)
-    )
-    ids = set()
-    for (detail_json,) in r:
-        if detail_json:
-            try:
-                d = json.loads(detail_json)
-                if d.get("exercise_id"):
-                    ids.add(d["exercise_id"])
-            except Exception:
-                pass
-    return {"ids": list(ids), "count": len(ids)}
+    """返回用户已通过的题目 ID 集合（用于前端显示对勾）。
+
+    只算计分通过，且不再限制最近 50 条事件（超过 50 次提交的学生，
+    最早通过的题会对勾消失）。
+    """
+    ids = await passed_exercise_ids(db, current_user.id)
+    return {"ids": sorted(ids), "count": len(ids)}
 
 
 @router.post("/me/onboarding")
 async def complete_onboarding(
-    body: dict,
+    body: OnboardingRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -121,11 +124,11 @@ async def complete_onboarding(
     from app.services.profile_service import record_event, get_or_create_profile
     import json
 
-    level = body.get("skill_level", "B")
+    level = body.skill_level
     labels = {"A": "zero_basis", "B": "some_basics", "C": "can_practice", "D": "free_chat"}
     label = labels.get(level, "some_basics")
 
-    diagnosis = body.get("diagnosis") or {}
+    diagnosis = body.diagnosis
 
     await record_event(db, current_user.id, "onboarding_completed",
         concept=label,
@@ -164,13 +167,13 @@ async def complete_onboarding(
 
 @router.post("/me/lesson/complete")
 async def complete_lesson(
-    body: dict,
+    body: LessonCompleteRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """记录课程完成。"""
     from app.services.profile_service import record_event
-    lesson_id = body.get("lesson_id", "lesson_0")
+    lesson_id = body.lesson_id
     await record_event(db, current_user.id, "lesson_completed", concept=lesson_id)
     return {"lesson_id": lesson_id, "status": "completed"}
 

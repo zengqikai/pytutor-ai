@@ -72,6 +72,32 @@ EXERCISE_GENERATION_PROMPT = """你是一个 Python 编程教学专家。请生�
 只返回 JSON 数组，不要其他内容。"""
 
 
+async def _reference_solution_passes(
+    reference_solution: str,
+    test_cases: list[dict],
+) -> bool | None:
+    """用沙箱跑参考解法校验测试用例。
+
+    返回 True=全过，False=有跑不过的，None=无法判定（没有参考解法或沙箱不可用）。
+    """
+    if not reference_solution.strip() or not test_cases:
+        return None
+
+    from app.sandbox.runner import execute_student_code
+
+    for tc in test_cases:
+        result = await execute_student_code(
+            reference_solution, stdin_input=tc.get("input_data") or ""
+        )
+        if result["status"] == "unavailable":
+            return None
+        if result["status"] != "completed":
+            return False
+        if result["stdout"].rstrip() != (tc.get("expected_output") or "").rstrip():
+            return False
+    return True
+
+
 async def generate_exercises(
     db: AsyncSession,
     request: ExerciseGenerateRequest,
@@ -83,7 +109,8 @@ async def generate_exercises(
     流程：
     1. LLM 生成题目 JSON
     2. 解析并创建 Exercise + TestCase 记录
-    3. 自动验证参考解法
+    3. 用沙箱跑参考解法做自检：参考解法过不了测试用例的题不发给学生
+       （留成未发布草稿，教师可在后台修）；沙箱不可用时无法验证，照常返回
     4. 返回
 
     参数:
@@ -143,7 +170,8 @@ async def generate_exercises(
         await db.refresh(exercise)
 
         # 创建测试用例
-        for i, tc_data in enumerate(data.get("test_cases", [])):
+        test_cases_data = data.get("test_cases", [])
+        for i, tc_data in enumerate(test_cases_data):
             tc = TestCase(
                 exercise_id=exercise.id,
                 input_data=tc_data.get("input_data", ""),
@@ -153,7 +181,25 @@ async def generate_exercises(
                 order_index=i,
             )
             db.add(tc)
+
+        # 自检：参考解法必须能过自己的测试用例。LLM 生成的题目经常
+        # "题目说得通、参考解法对不上"，不跑一遍就直接发给学生，
+        # 学生会遇到怎么做都不对的题。
+        reference_ok = await _reference_solution_passes(
+            exercise.reference_solution, test_cases_data
+        )
+        if reference_ok is False:
+            exercise.is_published = False
+            logger.warning(
+                "generated_exercise_reference_invalid",
+                exercise_id=exercise.id,
+                title=exercise.title,
+            )
         await db.commit()
+
+        if reference_ok is False:
+            # 未通过自检的题不给学生，但保留在库里供教师修正
+            continue
 
         exercises.append(
             ExerciseResponse(

@@ -5,8 +5,12 @@
 处理代码提交、执行和结果记录。
 """
 
+from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.chat import ChatSession
+from app.models.exercise import Exercise
 from app.models.submission import CodeSubmission, ExecutionResult
 from app.models.user import User
 from app.observability.logger import get_logger
@@ -39,6 +43,24 @@ async def submit_and_execute(
     返回:
         CodeSubmitResponse: 含执行结果
     """
+    # 步骤 0：校验外键。SQLite 默认不强制外键，直接入库会留下指向不存在
+    # 会话/练习的提交（甚至是别人会话里的提交），统计和回放都会错。
+    if request.session_id:
+        chat_session = (await db.execute(
+            select(ChatSession).where(ChatSession.id == request.session_id)
+        )).scalar_one_or_none()
+        if chat_session is None:
+            raise HTTPException(status_code=404, detail="会话不存在")
+        if chat_session.student_id != user.id:
+            raise HTTPException(status_code=403, detail="无权在该会话中提交代码")
+
+    if request.exercise_id:
+        exercise = (await db.execute(
+            select(Exercise).where(Exercise.id == request.exercise_id)
+        )).scalar_one_or_none()
+        if exercise is None:
+            raise HTTPException(status_code=404, detail="练习不存在")
+
     # 步骤 1：创建提交记录
     submission = CodeSubmission(
         user_id=user.id,

@@ -13,7 +13,9 @@ RAG 知识库管理 API
     POST   /api/v1/rag/rebuild       - 重建索引
 """
 
-from fastapi import APIRouter, Depends, Query
+import asyncio
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -60,7 +62,9 @@ async def create_document(
         difficulty=doc.difficulty,
         concepts=doc.concepts,
         is_active=doc.is_active,
-        chunk_count=len(doc.chunks),
+        # ingest_document 把切片数挂在 _chunk_count 上；`doc.chunks` 是
+        # 未加载的 relationship，async 里访问会抛 MissingGreenlet。
+        chunk_count=getattr(doc, "_chunk_count", 0),
         created_at=doc.created_at,
     )
 
@@ -81,6 +85,14 @@ async def list_documents(
     )
     docs = result.scalars().all()
 
+    # chunk 数用聚合查询一次拿到；逐条 len(d.chunks) 会触发 N 次懒加载，
+    # 在 async 会话下直接抛 MissingGreenlet。
+    count_rows = await db.execute(
+        select(RAGChunk.document_id, func.count(RAGChunk.id))
+        .group_by(RAGChunk.document_id)
+    )
+    chunk_counts = dict(count_rows.all())
+
     return [
         RAGDocumentResponse(
             id=d.id,
@@ -89,7 +101,7 @@ async def list_documents(
             difficulty=d.difficulty,
             concepts=d.concepts,
             is_active=d.is_active,
-            chunk_count=len(d.chunks),
+            chunk_count=chunk_counts.get(d.id, 0),
             created_at=d.created_at,
         )
         for d in docs
@@ -110,7 +122,7 @@ async def get_document(
     )
     doc = result.scalar_one_or_none()
     if not doc:
-        return {"detail": "文档不存在"}
+        raise HTTPException(status_code=404, detail="文档不存在")
 
     return {
         "id": doc.id,
@@ -133,22 +145,36 @@ async def delete_document(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN)),
 ):
-    """删除文档及其所有 chunk。"""
+    """删除文档及其所有 chunk（DB + TF-IDF + 向量库）。"""
     result = await db.execute(
-        select(RAGDocument).where(RAGDocument.id == document_id)
+        select(RAGDocument)
+        .where(RAGDocument.id == document_id)
+        .options(selectinload(RAGDocument.chunks))
     )
     doc = result.scalar_one_or_none()
     if not doc:
-        return {"detail": "文档不存在"}
+        raise HTTPException(status_code=404, detail="文档不存在")
 
-    # 从检索索引中移除
+    chunk_ids = [chunk.id for chunk in doc.chunks]
+
+    # 从内存检索索引移除
     from app.rag.retriever import retriever
-    for chunk in doc.chunks:
-        retriever.remove_chunk(chunk.id)
+    for chunk_id in chunk_ids:
+        retriever.remove_chunk(chunk_id)
 
     await db.delete(doc)
     await db.commit()
-    return {"detail": "已删除", "document_id": document_id}
+
+    # 向量库是单独持久化的：只删 DB 会让已删除的片段继续被检索到
+    if chunk_ids:
+        from app.rag.vector_store import delete_chunks
+        await asyncio.to_thread(delete_chunks, chunk_ids)
+
+    return {
+        "detail": "已删除",
+        "document_id": document_id,
+        "chunk_count": len(chunk_ids),
+    }
 
 
 # ==============================
