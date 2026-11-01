@@ -10,7 +10,7 @@ LangGraph 的 State 是所有节点共享的数据结构。
     什么输入 → 什么意图 → 检索到什么 → 生成了什么 → 是否安全 → 是否有错
 """
 
-from typing import Annotated, Any, Literal, Optional, Sequence
+from typing import Annotated, Optional, Sequence
 from typing_extensions import TypedDict
 
 from langgraph.graph.message import add_messages

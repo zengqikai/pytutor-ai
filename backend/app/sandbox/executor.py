@@ -139,7 +139,7 @@ async def _run_python(
                 timeout=EXECUTION_TIMEOUT,
             )
             timeout_triggered = False
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await terminate_process_tree(process)
             stdout_bytes = b""
             stderr_bytes = "[超时] 代码执行超过 10 秒，已被终止。".encode("utf-8")

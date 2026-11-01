@@ -25,7 +25,7 @@ docker_executor。入口分散的后果是：练习判题、自由编码、Agent
 
 from app.core.config import settings
 from app.observability.logger import get_logger
-from app.sandbox.executor import execute_python_code, execute_python_code_with_input
+from app.sandbox.executor import execute_python_code_with_input
 
 logger = get_logger(__name__)
 

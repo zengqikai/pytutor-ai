@@ -20,7 +20,6 @@
 """
 
 import re
-from typing import Optional
 
 from app.core.config import settings
 

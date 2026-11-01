@@ -14,6 +14,15 @@ import asyncio
 import time
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.models.rag import RAGChunk, RAGDocument
+from app.observability.logger import get_logger
+from app.rag.retriever import retriever
+from app.rag.reranker import rerank_with_llm
+from app.rag.splitter import estimate_tokens, simple_tokenize, split_markdown
+from app.schemas.rag import RAGRetrievalRequest, RAGRetrievalResponse, RAGRetrievalResult
 
 
 # =============================================================================
@@ -41,15 +50,7 @@ class RAGBreaker:
     @classmethod
     def record_ok(cls):
         cls._fail_count = 0
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.models.rag import RAGChunk, RAGDocument
-from app.observability.logger import get_logger
-from app.rag.retriever import HybridRetriever, retriever
-from app.rag.reranker import rerank_with_llm
-from app.rag.splitter import estimate_tokens, simple_tokenize, split_markdown
-from app.schemas.rag import RAGRetrievalRequest, RAGRetrievalResponse, RAGRetrievalResult
 
 logger = get_logger(__name__)
 
@@ -287,7 +288,7 @@ async def retrieve_context(
                 ),
                 timeout=12.0,
             )
-        except (asyncio.TimeoutError, Exception) as e:
+        except (TimeoutError, Exception) as e:
             logger.warning(
                 "vector_search_failed",
                 query=request.query[:60],

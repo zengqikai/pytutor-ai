@@ -19,7 +19,7 @@ RAGChunk：文档切分后的片段（检索的基本单位）
 
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin
@@ -170,5 +170,4 @@ class RAGChunk(Base, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
         return f"<RAGChunk(idx={self.chunk_index}, heading={self.heading})>"

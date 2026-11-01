@@ -157,7 +157,7 @@ async def run_in_docker(code: str, stdin_input: str = "") -> dict:
                 timeout=EXECUTION_TIMEOUT,
             )
             timeout_triggered = False
-        except asyncio.TimeoutError:
+        except TimeoutError:
             await _remove_container(container_name)
             try:
                 await asyncio.wait_for(proc.wait(), timeout=5)

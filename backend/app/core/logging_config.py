@@ -125,6 +125,17 @@ def setup_logging() -> None:
         cache_logger_on_first_use=False,
     )
 
+    # 真正决定输出长什么样的是 ProcessorFormatter 的 `processor` 参数。
+    # 少了这一步，renderer 永远不会被调用：LOG_FORMAT=json 时打出来的
+    # 其实是 Python dict 的 repr，日志采集端解析不了。
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processor=renderer,
+        # 非 structlog 的日志（uvicorn / 第三方库）也走同一条处理链
+        foreign_pre_chain=shared_processors,
+    )
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(formatter)
+
     # ==============================
     # 第三步：设置第三方库的日志级别
     # ==============================

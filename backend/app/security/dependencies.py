@@ -27,7 +27,6 @@ FastAPI 的 Depends() 机制：
         ...
 """
 
-from typing import Sequence
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

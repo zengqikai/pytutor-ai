@@ -13,7 +13,6 @@ Pydantic 负责自动校验和序列化。
 
 import re
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
 

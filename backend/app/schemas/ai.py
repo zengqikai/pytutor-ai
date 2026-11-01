@@ -8,7 +8,7 @@ AI 相关 Schemas
 目前主要用于 LLM 服务封装。
 """
 
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 

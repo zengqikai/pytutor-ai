@@ -7,7 +7,7 @@ StudentWeakness：薄弱知识点记录。
 LearningEvent：学习行为事件（用于分析）。
 """
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin

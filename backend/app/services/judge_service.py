@@ -721,7 +721,7 @@ async def multi_judge_verify(
                               temp, idx),
                 timeout=JUDGE_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("judge_timeout", judge_index=idx, temp=temp,
                            timeout_s=JUDGE_TIMEOUT_SECONDS)
             return _fallback_verdict(idx, temp, JUDGE_TIMEOUT_SECONDS * 1000,

@@ -433,13 +433,10 @@ class M6PrintReturnVisitor(ast.NodeVisitor):
         if self._done:
             return
 
-        all_nodes = list(ast.walk(node))
         has_print = False
         has_return = False
-        has_return_value = False
         print_lines: list[int] = []
         return_line: int | None = None
-        unreachable_print = False
         printed_computed_value = False  # print 的实参是"本函数计算出的变量/表达式"
 
         # 本函数内被赋值的局部变量名（用于判断 print 的是不是"算出来的值"）
@@ -456,8 +453,6 @@ class M6PrintReturnVisitor(ast.NodeVisitor):
             if isinstance(stmt, ast.Return):
                 has_return = True
                 return_line = stmt.lineno
-                if stmt.value is not None:
-                    has_return_value = True
             if isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
                 if stmt.func.id == 'print':
                     has_print = True
@@ -507,7 +502,6 @@ class M6PrintReturnVisitor(ast.NodeVisitor):
                     # 检查是否是 Expr(Call(print))
                     if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
                         if isinstance(stmt.value.func, ast.Name) and stmt.value.func.id == 'print':
-                            unreachable_print = True
                             self.found = {
                                 "misconception_id": "M6",
                                 "misconception_name": "print 和 return 混淆",

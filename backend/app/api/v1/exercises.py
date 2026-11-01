@@ -23,7 +23,7 @@ from app.schemas.exercise import (
     ExerciseResponse,
     SubmitExerciseRequest,
 )
-from app.security.dependencies import get_current_user, require_role
+from app.security.dependencies import get_current_user
 from app.services.exercise_service import generate_exercises, get_exercise, list_exercises
 
 router = APIRouter()

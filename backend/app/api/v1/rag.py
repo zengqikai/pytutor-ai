@@ -202,4 +202,4 @@ async def rebuild_search_index(
 ):
     """重建内存检索索引（从数据库重新加载所有 chunk）。"""
     count = await rebuild_index(db)
-    return {"detail": f"索引已重建", "chunk_count": count}
+    return {"detail": "索引已重建", "chunk_count": count}

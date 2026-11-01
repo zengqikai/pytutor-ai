@@ -21,7 +21,6 @@ MisconceptionTutor（SIGCSE'26 poster，无码）的可借鉴机制只有一条�
 from __future__ import annotations
 
 import re
-from typing import Any
 
 
 # 误区编号 → 面向学生的高层描述（不含修正代码）

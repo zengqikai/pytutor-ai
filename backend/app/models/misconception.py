@@ -6,7 +6,7 @@ Misconception：8 类常见 Python 初学者误区定义
 MisconceptionEvent：用户出现误区的诊断记录
 """
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base, TimestampMixin

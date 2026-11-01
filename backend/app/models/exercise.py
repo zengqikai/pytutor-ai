@@ -6,7 +6,7 @@ Exercise：练习题（AI 生成或教师创建）
 TestCase：测试用例（每个练习有多个测试用例，含隐藏用例）
 """
 
-from typing import TYPE_CHECKING, List
+from typing import List
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship

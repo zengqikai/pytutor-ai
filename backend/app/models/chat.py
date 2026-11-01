@@ -14,16 +14,15 @@ ChatSession（会话）和 ChatMessage（消息）模型。
     response_type 区分 AI 回复的类型（概念解释、代码反馈、练习等）。
 """
 
-from datetime import datetime
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    pass
 
 
 class ChatSession(Base, TimestampMixin):

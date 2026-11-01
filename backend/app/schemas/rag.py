@@ -4,7 +4,7 @@ RAG 相关 Schemas
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_serializer
 

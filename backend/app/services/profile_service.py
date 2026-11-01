@@ -224,7 +224,7 @@ async def get_weaknesses(db: AsyncSession, user_id: str) -> list[dict]:
 
     # ---- C 方向 Task 3: 时间衰减 ----
     if settings.ENABLE_TIME_DECAY and weak_list:
-        from app.services.profile_decay_service import decay_all_weaknesses, TRANSITION_MATRIX_CACHE
+        from app.services.profile_decay_service import decay_all_weaknesses
         weak_list = decay_all_weaknesses(weak_list)
         logger.info("weaknesses_decayed",
                     user_id=user_id,
@@ -262,7 +262,6 @@ async def get_recommendation(db: AsyncSession, user_id: str) -> dict:
         weakest = weaknesses[0]
 
         # ---- C 方向 Task 3: 转移矩阵增强推荐 ----
-        extra_info = ""
         decay_info = ""
         risk_warning = ""
 

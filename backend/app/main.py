@@ -15,7 +15,7 @@ FastAPI 应用入口
 """
 
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
@@ -292,7 +292,7 @@ def create_app() -> FastAPI:
             },
             # 健康检查是公开端点，生产环境不回显数据库错误细节
             "error": db_error if (settings.debug and settings.app_env.lower() != "production") else None,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     return app

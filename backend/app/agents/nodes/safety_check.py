@@ -61,7 +61,7 @@ async def safety_check_node(state: AgentState) -> dict:
             logger.warning("safety_blocked", pattern=pattern, input_preview=user_input[:100])
             return {
                 "safety_result": "block",
-                "safety_reason": f"检测到潜在的不安全输入",
+                "safety_reason": "检测到潜在的不安全输入",
                 "intent": "unsafe",
                 "current_step": "safety_check",
                 "tutor_response": {

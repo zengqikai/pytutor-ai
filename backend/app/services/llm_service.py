@@ -29,7 +29,7 @@ except ImportError:
 from app.core.config import settings
 from app.core.exceptions import LLMException
 from app.observability.logger import get_logger
-from app.schemas.ai import ChatMessage, LLMRequest, LLMResponse, TokenUsage
+from app.schemas.ai import ChatMessage, LLMResponse, TokenUsage
 
 logger = get_logger(__name__)
 
@@ -254,7 +254,6 @@ async def chat_completion_routed(
 
     目标成本降低 ≥ 50%（假设 70% 的请求是 simple）。
     """
-    from app.core.config import settings
 
     # 提取最后一条用户消息用于分类
     user_msg = ""

@@ -89,7 +89,7 @@ async def tutor_response_node(state: AgentState) -> dict:
         return {
             "tutor_response": AIResponse(
                 response_type="general",
-                message=f"抱歉，回复生成失败。请稍后重试。",
+                message="抱歉，回复生成失败。请稍后重试。",
                 hint_level=1,
                 related_concepts=[],
                 next_action="ask_question",

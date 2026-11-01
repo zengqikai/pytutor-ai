@@ -332,7 +332,9 @@ def analyze_misconceptions(
         return []
 
     # ---- Step 1: 尝试 AST 解析 ----
-    tree, error_type, error_lineno = safe_parse(code)
+    # safe_parse 同时返回出错行号；只有语法错误分支用得上行号信息，
+    # 当前由 visitor 从 AST/文本自行定位，这里不消费
+    tree, error_type, _error_lineno = safe_parse(code)
 
     # ---- Step 2: 处理语法错误 (M1/M2) ----
     if tree is None:

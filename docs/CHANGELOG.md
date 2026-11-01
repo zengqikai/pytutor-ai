@@ -1045,3 +1045,26 @@ Top-5 上下文 251 → 315 token（估算）。Hybrid 仍与向量一致（`ENA
   异步任务取消后继续往下跑 → 统一为 `except Exception`
 
 **测试结果**：**272 passed, 12 deselected**；ruff 错误门通过。
+
+#### Step 62 补充 2 — 死代码、弃用 API 与日志格式
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/services/profile_decay_service.py` | `build_transition_matrix` 真正按 `days_lookback` 过滤事件 |
+| 修改 | `backend/app/core/logging_config.py` | `renderer` 接入 `ProcessorFormatter`，`LOG_FORMAT=json` 输出合法 JSON |
+| 修改 | `backend/app/main.py` / `analysis/ast_analyzer.py` / `analysis/ast_visitors.py` / `models/rag.py` / `services/profile_service.py` | `datetime.utcnow()` → `datetime.now(timezone.utc)`；删除 5 处只赋值不用的局部变量 |
+| 修改 | 全 `app/` | ruff 自动清理 26 处未使用 import、3 处无占位符 f-string、4 处 `asyncio.TimeoutError` 别名；`rag_service.py` 中段 import 归位到文件头 |
+
+**Bug 修复**:
+- Bug #76：`build_transition_matrix(days_lookback=90)` 算了时间窗口却没用，
+  转移矩阵会把一年前的事件也算进去 → 补 `created_at >= since` 过滤
+- Bug #77：`renderer` 变量从未传给 `ProcessorFormatter`，`LOG_FORMAT=json` 实际输出
+  Python dict 的 repr，日志采集端无法解析 → 统一挂到 root handler 的 formatter 上；
+  实测 `{"answer": 42, "event": "hello_event", ...}` 为合法 JSON
+
+**清理**：26 处未使用 import、3 处 `f"..."` 无占位符、5 处死变量、4 处
+`asyncio.TimeoutError`（3.11+ 已等同 `TimeoutError`）、1 处 `datetime.utcnow()`
+（3.12 弃用）；`app` 下 F 类规则已全部通过。
+
+**测试结果**：**272 passed, 12 deselected**；ruff 错误门与 E722 均通过；
+`TestClient` 启动后 `/api/v1/health` 正常，健康检查时间戳带时区。

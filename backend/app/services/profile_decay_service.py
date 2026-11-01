@@ -33,8 +33,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.models.profile import LearningEvent, StudentProfile, StudentWeakness
+from app.models.profile import LearningEvent, StudentProfile
 from app.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -416,6 +415,9 @@ async def build_transition_matrix(
     query = select(LearningEvent).where(
         LearningEvent.event_type.in_(["exercise_passed", "exercise_failed"]),
         LearningEvent.concept.isnot(None),
+        # 时间窗口必须真的生效：否则 days_lookback 形同虚设，
+        # 一年前的历史事件也会参与转移矩阵
+        LearningEvent.created_at >= since,
     )
     if user_id:
         query = query.where(LearningEvent.user_id == user_id)

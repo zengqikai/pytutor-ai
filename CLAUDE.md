@@ -357,3 +357,10 @@ C2 都未优于 C1（配对差为负，95% CI 含 0），不能宣称证据注�
   前端会把 200 当成功。请求体用 Pydantic 模型限长（`AnalyzeErrorRequest` /
   `DiagnoseRequest` / `ExercisePublishRequest`），不要用 `body: dict`。
 - 不要写裸 `except:`（连 `CancelledError` 一起吞）；JSON 解析失败用 `except Exception`。
+
+## 日志与统计
+
+- `LOG_FORMAT=json` 由 `logging_config.py` 里的 `ProcessorFormatter(processor=renderer)` 生效；
+  只改 `renderer` 不挂 formatter 等于没配，验证方式是看真实输出。
+- `build_transition_matrix(days_lookback=...)` 已按 `created_at` 过滤；加新统计函数时，
+  时间窗口参数必须落到 SQL 条件上。

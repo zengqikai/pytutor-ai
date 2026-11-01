@@ -17,7 +17,6 @@ API 格式（OpenAI 兼容）:
 降级策略：如果 API 调用失败，embed_async 返回 None → 上层自动回退 TF-IDF。
 """
 
-import asyncio
 import os
 from pathlib import Path
 from typing import Optional
