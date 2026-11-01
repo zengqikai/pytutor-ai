@@ -93,10 +93,10 @@ class TestAggregateVerdicts:
         # 其余维度仍有有效中位数
         assert agg.scores_detail["D1_hint_adherence"]["median"] == 4
 
-    def test_all_empty_verdicts_default(self):
-        """空/无效 verdict 不应崩溃，回退默认分。"""
+    def test_all_empty_verdicts_not_passing(self):
+        """空 verdict 不应崩溃，也不能回退成及格分。"""
         agg = _aggregate_verdicts([])
-        assert agg.aggregated_score >= 3.0
+        assert agg.aggregated_score == 0.0
 
 
 # =============================================================================
@@ -128,10 +128,22 @@ class TestKappa:
 # =============================================================================
 
 class TestFallbackVerdict:
-    def test_fallback_is_conservative(self):
-        """评委失败降级应保守（全 3 分），不触发 revision。"""
+    def test_fallback_does_not_fabricate_score(self):
+        """评委调用失败时不能伪造 3 分——必须标记为不可评分。"""
         v = _fallback_verdict(judge_index=0, temperature=0.7, latency_ms=1.0, raw="error")
-        assert v.overall == 3
-        assert v.needs_revision is False
-        assert all(s == 3 for s in v.scores.values())
+        assert v.overall == 0
+        assert v.total == 0
+        assert all(s == 0 for s in v.scores.values())
+        # 五个维度全部标记为无法评估，聚合阶段会被排除
+        assert set(v.cannot_assess) == set(DIMS)
         assert any("失败" in i for i in v.issues)
+
+    def test_all_verdicts_unassessable_scores_zero(self):
+        """全部评委无法评估时，聚合结果必须是 0 分、且不声称可评审。"""
+        failed = [
+            _fallback_verdict(judge_index=i, temperature=0.7, latency_ms=1.0, raw="error")
+            for i in range(3)
+        ]
+        agg = _aggregate_verdicts(failed)
+        assert agg.aggregated_score == 0.0
+        assert agg.needs_revision is False

@@ -18,16 +18,42 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -r requirements.txt pytest pytest-asyncio -q
+        run: pip install -r requirements.txt -q
 
       - name: Copy env
         working-directory: backend
         run: cp .env.example .env
 
-      - name: Unit tests
+      - name: Syntax check
         working-directory: backend
-        run: python -m pytest tests/test_misconception.py tests/test_pedagogy.py -v --tb=short
+        run: python -m compileall -q app
+
+      # 只查真正的错误（未定义名、重复定义、语法），不查风格；
+      # 全量规则先别开，否则现有 500+ 风格问题会淹没真实错误。
+      - name: Ruff (errors only)
+        working-directory: backend
+        run: ruff check app tests --select E9,F63,F7,F82
+
+      # 空库从零升级，验证迁移链能建出完整 schema（生产不跑 create_all）。
+      - name: Migration check
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./ci_migrate.db
+        run: |
+          alembic upgrade head
+          python - <<'PY'
+          import sqlite3
+          cols = {r[1] for r in sqlite3.connect("ci_migrate.db").execute("pragma table_info(student_profiles)")}
+          required = {"weak_topics", "recent_misconceptions", "hint_dependency", "completed_lessons"}
+          missing = required - cols
+          assert not missing, f"missing profile columns: {missing}"
+          PY
+
+      # 运行全量离线测试。集成/付费模型相关用例由 pytest.ini 的 markers 默认排除。
+      # 覆盖率门槛锁住当前基线（44%），防止新代码无测试地拉低。
+      - name: Full test suite
+        working-directory: backend
+        run: python -m pytest tests/ -q --tb=short --cov=app --cov-report=term --cov-fail-under=40
 
   frontend-build:
     name: Frontend Build
@@ -40,7 +66,7 @@ jobs:
 
       - name: Install
         working-directory: frontend
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Build
         working-directory: frontend

@@ -5,27 +5,47 @@ import { API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 
 export default function TeacherPage() {
-  const { isAuthenticated, loadUser } = useAuthStore();
+  const { isAuthenticated, user, loadUser } = useAuthStore();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const isStaff = user?.role === "instructor" || user?.role === "admin";
 
   useEffect(() => { loadUser(); }, []);
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchData();
-  }, [isAuthenticated]);
 
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem("auth_token");
-      const r = await fetch(`${API_BASE_URL}/teacher/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setData(await r.json());
-    } catch {} finally { setLoading(false); }
-  };
+  useEffect(() => {
+    // 等 loadUser() 把 user 拉回来再判断角色，避免把教师误判为学生
+    if (!isAuthenticated || user === null) return;
+    if (!isStaff) { setLoading(false); return; }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem("auth_token");
+        const r = await fetch(`${API_BASE_URL}/teacher/overview`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) {
+          // 403/500 的响应体不是仪表盘数据，绝不能塞进 data 后解构
+          if (!cancelled) setError(`加载失败（HTTP ${r.status}）`);
+          return;
+        }
+        const json = await r.json();
+        if (!cancelled) setData(json);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || "网络错误");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user, isStaff]);
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="flex gap-1.5"><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse" /><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse delay-200" /><span className="w-2 h-2 bg-indigo-400 rounded-full animate-dot-pulse delay-400" /></div></div>;
+  if (!isStaff) return <div className="flex items-center justify-center h-full text-slate-500">该页面仅教师或管理员可见</div>;
+  if (error) return <div className="flex items-center justify-center h-full text-rose-400">{error}</div>;
   if (!data) return <div className="flex items-center justify-center h-full text-slate-500">无法加载数据</div>;
 
   const { summary, misconception_stats, weak_topic_stats, students, recent_events } = data;

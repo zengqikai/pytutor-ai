@@ -10,7 +10,7 @@
 
 from app.agents.state import AgentState
 from app.observability.logger import get_logger
-from app.sandbox.executor import execute_python_code
+from app.sandbox.runner import execute_student_code
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ async def code_executor_node(state: AgentState) -> dict:
 
     # 在沙箱中安全执行
     logger.info("code_executor_starting", code_len=len(code))
-    result = await execute_python_code(code)
+    result = await execute_student_code(code)
 
     logger.info(
         "code_executor_completed",

@@ -1,0 +1,4351 @@
+{
+  "meta": {
+    "dataset": "dataset_seed.json",
+    "dataset_sha256_16": "8c8e786623216b92",
+    "n_items": 10,
+    "model": "deepseek-chat",
+    "temperature": 0.3,
+    "conditions": [
+      "C1",
+      "C2"
+    ],
+    "prompt_versions": {
+      "C1": "c1_v1",
+      "C2": "c2_v1"
+    },
+    "claim_extractor": "RuleBasedClaimExtractor",
+    "llm_usage": {
+      "calls": 20,
+      "prompt_tokens": 1509,
+      "completion_tokens": 9028
+    },
+    "generated_at": "2026-10-22T02:18:42"
+  },
+  "summary": {
+    "C1": {
+      "n_items": 10,
+      "n_scored": 6,
+      "claim_coverage": 0.6,
+      "faithfulness_overall": 0.517,
+      "hallucination_overall": 0.483,
+      "faithfulness_positive": 0.833,
+      "faithfulness_hard_negative": 0.0,
+      "mean_latency_ms": 3249.4,
+      "errors": 0
+    },
+    "C2": {
+      "n_items": 10,
+      "n_scored": 7,
+      "claim_coverage": 0.7,
+      "faithfulness_overall": 0.69,
+      "hallucination_overall": 0.31,
+      "faithfulness_positive": 0.611,
+      "faithfulness_hard_negative": 0.667,
+      "mean_latency_ms": 2445.2,
+      "errors": 0
+    },
+    "paired_diff_C2_minus_C1": {
+      "n_pairs": 5,
+      "mean": -0.053,
+      "median": 0.0,
+      "ci95": [
+        -0.3,
+        0.207
+      ]
+    }
+  },
+  "rows": [
+    {
+      "id": "P01",
+      "category": "positive",
+      "label": "M3",
+      "C1": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 4,
+        "unverifiable": 54,
+        "total_claims": 58,
+        "explanation": "# 学生代码中的常见误区分析\n\n## 代码回顾\n\n```python\nitems = []\nnew = items.append(5)\nprint(new)\n```\n\n## 输出结果\n\n```\nNone\n```\n\n## 存在的误区\n\n### 误区一：误以为 `list.append()` 有返回值\n\n学生把 `items.append(5)` 的**返回值**赋给了 `new`，期待 `new` 是 `[5]` 或 `5`。\n\n**为什么错：** `list.append()` 是**原地修改（in-place）**方法，它把元素加到列表末尾后返回 `None`。这是 Python 中所有原地修改方法的统一约定（如 `list.sort()`、`list.reverse()`、`dict.update()` 等）。\n\n所以：\n- `items` 变成了 `[5]` ✅\n- `new` 是 `None` ❌\n\n### 误区二：混淆\"原地修改\"和\"返回新对象\"\n\n学生可能把 `append` 和 `+`、`sorted()` 这类**返回新对象**的操作搞混了：\n\n| 原地修改（返回 None） | 返回新对象 |\n|---|---|\n| `items.append(5)` | `items + [5]` |\n| `items.sort()` | `sorted(items)` |\n| `items.reverse()` | `reversed(items)` / `items[::-1]` |\n\n### 误区三：把\"副作用\"当成\"返回值\"使用\n\n`append` 的作用是**副作用**（改变 `items` 本身），而不是**返回值**。学生把副作用的结果当返回值用，是典型的思维误区。\n\n## 正确写法\n\n**写法一：先 append，再使用 items**\n```python\nitems = []\nitems.append(5)\nprint(items)   # [5]\n```\n\n**写法二：需要\"新列表\"时用 `+` 或 `copy`**\n```python\nitems = []\nnew = items + [5]\nprint(new)     # [5]\nprint(items)   # []  （原列表不变）\n```\n\n**写法三：需要\"追加并返回\"时，自己封装**\n```python\ndef append_and_return(lst, x):\n    lst.append(x)\n    return lst\n\nitems = []\nnew = append_and_return(items, 5)\nprint(new)     # [5]\n```\n\n## 教学提示\n\n可以让学生记住一句话：\n\n> **\"Python 里凡是原地修改的方法，返回值都是 `None`。\"**\n\n遇到 `x = lst.xxx()` 得到 `None` 时，先问自己：`xxx` 是不是原地修改方法？如果是，就不该接收它的返回值。",
+        "claims": [
+          {
+            "text": "# 学生代码中的常见误区分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 代码回顾",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items = []",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "new = items.append(5)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(new)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 输出结果",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "None",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 存在的误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区一：误以为 `list.append()` 有返回值",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "学生把 `items.append(5)` 的**返回值**赋给了 `new`，期待 `new` 是 `[5]` 或 `5`",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "**为什么错：** `list.append()` 是**原地修改（in-place）**方法，它把元素加到列表末尾后返回 `None`",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "这是 Python 中所有原地修改方法的统一约定（如 `list.sort()`、`list.reverse()`、`dict.update()` 等）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "所以：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- `items` 变成了 `[5]` ✅",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- `new` 是 `None` ❌",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区二：混淆\"原地修改\"和\"返回新对象\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生可能把 `append` 和 `+`、`sorted()` 这类**返回新对象**的操作搞混了：",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "| 原地修改（返回 None） | 返回新对象 |",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "|---|---|",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "| `items.append(5)` | `items + [5]` |",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "| `items.sort()` | `sorted(items)` |",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "| `items.reverse()` | `reversed(items)` / `items[::-1]` |",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区三：把\"副作用\"当成\"返回值\"使用",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`append` 的作用是**副作用**（改变 `items` 本身），而不是**返回值**",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "学生把副作用的结果当返回值用，是典型的思维误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 正确写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法一：先 append，再使用 items**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items = []",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items.append(5)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(items)   # [5]",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法二：需要\"新列表\"时用 `+` 或 `copy`**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items = []",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "new = items + [5]",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(new)     # [5]",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(items)   # []  （原列表不变）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法三：需要\"追加并返回\"时，自己封装**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def append_and_return(lst, x):",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "lst.append(x)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "return lst",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "items = []",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "new = append_and_return(items, 5)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(new)     # [5]",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 教学提示",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "可以让学生记住一句话：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "> **\"Python 里凡是原地修改的方法，返回值都是 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "\"**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "遇到 `x = lst.xxx()` 得到 `None` 时，先问自己：`xxx` 是不是原地修改方法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果是，就不该接收它的返回值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 4250.3
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 5,
+        "unverifiable": 11,
+        "total_claims": 16,
+        "explanation": "根据 AST 结构事实，这段代码存在一个典型误区：\n\n**误区：把 in-place 方法的返回值当作有效结果使用。**\n\n事实依据：\n- L2 将 `items.append()` 的返回值赋给了 `new`；\n- AST 明确指出 `append` 是 in-place 方法，返回 `None`；\n- L3 打印的是 `new`。\n\n**为什么这是误区：**\n`append()` 的作用是就地修改列表 `items`，它本身不产生新的值，返回值固定为 `None`。因此 L2 执行后，`new` 得到的是 `None`，而不是追加后的列表或追加的元素。L3 打印 `new`，输出会是 `None`，这通常不是学生期望的结果。\n\n**正确理解（仅基于事实）：**\n- 若想获得追加后的列表，应直接使用被修改的 `items`，而不是 `append()` 的返回值；\n- `append()` 的调用应作为独立语句使用，其效果体现在 `items` 本身被修改，而非通过返回值体现。\n\n简言之：**in-place 方法看“副作用”（对象被改），不要看“返回值”（为 None）。**",
+        "claims": [
+          {
+            "text": "根据 AST 结构事实，这段代码存在一个典型误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**误区：把 in-place 方法的返回值当作有效结果使用",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "事实依据：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- L2 将 `items.append()` 的返回值赋给了 `new`",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "- AST 明确指出 `append` 是 in-place 方法，返回 `None`",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "- L3 打印的是 `new`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么这是误区：**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`append()` 的作用是就地修改列表 `items`，它本身不产生新的值，返回值固定为 `None`",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "因此 L2 执行后，`new` 得到的是 `None`，而不是追加后的列表或追加的元素",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "L3 打印 `new`，输出会是 `None`，这通常不是学生期望的结果",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**正确理解（仅基于事实）：**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 若想获得追加后的列表，应直接使用被修改的 `items`，而不是 `append()` 的返回值",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "- `append()` 的调用应作为独立语句使用，其效果体现在 `items` 本身被修改，而非通过返回值体现",
+            "predicate": "inplace_returns_none",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "简言之：**in-place 方法看“副作用”（对象被改），不要看“返回值”（为 None）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 1635.9
+      }
+    },
+    {
+      "id": "P02",
+      "category": "positive",
+      "label": "M4",
+      "C1": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 1,
+        "unverifiable": 39,
+        "total_claims": 40,
+        "explanation": "# 学生代码中的常见误区\n\n```python\nitems = ['a', 'b', 'c']\nfor i in items:\n    print(items[i])\n```\n\n## 误区：混淆\"遍历元素\"和\"遍历索引\"\n\n### 问题所在\n\n学生把 `for i in items` 中的 `i` 当成了**索引**，但实际上 `i` 拿到的是**列表中的元素本身**（即 `'a'`、`'b'`、`'c'`）。\n\n于是 `items[i]` 就变成了 `items['a']`、`items['b']`、`items['c']` —— 用字符串去索引列表，会直接抛出：\n\n```\nTypeError: list indices must be integers or slices, not str\n```\n\n### 为什么会犯这个错\n\n这是从 C / Java / JavaScript 等语言带来的思维惯性。在那些语言里：\n\n```c\nfor (int i = 0; i < n; i++) printf(\"%s\", items[i]);  // i 是索引\n```\n\n`i` 天然是下标。但 Python 的 `for ... in ...` 是**迭代器协议**，直接产出元素，不是下标。\n\n### 正确写法\n\n**写法一：直接打印元素（最 Pythonic）**\n\n```python\nfor item in items:\n    print(item)\n```\n\n**写法二：如果确实需要索引，用 `enumerate`**\n\n```python\nfor i, item in enumerate(items):\n    print(i, item)      # 0 a / 1 b / 2 c\n```\n\n**写法三：如果坚持要下标，用 `range(len(...))`（不推荐，但能说明问题）**\n\n```python\nfor i in range(len(items)):\n    print(items[i])\n```\n\n### 一句话总结\n\n> Python 的 `for x in seq` 里，`x` 是**元素**不是**下标**；需要下标时用 `enumerate()`，不要用 `range(len())` 硬凑。",
+        "claims": [
+          {
+            "text": "# 学生代码中的常见误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items = ['a', 'b', 'c']",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for i in items:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(items[i])",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区：混淆\"遍历元素\"和\"遍历索引\"",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "### 问题所在",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生把 `for i in items` 中的 `i` 当成了**索引**，但实际上 `i` 拿到的是**列表中的元素本身**（即 `'a'`、`'b'`、`'c'`）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "于是 `items[i]` 就变成了 `items['a']`、`items['b']`、`items['c']` —— 用字符串去索引列表，会直接抛出：",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "TypeError: list indices must be integers or slices, not str",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 为什么会犯这个错",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这是从 C / Java / JavaScript 等语言带来的思维惯性",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "在那些语言里：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```c",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for (int i = 0; i < n; i++) printf(\"%s\", items[i]);  // i 是索引",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`i` 天然是下标",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "但 Python 的 `for ... in ...` 是**迭代器协议**，直接产出元素，不是下标",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "### 正确写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法一：直接打印元素（最 Pythonic）**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for item in items:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(item)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法二：如果确实需要索引，用 `enumerate`**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for i, item in enumerate(items):",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(i, item)      # 0 a / 1 b / 2 c",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**写法三：如果坚持要下标，用 `range(len(...))`（不推荐，但能说明问题）**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for i in range(len(items)):",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(items[i])",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 一句话总结",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "> Python 的 `for x in seq` 里，`x` 是**元素**不是**下标**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "需要下标时用 `enumerate()`，不要用 `range(len())` 硬凑",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2282.4
+      },
+      "C2": {
+        "faithfulness": 0.833,
+        "hallucination_rate": 0.167,
+        "verifiable": 6,
+        "unverifiable": 5,
+        "total_claims": 11,
+        "explanation": "根据 AST 结构事实，学生代码存在以下误区：\n\n**1. 混淆了“遍历元素”与“遍历索引”两种模式**\n\n- L2 的 `for i in items` 表示 `i` 依次取 `items` 中的**元素**（即 `'a'`、`'b'`、`'c'`），而不是索引。\n- 但 L3 却把 `i` 当作下标使用：`items[i]`（AST 明确记录了这是一次下标访问）。\n\n**2. 为什么这是错的**\n\n既然 `i` 是字符串元素（如 `'a'`），那么 `items[i]` 就是用字符串 `'a'` 去索引列表，这在 Python 中会触发 `TypeError`（列表索引必须是整数）。AST 事实只告诉我们“`i` 来自遍历元素、`items[i]` 是下标访问”，两者语义不匹配，这就是错误的根源。\n\n**3. 两种正确的对应写法（基于同一结构事实的推论）**\n\n- 若想直接遍历元素：L3 应写成 `print(i)`，不再做下标访问。\n- 若想用下标访问：L2 应改为遍历索引（如 `for i in range(len(items))`），此时 `i` 才是整数下标，`items[i]` 才成立。\n\n**核心误区一句话总结**：循环变量 `i` 被当作元素取出，却又被当作下标使用，遍历方式与访问方式不一致。",
+        "claims": [
+          {
+            "text": "根据 AST 结构事实，学生代码存在以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**1. 混淆了“遍历元素”与“遍历索引”两种模式**",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "- L2 的 `for i in items` 表示 `i` 依次取 `items` 中的**元素**（即 `'a'`、`'b'`、`'c'`），而不是索引",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 但 L3 却把 `i` 当作下标使用：`items[i]`（AST 明确记录了这是一次下标访问）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**2. 为什么这是错的**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "既然 `i` 是字符串元素（如 `'a'`），那么 `items[i]` 就是用字符串 `'a'` 去索引列表，这在 Python 中会触发 `TypeError`（列表索引必须是整数）",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "代码里没有二元运算（幻觉）"
+          },
+          {
+            "text": "AST 事实只告诉我们“`i` 来自遍历元素、`items[i]` 是下标访问”，两者语义不匹配，这就是错误的根源",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "**3. 两种正确的对应写法（基于同一结构事实的推论）**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 若想直接遍历元素：L3 应写成 `print(i)`，不再做下标访问",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "- 若想用下标访问：L2 应改为遍历索引（如 `for i in range(len(items))`），此时 `i` 才是整数下标，`items[i]` 才成立",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "**核心误区一句话总结**：循环变量 `i` 被当作元素取出，却又被当作下标使用，遍历方式与访问方式不一致",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          }
+        ],
+        "error": null,
+        "latency_ms": 2190.6
+      }
+    },
+    {
+      "id": "P03",
+      "category": "intent_dependent",
+      "label": "M6",
+      "C1": {
+        "faithfulness": 0.6,
+        "hallucination_rate": 0.4,
+        "verifiable": 5,
+        "unverifiable": 47,
+        "total_claims": 52,
+        "explanation": "# 学生代码分析\n\n```python\ndef add(a, b):\n    print(a + b)\n```\n\n## 主要误区：用 `print` 代替 `return`\n\n这是初学者最常见的误区之一。函数**计算**出了结果，却只是**打印**出来，没有**返回**给调用者。\n\n### 为什么这是问题？\n\n**1. 函数无法被复用/组合**\n\n```python\nresult = add(1, 2)   # 屏幕上打印了 3\nprint(result)        # 打印 None  ← 拿不到结果！\n```\n\n`add(1, 2)` 的返回值是 `None`，因为函数体里没有 `return`。Python 中所有没有显式 `return` 的函数都返回 `None`。\n\n**2. 无法参与后续计算**\n\n```python\ntotal = add(1, 2) + 10   # TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'\n```\n\n**3. 副作用与计算混在一起**\n\n`print` 是**副作用**（side effect），`return` 才是**产出结果**。一个\"加法函数\"的职责是算出和，而不是负责显示。显示应该由调用方决定：\n\n```python\nprint(add(1, 2))   # 调用方想显示时才显示\n```\n\n**4. 难以测试**\n\n```python\nassert add(1, 2) == 3   # AssertionError，因为返回的是 None\n```\n\n单元测试通常检查返回值，而不是捕获 stdout。\n\n## 正确写法\n\n```python\ndef add(a, b):\n    return a + b\n```\n\n如果确实想同时打印和返回（一般不建议在库函数里这么做）：\n\n```python\ndef add(a, b):\n    result = a + b\n    print(result)   # 调试用，正式代码应去掉\n    return result\n```\n\n## 一句话总结\n\n> **`print` 是给人看的，`return` 是给程序用的。** 函数应该 `return` 结果，把\"要不要打印\"的决定权交给调用者。\n\n## 延伸：什么时候 `print` 是合理的？\n\n- 调试时临时查看中间值（用完应删除或改用 `logging`）\n- 命令行工具的**入口函数**（如 `main()`）负责输出\n- 交互式脚本的最终展示\n\n但在**可复用的函数**（尤其是名字像 `add`、`compute`、`get` 这类）里，几乎总是应该用 `return`。",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def add(a, b):",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(a + b)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 主要误区：用 `print` 代替 `return`",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "这是初学者最常见的误区之一",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "函数**计算**出了结果，却只是**打印**出来，没有**返回**给调用者",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "### 为什么这是问题",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**1. 函数无法被复用/组合**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "result = add(1, 2)   # 屏幕上打印了 3",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(result)        # 打印 None  ← 拿不到结果",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`add(1, 2)` 的返回值是 `None`，因为函数体里没有 `return`",
+            "predicate": "inplace_returns_none",
+            "verdict": "unsupported",
+            "reason": "代码中找不到对 add() 的相应用法（幻觉）"
+          },
+          {
+            "text": "Python 中所有没有显式 `return` 的函数都返回 `None`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**2. 无法参与后续计算**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "total = add(1, 2) + 10   # TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**3. 副作用与计算混在一起**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`print` 是**副作用**（side effect），`return` 才是**产出结果**",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "一个\"加法函数\"的职责是算出和，而不是负责显示",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "显示应该由调用方决定：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(add(1, 2))   # 调用方想显示时才显示",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**4. 难以测试**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "assert add(1, 2) == 3   # AssertionError，因为返回的是 None",
+            "predicate": "inplace_returns_none",
+            "verdict": "unsupported",
+            "reason": "代码中找不到对 add() 的相应用法（幻觉）"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "单元测试通常检查返回值，而不是捕获 stdout",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 正确写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def add(a, b):",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "return a + b",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果确实想同时打印和返回（一般不建议在库函数里这么做）：",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def add(a, b):",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "result = a + b",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(result)   # 调试用，正式代码应去掉",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "return result",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 一句话总结",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "> **`print` 是给人看的，`return` 是给程序用的",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "** 函数应该 `return` 结果，把\"要不要打印\"的决定权交给调用者",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "## 延伸：什么时候 `print` 是合理的",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 调试时临时查看中间值（用完应删除或改用 `logging`）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 命令行工具的**入口函数**（如 `main()`）负责输出",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 交互式脚本的最终展示",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但在**可复用的函数**（尤其是名字像 `add`、`compute`、`get` 这类）里，几乎总是应该用 `return`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2955.3
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 5,
+        "unverifiable": 14,
+        "total_claims": 19,
+        "explanation": "根据 AST 事实，这段代码存在以下误区：\n\n**1. 函数名为 `add`，但函数体内没有 `return` 语句（has_return=False）**\n\n这是核心问题。函数名叫 `add`（“相加”），通常预期它**返回**相加的结果，供调用方继续使用。但事实显示 `has_return=False`，函数体只有 `print(a + b)`，也就是说它只把结果打印到屏幕，并没有把值交回给调用者。\n\n后果：调用 `add(1, 2)` 得到的是 `None`，而不是 `3`。如果学生之后写 `x = add(1, 2) + 10`，就会因为 `None + 10` 报错。这是“打印”与“返回”混淆的典型误区。\n\n**2. 函数职责与命名不一致**\n\n`add` 这个命名暗示“计算并给出和”，而实际行为是“计算并打印”。命名与行为不符，会让调用者误以为能拿到返回值。若确实只想打印，函数名更宜体现“打印”语义（如 `print_sum`）；若想返回结果，应使用 `return a + b`。\n\n**3. 表达式 `a + b` 的结果被丢弃（仅用于 print）**\n\nAST 显示 L2 有 `a Add b` 这一加法表达式，但它只作为 `print` 的参数被消费，没有被返回或保存。计算结果没有被函数“产出”，只产生了副作用（屏幕输出）。\n\n**小结**：误区在于把“打印结果”当成了“返回结果”。`print` 是副作用，`return` 才是把值交给调用方；名为 `add` 的函数应当 `return a + b`，而不是只 `print(a + b)`。",
+        "claims": [
+          {
+            "text": "根据 AST 事实，这段代码存在以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**1. 函数名为 `add`，但函数体内没有 `return` 语句（has_return=False）**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这是核心问题",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "函数名叫 `add`（“相加”），通常预期它**返回**相加的结果，供调用方继续使用",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "但事实显示 `has_return=False`，函数体只有 `print(a + b)`，也就是说它只把结果打印到屏幕，并没有把值交回给调用者",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "后果：调用 `add(1, 2)` 得到的是 `None`，而不是 `3`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生之后写 `x = add(1, 2) + 10`，就会因为 `None + 10` 报错",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这是“打印”与“返回”混淆的典型误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**2. 函数职责与命名不一致**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "`add` 这个命名暗示“计算并给出和”，而实际行为是“计算并打印”",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "命名与行为不符，会让调用者误以为能拿到返回值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "若确实只想打印，函数名更宜体现“打印”语义（如 `print_sum`）",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "若想返回结果，应使用 `return a + b`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**3. 表达式 `a + b` 的结果被丢弃（仅用于 print）**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "AST 显示 L2 有 `a Add b` 这一加法表达式，但它只作为 `print` 的参数被消费，没有被返回或保存",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "计算结果没有被函数“产出”，只产生了副作用（屏幕输出）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**小结**：误区在于把“打印结果”当成了“返回结果”",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`print` 是副作用，`return` 才是把值交给调用方",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "名为 `add` 的函数应当 `return a + b`，而不是只 `print(a + b)`",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          }
+        ],
+        "error": null,
+        "latency_ms": 2422.6
+      }
+    },
+    {
+      "id": "P04",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 44,
+        "total_claims": 44,
+        "explanation": "# 学生代码分析\n\n```python\nname = input()\nprint('hello ' + name * 3)\n```\n\n## 存在的误区\n\n### 误区 1：运算符优先级理解错误（核心问题）\n\n学生可能**期望**输出是：\n\n```\nhello hello hello \n```\n\n即把 `'hello ' + name` 整体重复 3 次。\n\n但实际输出是：\n\n```\nhello AliceAliceAlice\n```\n\n**原因**：Python 中 `*` 的优先级**高于** `+`。所以表达式实际被解析为：\n\n```python\n'hello ' + (name * 3)\n```\n\n先执行 `name * 3`（字符串重复），再与 `'hello '` 拼接。\n\n### 误区 2：对字符串 `*` 运算的语义理解不牢\n\n`name * 3` 是**字符串重复**，不是数值乘法。很多初学者会误以为 `*` 只用于数字，或者误以为 `'hello ' + name` 会先结合。\n\n### 误区 3：缺少输入提示与边界考虑\n\n- `input()` 没有提示语，用户不知道要输入什么。\n- 若用户直接回车（空字符串），输出会变成 `'hello '`，可能不是预期行为。\n\n## 正确写法\n\n如果目标是输出 3 次 \"hello 名字\"：\n\n```python\nname = input(\"请输入名字：\")\nprint(('hello ' + name + ' ') * 3)\n# 或\nprint(('hello ' + name) * 3)\n```\n\n如果目标是 \"hello \" + 名字重复 3 次（即学生代码的实际行为），那代码本身没错，但**应加括号明确意图**，避免读者误解：\n\n```python\nprint('hello ' + name * 3)   # 意图明确时可保留，但建议注释\n```\n\n## 教学要点\n\n1. **运算符优先级**：`*` `/` 高于 `+` `-`，字符串运算同样适用。\n2. **善用括号**：即使优先级正确，加括号能表达意图、提升可读性。\n3. **区分\"拼接后重复\"与\"重复后拼接\"**：这是字符串运算中非常常见的思维陷阱。",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "name = input()",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('hello ' + name * 3)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 存在的误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 1：运算符优先级理解错误（核心问题）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生可能**期望**输出是：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "hello hello hello",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "即把 `'hello ' + name` 整体重复 3 次",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但实际输出是：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "hello AliceAliceAlice",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**原因**：Python 中 `*` 的优先级**高于** `+`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "所以表达式实际被解析为：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "'hello ' + (name * 3)",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "先执行 `name * 3`（字符串重复），再与 `'hello '` 拼接",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 2：对字符串 `*` 运算的语义理解不牢",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`name * 3` 是**字符串重复**，不是数值乘法",
+            "predicate": "type_mismatch",
+            "verdict": "unverifiable",
+            "reason": "无法从代码结构确定操作数类型"
+          },
+          {
+            "text": "很多初学者会误以为 `*` 只用于数字，或者误以为 `'hello ' + name` 会先结合",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 3：缺少输入提示与边界考虑",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- `input()` 没有提示语，用户不知道要输入什么",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 若用户直接回车（空字符串），输出会变成 `'hello '`，可能不是预期行为",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 正确写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果目标是输出 3 次 \"hello 名字\"：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "name = input(\"请输入名字：\")",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(('hello ' + name + ' ') * 3)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "# 或",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(('hello ' + name) * 3)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果目标是 \"hello \" + 名字重复 3 次（即学生代码的实际行为），那代码本身没错，但**应加括号明确意图**，避免读者误解：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print('hello ' + name * 3)   # 意图明确时可保留，但建议注释",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 教学要点",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **运算符优先级**：`*` `/` 高于 `+` `-`，字符串运算同样适用",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. **善用括号**：即使优先级正确，加括号能表达意图、提升可读性",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "3. **区分\"拼接后重复\"与\"重复后拼接\"**：这是字符串运算中非常常见的思维陷阱",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2928.7
+      },
+      "C2": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 10,
+        "total_claims": 10,
+        "explanation": "根据 AST 事实，存在以下误区：\n\n1. **运算符优先级误解**：AST 显示 L2 的结构是 `'hello ' Add (name Mult 3)`，即 `name * 3` 先结合，再与 `'hello '` 相加。学生可能以为 `('hello ' + name) * 3`（先拼接再重复），但实际 Python 中 `*` 优先级高于 `+`，所以是字符串重复后再拼接。\n\n2. **类型与语义混淆**：`name` 疑似 `str(input)`，即字符串。`name * 3` 是字符串重复（得到 `name` 重复三次），而不是数值乘法。学生若想表达\"问候三次\"，当前写法只会输出一次 `hello ` 加上重复的 name，例如输入 `Tom` 得到 `hello TomTomTom`，而非 `hello Tomhello Tomhello Tom`。\n\n3. **拼接与重复的对象错位**：AST 中 `Add` 的左操作数是常量 `'hello '`，右操作数是 `name Mult 3`。这说明\"重复\"只作用于 `name`，`'hello '` 只出现一次。若目标是整体重复问候语，应把 `* 3` 作用于整个拼接结果（需加括号），但当前 AST 事实不支持这一写法。\n\n简言之：误区在于**误判了 `*` 与 `+` 的结合顺序**，导致重复的对象是 `name` 而非整个问候字符串。",
+        "claims": [
+          {
+            "text": "根据 AST 事实，存在以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **运算符优先级误解**：AST 显示 L2 的结构是 `'hello ' Add (name Mult 3)`，即 `name * 3` 先结合，再与 `'hello '` 相加",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生可能以为 `('hello ' + name) * 3`（先拼接再重复），但实际 Python 中 `*` 优先级高于 `+`，所以是字符串重复后再拼接",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. **类型与语义混淆**：`name` 疑似 `str(input)`，即字符串",
+            "predicate": "type_mismatch",
+            "verdict": "unverifiable",
+            "reason": "无法从代码结构确定操作数类型"
+          },
+          {
+            "text": "`name * 3` 是字符串重复（得到 `name` 重复三次），而不是数值乘法",
+            "predicate": "type_mismatch",
+            "verdict": "unverifiable",
+            "reason": "无法从代码结构确定操作数类型"
+          },
+          {
+            "text": "学生若想表达\"问候三次\"，当前写法只会输出一次 `hello ` 加上重复的 name，例如输入 `Tom` 得到 `hello TomTomTom`，而非 `hello Tomhello Tomhello Tom`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "3. **拼接与重复的对象错位**：AST 中 `Add` 的左操作数是常量 `'hello '`，右操作数是 `name Mult 3`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这说明\"重复\"只作用于 `name`，`'hello '` 只出现一次",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "若目标是整体重复问候语，应把 `* 3` 作用于整个拼接结果（需加括号），但当前 AST 事实不支持这一写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "简言之：误区在于**误判了 `*` 与 `+` 的结合顺序**，导致重复的对象是 `name` 而非整个问候字符串",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2333.7
+      }
+    },
+    {
+      "id": "P05",
+      "category": "positive",
+      "label": "M8",
+      "C1": {
+        "faithfulness": 0.5,
+        "hallucination_rate": 0.5,
+        "verifiable": 2,
+        "unverifiable": 41,
+        "total_claims": 43,
+        "explanation": "# 学生代码分析\n\n```python\ni = 0\nwhile i < 10:\n    print(i)\n```\n\n## 存在的常见误区\n\n### 1. 死循环（无限循环）—— 最核心的问题\n\n**问题**：循环体里**没有更新循环变量 `i`**，`i` 永远是 `0`，`i < 10` 永远为真，程序会无限打印 `0`，直到被强制中断。\n\n**为什么**：`while` 循环不会自动递增计数器。它只在每次迭代**开始前**检查条件，条件为真就执行循环体。学生可能误以为 `while` 会像 `for` 一样自动遍历，或者以为 `print(i)` 会改变 `i` 的值——但 `print` 只是输出，不修改任何变量。\n\n**修正**：\n```python\ni = 0\nwhile i < 10:\n    print(i)\n    i += 1      # 关键：更新循环变量\n```\n\n---\n\n### 2. 对 `while` 与 `for` 的适用场景混淆\n\n**问题**：这里的需求是\"打印 0 到 9\"，本质是**已知次数的遍历**，用 `for` 更自然、更不容易出错。\n\n**为什么**：`while` 适合\"条件驱动\"的场景（不知道要循环多少次，靠条件退出）；`for` 适合\"遍历驱动\"的场景（已知范围/序列）。学生用 `while` 手动管理计数器，恰恰是最容易漏掉自增的地方。\n\n**更地道的写法**：\n```python\nfor i in range(10):\n    print(i)\n```\n`range(10)` 自动产生 0~9，无需手动维护 `i`，从根本上杜绝了忘记自增的问题。\n\n---\n\n### 3. （潜在）循环变量的初始化位置\n\n虽然本例中 `i = 0` 写在循环外是正确的，但这是学生常犯的另一类错误的\"正确版本\"——需要提醒：**初始化必须在 `while` 之前**，若写在循环体内，每次迭代都会重置为 0，同样导致死循环。这点学生代码做对了，但值得强调，因为它是与\"忘记自增\"成对出现的陷阱。\n\n---\n\n## 小结\n\n| 误区 | 后果 | 修正 |\n|------|------|------|\n| 循环体未更新 `i` | 死循环，无限打印 0 | 加 `i += 1` |\n| 该用 `for` 却用 `while` | 易漏自增、代码冗长 | 改用 `for i in range(10)` |\n\n**一句话总结**：`while` 循环的循环变量必须由程序员**手动更新**，否则条件永远成立；对于已知次数的遍历，优先用 `for` 从",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "i = 0",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while i < 10:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(i)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 存在的常见误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 1. 死循环（无限循环）—— 最核心的问题",
+            "predicate": "infinite_loop",
+            "verdict": "supported",
+            "reason": "条件变量在循环体内从不更新且无出口"
+          },
+          {
+            "text": "**问题**：循环体里**没有更新循环变量 `i`**，`i` 永远是 `0`，`i < 10` 永远为真，程序会无限打印 `0`，直到被强制中断",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**为什么**：`while` 循环不会自动递增计数器",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "它只在每次迭代**开始前**检查条件，条件为真就执行循环体",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "学生可能误以为 `while` 会像 `for` 一样自动遍历，或者以为 `print(i)` 会改变 `i` 的值——但 `print` 只是输出，不修改任何变量",
+            "predicate": "print_not_return",
+            "verdict": "unsupported",
+            "reason": "没有'有 print 且无 return'的函数（幻觉）"
+          },
+          {
+            "text": "**修正**：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "i = 0",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while i < 10:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(i)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "i += 1      # 关键：更新循环变量",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 2. 对 `while` 与 `for` 的适用场景混淆",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**问题**：这里的需求是\"打印 0 到 9\"，本质是**已知次数的遍历**，用 `for` 更自然、更不容易出错",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**为什么**：`while` 适合\"条件驱动\"的场景（不知道要循环多少次，靠条件退出）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "`for` 适合\"遍历驱动\"的场景（已知范围/序列）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "学生用 `while` 手动管理计数器，恰恰是最容易漏掉自增的地方",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**更地道的写法**：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for i in range(10):",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(i)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`range(10)` 自动产生 0~9，无需手动维护 `i`，从根本上杜绝了忘记自增的问题",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 3. （潜在）循环变量的初始化位置",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "虽然本例中 `i = 0` 写在循环外是正确的，但这是学生常犯的另一类错误的\"正确版本\"——需要提醒：**初始化必须在 `while` 之前**，若写在循环体内，每次迭代都会重置为 0，同样导致死循环",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这点学生代码做对了，但值得强调，因为它是与\"忘记自增\"成对出现的陷阱",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 小结",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "| 误区 | 后果 | 修正 |",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "|------|------|------|",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "| 循环体未更新 `i` | 死循环，无限打印 0 | 加 `i += 1` |",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "| 该用 `for` 却用 `while` | 易漏自增、代码冗长 | 改用 `for i in range(10)` |",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**一句话总结**：`while` 循环的循环变量必须由程序员**手动更新**，否则条件永远成立",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "对于已知次数的遍历，优先用 `for` 从",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3584.8
+      },
+      "C2": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 3,
+        "unverifiable": 15,
+        "total_claims": 18,
+        "explanation": "根据给出的 AST 结构事实，可以指出以下误区：\n\n1. **循环变量未更新，存在死循环风险**\n   - 事实：`L2: while i < 10`，循环体只有 `L3: print(i)`。\n   - 事实：变量 `i` 初始为 `0`（疑似类型 num），循环条件依赖 `i < 10`。\n   - 分析：循环体内没有任何对 `i` 的修改操作（AST 事实中循环体仅包含 `print(i)`）。因此 `i` 始终为 0，条件 `0 < 10` 永远成立，循环不会终止。这是典型的“忘记更新循环变量”误区。\n\n2. **循环变量类型与条件判断的匹配问题（潜在）**\n   - 事实：`i` 疑似类型为 num，条件为 `i < 10`。\n   - 分析：从事实看类型与比较是匹配的（数值与数值比较），这一点本身没有类型错误；但正因为 `i` 是数值且未被更新，才导致上述死循环。误区不在于类型，而在于缺少使数值递增/变化的语句。\n\n3. **输出行为与预期不符**\n   - 事实：循环体只有 `print(i)`。\n   - 分析：由于 `i` 不变，程序会不断打印同一个值 `0`，而不是像通常 `while` 计数循环那样打印 0 到 9。这说明学生可能误以为 `while` 会自动递增变量，或漏写了 `i += 1` 之类的更新语句。\n\n**结论**：依据 AST 事实，核心误区是**循环体内缺少对循环变量 `i` 的更新**，导致条件恒真、产生死循环，并且输出重复的同一个值。事实中没有任何关于 `i += 1` 或 `break` 的信息，因此不能假设代码中有这些语句。",
+        "claims": [
+          {
+            "text": "根据给出的 AST 结构事实，可以指出以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **循环变量未更新，存在死循环风险**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 事实：`L2: while i < 10`，循环体只有 `L3: print(i)`",
+            "predicate": "print_not_return",
+            "verdict": "unsupported",
+            "reason": "没有'有 print 且无 return'的函数（幻觉）"
+          },
+          {
+            "text": "- 事实：变量 `i` 初始为 `0`（疑似类型 num），循环条件依赖 `i < 10`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 分析：循环体内没有任何对 `i` 的修改操作（AST 事实中循环体仅包含 `print(i)`）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "因此 `i` 始终为 0，条件 `0 < 10` 永远成立，循环不会终止",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这是典型的“忘记更新循环变量”误区",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "2. **循环变量类型与条件判断的匹配问题（潜在）**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 事实：`i` 疑似类型为 num，条件为 `i < 10`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 分析：从事实看类型与比较是匹配的（数值与数值比较），这一点本身没有类型错误",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "代码里没有二元运算（幻觉）"
+          },
+          {
+            "text": "但正因为 `i` 是数值且未被更新，才导致上述死循环",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "误区不在于类型，而在于缺少使数值递增/变化的语句",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "3. **输出行为与预期不符**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 事实：循环体只有 `print(i)`",
+            "predicate": "print_not_return",
+            "verdict": "unsupported",
+            "reason": "没有'有 print 且无 return'的函数（幻觉）"
+          },
+          {
+            "text": "- 分析：由于 `i` 不变，程序会不断打印同一个值 `0`，而不是像通常 `while` 计数循环那样打印 0 到 9",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这说明学生可能误以为 `while` 会自动递增变量，或漏写了 `i += 1` 之类的更新语句",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**结论**：依据 AST 事实，核心误区是**循环体内缺少对循环变量 `i` 的更新**，导致条件恒真、产生死循环，并且输出重复的同一个值",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "事实中没有任何关于 `i += 1` 或 `break` 的信息，因此不能假设代码中有这些语句",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2517.2
+      }
+    },
+    {
+      "id": "N01",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 54,
+        "total_claims": 54,
+        "explanation": "# 学生代码分析\n\n```python\nd = {'a': 1, 'b': 2}\nfor k in d:\n    print(d[k])\n```\n\n## 结论：这段代码**没有错误**，能正常运行\n\n先说清楚：这段代码是**正确**的，输出 `1` 和 `2`。它演示了\"遍历字典的键，再用键去取值\"的合法写法。\n\n不过，如果这是学生**刻意**这么写，可能反映出一些值得提醒的**思维习惯/潜在误区**。下面逐条说明。\n\n---\n\n## 值得提醒的几点\n\n### 1. 误区：以为 `for k in d` 遍历的是\"值\"或\"键值对\"\n\n很多初学者会误以为 `for k in d` 拿到的是字典的值，或者 `(key, value)` 元组。\n\n**事实**：直接遍历字典，拿到的是**键（key）**。所以 `k` 是 `'a'`、`'b'`，`d[k]` 才能取到值。\n\n如果学生把变量名写成 `k` 说明他理解了；但如果写成 `for v in d: print(v)` 却期望打印值，那就是典型误区。\n\n---\n\n### 2. 潜在误区：多此一举地\"先拿键再查值\"\n\n```python\nfor k in d:\n    print(d[k])      # 绕了一圈\n```\n\n更 Pythonic 的写法是直接用 `.items()`：\n\n```python\nfor k, v in d.items():\n    print(v)\n```\n\n**为什么更好？**\n- 语义更清晰：一眼看出\"我要键和值\"\n- 效率略高：`d[k]` 需要再做一次哈希查找，`.items()` 直接给出键值对\n- 可读性：读代码的人不用在脑子里做\"k 是什么、d[k] 又是什么\"的转换\n\n**注意**：这不是\"错误\"，只是在**同时需要键和值**时，`.items()` 是更地道的写法。如果**只需要值**，还有更直接的：\n\n```python\nfor v in d.values():\n    print(v)\n```\n\n---\n\n### 3. 误区：在遍历字典时修改字典\n\n这是字典遍历里**真正危险**的坑，虽然学生代码没犯，但常和这种写法一起出现：\n\n```python\nfor k in d:\n    if d[k] == 1:\n        del d[k]        # ❌ RuntimeError: dictionary changed size during iteration\n```\n\n**为什么错**：遍历时字典大小变了，迭代器失效，Python 会直接抛 `RuntimeError`。\n\n**正确做法**：遍历副本，或先收集要删的键：\n\n```python\nfor k in list(d):        # 遍历键的副本\n    if d[k] == 1:\n       ",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "d = {'a': 1, 'b': 2}",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for k in d:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(d[k])",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 结论：这段代码**没有错误**，能正常运行",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "先说清楚：这段代码是**正确**的，输出 `1` 和 `2`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "它演示了\"遍历字典的键，再用键去取值\"的合法写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "不过，如果这是学生**刻意**这么写，可能反映出一些值得提醒的**思维习惯/潜在误区**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "下面逐条说明",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 值得提醒的几点",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 1. 误区：以为 `for k in d` 遍历的是\"值\"或\"键值对\"",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "很多初学者会误以为 `for k in d` 拿到的是字典的值，或者 `(key, value)` 元组",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**事实**：直接遍历字典，拿到的是**键（key）**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "所以 `k` 是 `'a'`、`'b'`，`d[k]` 才能取到值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生把变量名写成 `k` 说明他理解了",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但如果写成 `for v in d: print(v)` 却期望打印值，那就是典型误区",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 2. 潜在误区：多此一举地\"先拿键再查值\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for k in d:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(d[k])      # 绕了一圈",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "更 Pythonic 的写法是直接用 `.items()`：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for k, v in d.items():",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(v)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么更好",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 语义更清晰：一眼看出\"我要键和值\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 效率略高：`d[k]` 需要再做一次哈希查找，`.items()` 直接给出键值对",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 可读性：读代码的人不用在脑子里做\"k 是什么、d[k] 又是什么\"的转换",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**注意**：这不是\"错误\"，只是在**同时需要键和值**时，`.items()` 是更地道的写法",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果**只需要值**，还有更直接的：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for v in d.values():",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print(v)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 3. 误区：在遍历字典时修改字典",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这是字典遍历里**真正危险**的坑，虽然学生代码没犯，但常和这种写法一起出现：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for k in d:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "if d[k] == 1:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "del d[k]        # ❌ RuntimeError: dictionary changed size during iteration",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么错**：遍历时字典大小变了，迭代器失效，Python 会直接抛 `RuntimeError`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**正确做法**：遍历副本，或先收集要删的键：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "for k in list(d):        # 遍历键的副本",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "if d[k] == 1:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3462.7
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 3,
+        "unverifiable": 20,
+        "total_claims": 23,
+        "explanation": "根据给出的 AST 结构事实，这段代码本身**没有语法或结构上的错误**，但可以从事实中看出一个常见的**理解误区**：\n\n## 客观事实\n- L2 是 `for k in d`，即直接遍历字典 `d`。\n- L3 是 `print(d[k])`，即对 `d` 做下标访问，键为 `k`。\n\n## 可能的误区\n**误区：认为 `for k in d` 中的 `k` 是字典的值，或者认为需要额外获取键才能取值。**\n\n从 AST 事实看，`k` 被直接用作 `d[k]` 的下标，说明代码作者实际上**正确地**知道 `for k in d` 遍历的是**键**。因此这里不存在“把 k 当成值”的错误。\n\n但更值得指出的误区是：\n\n**误区：在遍历字典时，明明已经拿到了键，却又用 `d[k]` 回查值，属于多余的间接访问。**\n\n- 事实：L2 遍历得到 `k`（键），L3 用 `d[k]` 再取一次值。\n- 为什么是误区：Python 字典遍历时，若同时需要键和值，更直接的方式是 `for k, v in d.items(): print(v)`，避免每次循环都做一次下标查找。当前写法虽然结果正确，但多了一次不必要的哈希查找，且可读性上不如直接解包。\n- 注意：AST 事实只显示“遍历键 + 下标访问”，**不能**据此断定作者不理解 `k` 是键；只能说明写法上存在“先取键再回查值”的冗余模式。\n\n## 不能从事实推出的内容\n- 不能断定代码会报错（事实中无异常信息）。\n- 不能断定作者混淆了键和值（事实显示 `k` 被用作下标，恰恰说明它被当作键使用）。\n- 不能评价性能的具体数值（事实中无性能数据）。\n\n**结论**：从 AST 事实看，代码结构正确；可指出的误区是“遍历字典时用 `d[k]` 回查值”这一冗余模式，更推荐 `items()` 同时解包键值。",
+        "claims": [
+          {
+            "text": "根据给出的 AST 结构事实，这段代码本身**没有语法或结构上的错误**，但可以从事实中看出一个常见的**理解误区**：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 客观事实",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- L2 是 `for k in d`，即直接遍历字典 `d`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- L3 是 `print(d[k])`，即对 `d` 做下标访问，键为 `k`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "## 可能的误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**误区：认为 `for k in d` 中的 `k` 是字典的值，或者认为需要额外获取键才能取值",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "从 AST 事实看，`k` 被直接用作 `d[k]` 的下标，说明代码作者实际上**正确地**知道 `for k in d` 遍历的是**键**",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "因此这里不存在“把 k 当成值”的错误",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但更值得指出的误区是：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**误区：在遍历字典时，明明已经拿到了键，却又用 `d[k]` 回查值，属于多余的间接访问",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 事实：L2 遍历得到 `k`（键），L3 用 `d[k]` 再取一次值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 为什么是误区：Python 字典遍历时，若同时需要键和值，更直接的方式是 `for k, v in d.items(): print(v)`，避免每次循环都做一次下标查找",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "当前写法虽然结果正确，但多了一次不必要的哈希查找，且可读性上不如直接解包",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 注意：AST 事实只显示“遍历键 + 下标访问”，**不能**据此断定作者不理解 `k` 是键",
+            "predicate": "value_as_index",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "只能说明写法上存在“先取键再回查值”的冗余模式",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 不能从事实推出的内容",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 不能断定代码会报错（事实中无异常信息）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 不能断定作者混淆了键和值（事实显示 `k` 被用作下标，恰恰说明它被当作键使用）",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 不能评价性能的具体数值（事实中无性能数据）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**结论**：从 AST 事实看，代码结构正确",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "可指出的误区是“遍历字典时用 `d[k]` 回查值”这一冗余模式，更推荐 `items()` 同时解包键值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3049.3
+      }
+    },
+    {
+      "id": "N02",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 64,
+        "total_claims": 64,
+        "explanation": "# 学生代码分析\n\n```python\ns = [1, 2, 3]\nwhile len(s) > 0:\n    s.pop()\n```\n\n## 结论：这段代码**没有明显错误**，能正常运行\n\n它会依次弹出 `3, 2, 1`，最终 `s` 变为 `[]`，循环正常结束。所以严格来说这不是\"错误代码\"。\n\n不过，如果这是学生**想表达某种意图**时写的，可能存在以下几个**常见误区/可改进点**：\n\n---\n\n## 误区 1：用 `while len(s) > 0` 而不是直接判断列表真值\n\nPython 中空列表是 falsy，非空列表是 truthy。更地道的写法是：\n\n```python\nwhile s:\n    s.pop()\n```\n\n**为什么**：`len(s) > 0` 是 C 风格思维。Python 社区惯例是直接判断容器本身（PEP 8 精神）。虽然不算错，但不够 Pythonic。\n\n---\n\n## 误区 2：用 `while` + `pop()` 清空列表，而不是 `s.clear()`\n\n如果目的就是**清空列表**，最直接的是：\n\n```python\ns.clear()          # Python 3.3+\n# 或\ndel s[:]\n```\n\n**为什么**：`while + pop()` 是 O(n) 的循环，每次 `pop()` 还要维护列表长度；`clear()` 是 C 层实现，更快更清晰。用循环清空列表属于\"用错误工具做简单事\"。\n\n---\n\n## 误区 3（潜在）：`pop()` 默认从**尾部**弹出，学生可能误以为是从头部\n\n`list.pop()` 不带参数时弹出**最后一个**元素。如果学生本意是\"从头到尾依次处理\"，那应该用：\n\n```python\nwhile s:\n    s.pop(0)      # 从头部弹（O(n)，不推荐）\n# 或更推荐\nfrom collections import deque\nd = deque(s)\nwhile d:\n    d.popleft()   # O(1)\n```\n\n**为什么**：`pop()` 的默认行为容易被误解。如果学生以为 `pop()` 是\"弹出第一个\"，逻辑就错了。\n\n---\n\n## 误区 4（潜在）：把列表当栈用，但没意识到 `pop()` 的返回值被丢弃\n\n```python\ns.pop()   # 返回值被丢弃\n```\n\n如果学生本意是\"取出元素做处理\"，却写成 `s.pop()` 而不接收返回值，那元素就白白丢了。正确写法：\n\n```python\nwhile s:\n    x = s.pop()\n    # 处理 x\n```\n\n**为什么**：`pop()` 有返回值，丢弃它通常意味着逻辑遗漏。\n\n---\n\n## 总结\n\n| 问题 | 严重程度 | 说明 |\n|",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "s = [1, 2, 3]",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while len(s) > 0:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "s.pop()",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 结论：这段代码**没有明显错误**，能正常运行",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "它会依次弹出 `3, 2, 1`，最终 `s` 变为 `[]`，循环正常结束",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "所以严格来说这不是\"错误代码\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "不过，如果这是学生**想表达某种意图**时写的，可能存在以下几个**常见误区/可改进点**：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区 1：用 `while len(s) > 0` 而不是直接判断列表真值",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "Python 中空列表是 falsy，非空列表是 truthy",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "更地道的写法是：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while s:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "s.pop()",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么**：`len(s) > 0` 是 C 风格思维",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "Python 社区惯例是直接判断容器本身（PEP 8 精神）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "虽然不算错，但不够 Pythonic",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区 2：用 `while` + `pop()` 清空列表，而不是 `s.clear()`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "如果目的就是**清空列表**，最直接的是：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "s.clear()          # Python 3.3+",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "# 或",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "del s[:]",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么**：`while + pop()` 是 O(n) 的循环，每次 `pop()` 还要维护列表长度",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "`clear()` 是 C 层实现，更快更清晰",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "用循环清空列表属于\"用错误工具做简单事\"",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区 3（潜在）：`pop()` 默认从**尾部**弹出，学生可能误以为是从头部",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "`list.pop()` 不带参数时弹出**最后一个**元素",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生本意是\"从头到尾依次处理\"，那应该用：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while s:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "s.pop(0)      # 从头部弹（O(n)，不推荐）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "# 或更推荐",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "from collections import deque",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "d = deque(s)",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while d:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "d.popleft()   # O(1)",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么**：`pop()` 的默认行为容易被误解",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生以为 `pop()` 是\"弹出第一个\"，逻辑就错了",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区 4（潜在）：把列表当栈用，但没意识到 `pop()` 的返回值被丢弃",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "s.pop()   # 返回值被丢弃",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生本意是\"取出元素做处理\"，却写成 `s.pop()` 而不接收返回值，那元素就白白丢了",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "正确写法：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while s:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "x = s.pop()",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "# 处理 x",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么**：`pop()` 有返回值，丢弃它通常意味着逻辑遗漏",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 总结",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "| 问题 | 严重程度 | 说明 |",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "|",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3619.0
+      },
+      "C2": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 12,
+        "total_claims": 12,
+        "explanation": "根据给出的 AST 结构事实，可以指出以下误区：\n\n**误区：在 `while` 循环条件中反复调用 `len(s)` 来判断列表是否为空。**\n\n**为什么这是误区：**\n\n1. **事实依据**：L2 的循环条件是 `while len(s) > 0`，而 L3 在循环体内对 `s` 调用 `pop()`。也就是说，每次循环迭代都会先执行一次 `len(s)` 计算，再执行一次 `pop()`。\n\n2. **从结构上看**：`len(s)` 是一个函数调用，它需要遍历/读取列表的长度信息；而 `pop()` 每次只移除一个元素。两者在循环中成对出现，意味着每删除一个元素就要额外做一次长度计算。\n\n3. **更符合 Python 习惯的写法**：由于空列表在布尔上下文中为假，循环条件可以直接写成 `while s:`，这样既省去 `len()` 调用，语义也更清晰。AST 事实只表明当前用的是 `len(s) > 0`，并未显示这种替代写法，但可以据此说明当前写法存在“多余的长度计算”这一结构性问题。\n\n**需要说明的边界**：AST 事实只包含 L2 的 `while len(s) > 0` 和 L3 的 `pop()` 调用，并未提供性能测量、运行结果或其它代码细节，因此只能就“循环条件中反复调用 `len()`”这一结构现象讨论，不能推断该代码有其它（如死循环、异常等）问题。",
+        "claims": [
+          {
+            "text": "根据给出的 AST 结构事实，可以指出以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**误区：在 `while` 循环条件中反复调用 `len(s)` 来判断列表是否为空",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么这是误区：**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **事实依据**：L2 的循环条件是 `while len(s) > 0`，而 L3 在循环体内对 `s` 调用 `pop()`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "也就是说，每次循环迭代都会先执行一次 `len(s)` 计算，再执行一次 `pop()`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "2. **从结构上看**：`len(s)` 是一个函数调用，它需要遍历/读取列表的长度信息",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "而 `pop()` 每次只移除一个元素",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "两者在循环中成对出现，意味着每删除一个元素就要额外做一次长度计算",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "3. **更符合 Python 习惯的写法**：由于空列表在布尔上下文中为假，循环条件可以直接写成 `while s:`，这样既省去 `len()` 调用，语义也更清晰",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "AST 事实只表明当前用的是 `len(s) > 0`，并未显示这种替代写法，但可以据此说明当前写法存在“多余的长度计算”这一结构性问题",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**需要说明的边界**：AST 事实只包含 L2 的 `while len(s) > 0` 和 L3 的 `pop()` 调用，并未提供性能测量、运行结果或其它代码细节，因此只能就“循环条件中反复调用 `len()`”这一结构现象讨论，不能推断该代码有其它（如死循环、异常等）问题",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2424.3
+      }
+    },
+    {
+      "id": "N03",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 56,
+        "total_claims": 56,
+        "explanation": "# 学生代码分析\n\n```python\ndef menu():\n    print('1. Start')\n    print('2. Quit')\n```\n\n## 存在的问题\n\n### 1. 函数只\"打印\"菜单，却不\"返回\"任何东西\n\n这是最核心的误区：**把\"显示菜单\"和\"获取用户选择\"混为一谈**。\n\n- 函数执行完后返回 `None`\n- 调用方拿不到任何有用信息，无法据此做分支判断\n- 结果就是菜单\"打印完就结束了\"，程序无法继续交互\n\n**正确思路**：菜单函数应当**返回用户的选择**，让调用方决定下一步。\n\n```python\ndef menu():\n    print('1. Start')\n    print('2. Quit')\n    return input('请选择: ')   # 关键：把选择交回给调用者\n```\n\n### 2. 没有输入校验 / 没有循环\n\n即使补上 `input()`，学生常犯的第二个错误是：\n\n- 用户输入 `3`、`abc`、空字符串时怎么办？\n- 输入非法时应该**重新显示菜单**，而不是直接崩溃或继续往下走\n\n这需要 `while True` 循环 + 合法性判断，而学生代码里完全没有体现。\n\n```python\ndef menu():\n    while True:\n        print('1. Start')\n        print('2. Quit')\n        choice = input('请选择: ')\n        if choice in ('1', '2'):\n            return choice\n        print('无效输入，请重试')\n```\n\n### 3. 把\"界面\"和\"业务逻辑\"耦合的隐患\n\n学生代码虽然只是打印，但隐含了一种常见设计误区：**菜单函数自己负责一切**。实际应做到：\n\n- `menu()` 只负责**展示 + 收集选择**\n- 具体\"Start 做什么\"\"Quit 怎么退出\"由**调用方**处理\n\n否则菜单函数会越写越长，变成\"上帝函数\"。\n\n### 4. 缺少文档字符串 / 返回值说明\n\n作为教学代码，`def menu():` 没有 docstring，读者不知道它\"返回什么、有什么副作用\"。养成写 docstring 的习惯：\n\n```python\ndef menu() -> str:\n    \"\"\"显示主菜单并返回用户的有效选择（'1' 或 '2'）。\"\"\"\n    ...\n```\n\n### 5. 硬编码字符串（次要）\n\n菜单项写死在函数里，扩展时（比如加\"3. Settings\"）要改多处。可以用列表/字典驱动，但这属于进阶优化，初学阶段可先不苛求。\n\n---\n\n## 一句话总结\n\n> **菜单函数的职责是\"问用户要一个选择并返回它\"，而不是\"打印完就完事\"。** 学生代码缺少 `return`、缺少输入循环与校验，导致函数无法被真正用于交互流程。",
+        "claims": [
+          {
+            "text": "# 学生代码分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def menu():",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print('1. Start')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('2. Quit')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 存在的问题",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 1. 函数只\"打印\"菜单，却不\"返回\"任何东西",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这是最核心的误区：**把\"显示菜单\"和\"获取用户选择\"混为一谈**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 函数执行完后返回 `None`",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 调用方拿不到任何有用信息，无法据此做分支判断",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 结果就是菜单\"打印完就结束了\"，程序无法继续交互",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**正确思路**：菜单函数应当**返回用户的选择**，让调用方决定下一步",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def menu():",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print('1. Start')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('2. Quit')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "return input('请选择: ')   # 关键：把选择交回给调用者",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 2. 没有输入校验 / 没有循环",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "即使补上 `input()`，学生常犯的第二个错误是：",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 用户输入 `3`、`abc`、空字符串时怎么办",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 输入非法时应该**重新显示菜单**，而不是直接崩溃或继续往下走",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这需要 `while True` 循环 + 合法性判断，而学生代码里完全没有体现",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def menu():",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "while True:",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('1. Start')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('2. Quit')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "choice = input('请选择: ')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "if choice in ('1', '2'):",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "return choice",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "print('无效输入，请重试')",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 3. 把\"界面\"和\"业务逻辑\"耦合的隐患",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生代码虽然只是打印，但隐含了一种常见设计误区：**菜单函数自己负责一切**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "实际应做到：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- `menu()` 只负责**展示 + 收集选择**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 具体\"Start 做什么\"\"Quit 怎么退出\"由**调用方**处理",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "否则菜单函数会越写越长，变成\"上帝函数\"",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "### 4. 缺少文档字符串 / 返回值说明",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "作为教学代码，`def menu():` 没有 docstring，读者不知道它\"返回什么、有什么副作用\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "养成写 docstring 的习惯：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "def menu() -> str:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "\"\"\"显示主菜单并返回用户的有效选择（'1' 或 '2'）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "\"\"\"",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "...",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 5. 硬编码字符串（次要）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "菜单项写死在函数里，扩展时（比如加\"3. Settings\"）要改多处",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "可以用列表/字典驱动，但这属于进阶优化，初学阶段可先不苛求",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "---",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 一句话总结",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "> **菜单函数的职责是\"问用户要一个选择并返回它\"，而不是\"打印完就完事\"",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "** 学生代码缺少 `return`、缺少输入循环与校验，导致函数无法被真正用于交互流程",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3614.2
+      },
+      "C2": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "verifiable": 1,
+        "unverifiable": 14,
+        "total_claims": 15,
+        "explanation": "根据 AST 事实，这段代码本身没有语法或结构错误，但存在一个**常见的概念误区**：\n\n**误区：把“打印菜单”等同于“菜单函数完成了它的职责”。**\n\n依据事实分析：\n\n1. **`has_return=False`**：函数 `menu()` 没有任何 `return` 语句。这意味着调用 `menu()` 时，它的返回值是 `None`。\n2. 函数体只有两条 `print` 语句（L2、L3），只负责把选项文本输出到屏幕。\n\n**为什么这是误区：**\n\n- 如果调用方期望通过 `menu()` 拿到用户的选择（例如 `choice = menu()`），那么 `choice` 会是 `None`，后续无法据此分支处理。AST 事实显示函数内既没有 `input()` 调用，也没有 `return`，所以它**不可能把任何选择信息交回给调用者**。\n- 菜单的常见职责是“显示选项 + 获取并返回用户选择”。当前实现只完成了前半部分，结构上缺少返回值的通道。\n\n**需要说明的边界：** 仅凭这些 AST 事实，不能断定学生“一定想返回选择”——如果设计意图就是纯展示函数，那么无返回值是合理的。误区只在“期望它返回选择却写成纯打印”这一情形下成立。事实层面能确认的只是：该函数不返回任何值，只做打印。",
+        "claims": [
+          {
+            "text": "根据 AST 事实，这段代码本身没有语法或结构错误，但存在一个**常见的概念误区**：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**误区：把“打印菜单”等同于“菜单函数完成了它的职责”",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "依据事实分析：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **`has_return=False`**：函数 `menu()` 没有任何 `return` 语句",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "这意味着调用 `menu()` 时，它的返回值是 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. 函数体只有两条 `print` 语句（L2、L3），只负责把选项文本输出到屏幕",
+            "predicate": "print_not_return",
+            "verdict": "supported",
+            "reason": ""
+          },
+          {
+            "text": "**为什么这是误区：**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 如果调用方期望通过 `menu()` 拿到用户的选择（例如 `choice = menu()`），那么 `choice` 会是 `None`，后续无法据此分支处理",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "AST 事实显示函数内既没有 `input()` 调用，也没有 `return`，所以它**不可能把任何选择信息交回给调用者**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 菜单的常见职责是“显示选项 + 获取并返回用户选择”",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "当前实现只完成了前半部分，结构上缺少返回值的通道",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**需要说明的边界：** 仅凭这些 AST 事实，不能断定学生“一定想返回选择”——如果设计意图就是纯展示函数，那么无返回值是合理的",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "误区只在“期望它返回选择却写成纯打印”这一情形下成立",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "事实层面能确认的只是：该函数不返回任何值，只做打印",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2208.8
+      }
+    },
+    {
+      "id": "N04",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 5,
+        "unverifiable": 33,
+        "total_claims": 38,
+        "explanation": "这段代码本身**能正常运行**，但存在一个非常典型的初学者误区：\n\n## 误区：把 `input()` 的返回值当成数字直接运算\n\n学生写了：\n\n```python\nx = input()\nx = int(x)\n```\n\n这其实**已经做对了**——先 `input()` 拿到字符串，再 `int()` 转换。所以严格说这段代码没有 bug。\n\n但真正常见的误区是**下面这种写法**（学生很可能下一步就会这么写）：\n\n```python\nx = input()\ny = x * 2      # 忘了 int()\nprint(y)\n```\n\n如果输入 `5`，输出会是 `55` 而不是 `10`，因为 `input()` 返回的是**字符串**，`\"5\" * 2` 是字符串重复。\n\n## 为什么这是常见误区\n\n1. **`input()` 永远返回 `str`**，不管用户输入的是不是数字。很多初学者以为输入 `5` 就得到整数 `5`。\n2. **Python 不会自动做类型转换**（不像某些语言会隐式转换），`\"5\" * 2` 合法但语义是\"重复字符串\"，不会报错，所以错误很隐蔽。\n3. **`int()` 转换可能抛异常**：如果用户输入 `abc` 或 `3.5`，`int(\"abc\")` 会 `ValueError`，`int(\"3.5\")` 也会报错（要用 `float`）。学生代码没有处理这种情况。\n\n## 建议的改进\n\n```python\nx = int(input(\"请输入一个整数：\"))   # 合并写法，更简洁\ny = x * 2\nprint(y)\n```\n\n更健壮的版本：\n\n```python\ntry:\n    x = int(input(\"请输入一个整数：\"))\nexcept ValueError:\n    print(\"输入的不是整数\")\nelse:\n    print(x * 2)\n```\n\n**一句话总结**：这段代码没错，但它处在\"正确\"和\"经典错误\"的分界线上——关键在于学生是否真正理解 `input()` 返回字符串、必须显式转换这一点。",
+        "claims": [
+          {
+            "text": "这段代码本身**能正常运行**，但存在一个非常典型的初学者误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 误区：把 `input()` 的返回值当成数字直接运算",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "学生写了：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = input()",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "x = int(x)",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这其实**已经做对了**——先 `input()` 拿到字符串，再 `int()` 转换",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "所以严格说这段代码没有 bug",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但真正常见的误区是**下面这种写法**（学生很可能下一步就会这么写）：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = input()",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "y = x * 2      # 忘了 int()",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(y)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果输入 `5`，输出会是 `55` 而不是 `10`，因为 `input()` 返回的是**字符串**，`\"5\" * 2` 是字符串重复",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "## 为什么这是常见误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **`input()` 永远返回 `str`**，不管用户输入的是不是数字",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "很多初学者以为输入 `5` 就得到整数 `5`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. **Python 不会自动做类型转换**（不像某些语言会隐式转换），`\"5\" * 2` 合法但语义是\"重复字符串\"，不会报错，所以错误很隐蔽",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "3. **`int()` 转换可能抛异常**：如果用户输入 `abc` 或 `3.5`，`int(\"abc\")` 会 `ValueError`，`int(\"3.5\")` 也会报错（要用 `float`）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生代码没有处理这种情况",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 建议的改进",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = int(input(\"请输入一个整数：\"))   # 合并写法，更简洁",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "y = x * 2",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(y)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "更健壮的版本：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "try:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = int(input(\"请输入一个整数：\"))",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "except ValueError:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(\"输入的不是整数\")",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "else:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(x * 2)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**一句话总结**：这段代码没错，但它处在\"正确\"和\"经典错误\"的分界线上——关键在于学生是否真正理解 `input()` 返回字符串、必须显式转换这一点",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2497.8
+      },
+      "C2": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 8,
+        "unverifiable": 12,
+        "total_claims": 20,
+        "explanation": "根据给出的 AST 结构事实，可以指出以下误区：\n\n1. **变量 x 被重复赋值且类型发生变化，但代码本身是合理的**\n   - 事实显示：`变量 x 疑似类型 str(input)`，随后 `变量 x 疑似类型 num`。\n   - 这说明 x 先接收 `input()` 的字符串结果，再被 `int(x)` 转换为数值类型。这是常见的“先读入字符串、再转换类型”的写法，本身没有错误。误区在于：如果学生认为 `input()` 直接得到数字，就会忽略类型转换的必要性；而这里学生已经做了转换，所以不是错误，而是需要理解“input 返回 str”这一事实。\n\n2. **L3: x Mult 2 的类型依赖 x 的当前类型**\n   - 事实显示 L3 是 `x * 2`。由于此时 x 已被转换为 num（数值），所以这是数值乘法，得到数值结果。\n   - 误区可能在于：如果 x 仍是 str，`x * 2` 会变成字符串重复（如 `\"3\" * 2` 得到 `\"33\"`），而不是数值翻倍。学生代码通过 `int(x)` 避免了这个问题。因此这里要解释的是：`*` 的行为取决于操作数类型，而不是“乘法一定得到数学乘积”。\n\n3. **L4: print(y) 输出的是数值结果**\n   - 事实显示 L4 打印 y，而 y 来自 `x * 2`，此时 x 是 num，所以 y 是数值。\n   - 误区可能在于：如果学生期望输出字符串拼接或重复，结果会不同；但按当前代码，输出的是数值翻倍后的结果。\n\n**总结**：仅依据 AST 事实，代码没有明显语法或类型错误；需要澄清的误区是“input 返回字符串”“`*` 对 str 和 num 行为不同”“类型转换后乘法才是数值乘法”。学生代码已经通过 `int(x)` 正确处理了这些点。",
+        "claims": [
+          {
+            "text": "根据给出的 AST 结构事实，可以指出以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **变量 x 被重复赋值且类型发生变化，但代码本身是合理的**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 事实显示：`变量 x 疑似类型 str(input)`，随后 `变量 x 疑似类型 num`",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "- 这说明 x 先接收 `input()` 的字符串结果，再被 `int(x)` 转换为数值类型",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "这是常见的“先读入字符串、再转换类型”的写法，本身没有错误",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "误区在于：如果学生认为 `input()` 直接得到数字，就会忽略类型转换的必要性",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "而这里学生已经做了转换，所以不是错误，而是需要理解“input 返回 str”这一事实",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "2. **L3: x Mult 2 的类型依赖 x 的当前类型**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 事实显示 L3 是 `x * 2`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "由于此时 x 已被转换为 num（数值），所以这是数值乘法，得到数值结果",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 误区可能在于：如果 x 仍是 str，`x * 2` 会变成字符串重复（如 `\"3\" * 2` 得到 `\"33\"`），而不是数值翻倍",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "学生代码通过 `int(x)` 避免了这个问题",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "因此这里要解释的是：`*` 的行为取决于操作数类型，而不是“乘法一定得到数学乘积”",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "3. **L4: print(y) 输出的是数值结果**",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "- 事实显示 L4 打印 y，而 y 来自 `x * 2`，此时 x 是 num，所以 y 是数值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- 误区可能在于：如果学生期望输出字符串拼接或重复，结果会不同",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但按当前代码，输出的是数值翻倍后的结果",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**总结**：仅依据 AST 事实，代码没有明显语法或类型错误",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "需要澄清的误区是“input 返回字符串”“`*` 对 str 和 num 行为不同”“类型转换后乘法才是数值乘法”",
+            "predicate": "type_mismatch",
+            "verdict": "unsupported",
+            "reason": "运算两侧类型一致，不构成类型错误（幻觉）"
+          },
+          {
+            "text": "学生代码已经通过 `int(x)` 正确处理了这些点",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2684.7
+      }
+    },
+    {
+      "id": "N05",
+      "category": "hard_negative",
+      "label": "clean",
+      "C1": {
+        "faithfulness": 0.0,
+        "hallucination_rate": 1.0,
+        "verifiable": 1,
+        "unverifiable": 51,
+        "total_claims": 52,
+        "explanation": "这段代码本身**没有语法错误，也能正常运行**，但它触及了一个非常经典的 Python 常见误区：**误以为 `list.pop()` 是\"删除元素\"的纯副作用操作，而忽略了它同时有返回值**。\n\n## 常见误区分析\n\n### 误区 1：把 `pop()` 当成\"只删除\"的操作\n\n很多学生从其他语言（如 C++ 的 `vector::pop_back()` 返回 `void`）迁移过来，习惯性地认为：\n\n```python\nitems.pop()   # 以为只是删掉最后一个\n```\n\n然后**丢弃返回值**。但 Python 的 `list.pop()` 是**既删除又返回**的：\n\n```python\nx = items.pop()   # 删除 items[-1]，并把被删的值赋给 x\n```\n\n学生代码里 `x = items.pop()` 其实是对的，但**如果学生的心智模型是\"pop 只是删除，x 应该是 None\"**，那就说明理解有偏差——`x` 实际是 `3`，不是 `None`。\n\n### 误区 2：误以为 `pop()` 返回 `None`\n\n这是最常见的具体错误。对比一下：\n\n```python\nitems.remove(3)   # 返回 None，纯副作用\nitems.pop()       # 返回 3，副作用 + 返回值\n```\n\n如果学生写：\n\n```python\nx = items.pop()\nif x is None:\n    print(\"删除成功\")\n```\n\n就会永远进不去分支——因为 `x` 是被删的元素，不是 `None`。\n\n### 误区 3：对空列表调用 `pop()` 会抛异常\n\n代码里没体现，但这是配套的坑：\n\n```python\n[].pop()   # IndexError: pop from empty list\n```\n\n学生常以为 `pop()` 空列表会返回 `None` 或静默失败。\n\n### 误区 4：混淆 `pop()` 与 `pop(0)` 的复杂度\n\n```python\nitems.pop()      # O(1)，删末尾\nitems.pop(0)     # O(n)，删开头要整体前移\n```\n\n学生有时用 `pop(0)` 当队列用，在循环里导致 O(n²)。\n\n## 这段代码\"看起来对\"的原因\n\n```python\nitems = [1, 2, 3]\nx = items.pop()   # x = 3, items = [1, 2]\nprint(x)          # 输出 3\n```\n\n输出 `3` 是**正确**的。所以这段代码本身不是 bug，而是**检验学生是否真正理解 `pop()` 语义**的好例子。如果学生预期输出是 `None` 或报错，就暴露了上述误区。\n\n## 建议的教学追问\n\n1. `print(x)` 输出什么？为什么不是 `None`？\n2. 如果改成",
+        "claims": [
+          {
+            "text": "这段代码本身**没有语法错误，也能正常运行**，但它触及了一个非常经典的 Python 常见误区：**误以为 `list.pop()` 是\"删除元素\"的纯副作用操作，而忽略了它同时有返回值**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 常见误区分析",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 1：把 `pop()` 当成\"只删除\"的操作",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "很多学生从其他语言（如 C++ 的 `vector::pop_back()` 返回 `void`）迁移过来，习惯性地认为：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items.pop()   # 以为只是删掉最后一个",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "然后**丢弃返回值**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "但 Python 的 `list.pop()` 是**既删除又返回**的：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = items.pop()   # 删除 items[-1]，并把被删的值赋给 x",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生代码里 `x = items.pop()` 其实是对的，但**如果学生的心智模型是\"pop 只是删除，x 应该是 None\"**，那就说明理解有偏差——`x` 实际是 `3`，不是 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 2：误以为 `pop()` 返回 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这是最常见的具体错误",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "对比一下：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items.remove(3)   # 返回 None，纯副作用",
+            "predicate": "inplace_returns_none",
+            "verdict": "unsupported",
+            "reason": "代码中找不到对 remove() 的相应用法（幻觉）"
+          },
+          {
+            "text": "items.pop()       # 返回 3，副作用 + 返回值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生写：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = items.pop()",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "if x is None:",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(\"删除成功\")",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "就会永远进不去分支——因为 `x` 是被删的元素，不是 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 3：对空列表调用 `pop()` 会抛异常",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "代码里没体现，但这是配套的坑：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "[].pop()   # IndexError: pop from empty list",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生常以为 `pop()` 空列表会返回 `None` 或静默失败",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "### 误区 4：混淆 `pop()` 与 `pop(0)` 的复杂度",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items.pop()      # O(1)，删末尾",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items.pop(0)     # O(n)，删开头要整体前移",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生有时用 `pop(0)` 当队列用，在循环里导致 O(n²)",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "## 这段代码\"看起来对\"的原因",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "```python",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "items = [1, 2, 3]",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "x = items.pop()   # x = 3, items = [1, 2]",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "print(x)          # 输出 3",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "```",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "输出 `3` 是**正确**的",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "所以这段代码本身不是 bug，而是**检验学生是否真正理解 `pop()` 语义**的好例子",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生预期输出是 `None` 或报错，就暴露了上述误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "## 建议的教学追问",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. `print(x)` 输出什么",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "为什么不是 `None`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. 如果改成",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 3298.9
+      },
+      "C2": {
+        "faithfulness": null,
+        "hallucination_rate": null,
+        "verifiable": 0,
+        "unverifiable": 22,
+        "total_claims": 22,
+        "explanation": "根据给出的 AST 结构事实，可以指出以下误区：\n\n**事实回顾**\n- L2：对 `items` 调用 `pop()`，并把返回值赋给 `x`\n- L3：打印 `x`\n\n**存在的误区**\n\n1. **误以为 `pop()` 只是“删除元素”而不产生返回值。**\n   事实显示 L2 明确把 `items.pop()` 的返回值赋给了 `x`，说明 `pop()` 是有返回值的操作。如果学生认为 `pop()` 只负责移除元素、不关心返回值，就会忽略“被移除的那个元素”其实被 `x` 接收了。这是对 `pop()` 语义理解不完整的典型误区。\n\n2. **误以为 `print(x)` 打印的是列表或剩余元素。**\n   事实中 L3 打印的是 `x`，而 `x` 来自 `pop()` 的返回值，并不是 `items` 本身。若学生期望看到 `[1, 2]` 之类的剩余列表，就会产生“输出不符合预期”的困惑——但按事实，`print(x)` 打印的是被弹出的那个元素，与列表剩余内容无关。\n\n3. **对“返回值”与“副作用”的混淆。**\n   L2 同时包含两件事：对 `items` 调用 `pop()`（副作用：修改列表），以及把返回值赋给 `x`（取值）。学生若只关注列表被修改这一副作用，就会低估这行代码“既改列表又产出值”的双重作用，从而在后续使用 `x` 时产生误解。\n\n**为什么**\n这些误区的根源都在于没有区分 `pop()` 的**副作用**（从 `items` 中移除元素）和**返回值**（被移除的元素）。AST 事实恰好把这两点分开呈现：L2 既有“对 items 调用 pop()”，又有“把返回值赋给 x”。只依据这些事实，可以确定学生代码在结构上是“取值并打印被弹出元素”，若学生的心智模型与此不符，就属于上述误区。",
+        "claims": [
+          {
+            "text": "根据给出的 AST 结构事实，可以指出以下误区：",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**事实回顾**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- L2：对 `items` 调用 `pop()`，并把返回值赋给 `x`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "- L3：打印 `x`",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**存在的误区**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "1. **误以为 `pop()` 只是“删除元素”而不产生返回值",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "事实显示 L2 明确把 `items.pop()` 的返回值赋给了 `x`，说明 `pop()` 是有返回值的操作",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "如果学生认为 `pop()` 只负责移除元素、不关心返回值，就会忽略“被移除的那个元素”其实被 `x` 接收了",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这是对 `pop()` 语义理解不完整的典型误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "2. **误以为 `print(x)` 打印的是列表或剩余元素",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "事实中 L3 打印的是 `x`，而 `x` 来自 `pop()` 的返回值，并不是 `items` 本身",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "若学生期望看到 `[1, 2]` 之类的剩余列表，就会产生“输出不符合预期”的困惑——但按事实，`print(x)` 打印的是被弹出的那个元素，与列表剩余内容无关",
+            "predicate": "generic_structural",
+            "verdict": "unverifiable",
+            "reason": "泛结构断言但无行号，无法精确核验"
+          },
+          {
+            "text": "3. **对“返回值”与“副作用”的混淆",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "L2 同时包含两件事：对 `items` 调用 `pop()`（副作用：修改列表），以及把返回值赋给 `x`（取值）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "学生若只关注列表被修改这一副作用，就会低估这行代码“既改列表又产出值”的双重作用，从而在后续使用 `x` 时产生误解",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "**为什么**",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "这些误区的根源都在于没有区分 `pop()` 的**副作用**（从 `items` 中移除元素）和**返回值**（被移除的元素）",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "AST 事实恰好把这两点分开呈现：L2 既有“对 items 调用 pop()”，又有“把返回值赋给 x”",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          },
+          {
+            "text": "只依据这些事实，可以确定学生代码在结构上是“取值并打印被弹出元素”，若学生的心智模型与此不符，就属于上述误区",
+            "predicate": "intent_or_advice",
+            "verdict": "unverifiable",
+            "reason": "关于学生意图/教学建议，AST 无法证实或证伪"
+          }
+        ],
+        "error": null,
+        "latency_ms": 2984.6
+      }
+    }
+  ]
+}

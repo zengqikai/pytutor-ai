@@ -78,6 +78,12 @@ node vision.js --url https://example.com/img.jpg "这是什么"
 - ChromaDB 向量数据持久化在 `backend/chroma_db/` 目录
 - 如果丢失：运行 `rebuild_index()` 重建
 
+### 启动后误区/知识库种子没写入
+- 先看 `uvicorn` 启动日志有没有被 `try/except` 吞掉的异常
+- `app/main.py` 的 lifespan 里不要写局部 `from app.database.session import AsyncSessionFactory`：
+  这会让该名字在整个函数内变成本地变量，前面的调用抛 `UnboundLocalError`，种子静默跳过
+- CI 的 `ruff --select F823` 会拦住这类作用域错误
+
 ---
 
 # 新手教程系统
@@ -120,7 +126,7 @@ OnboardingModal（4 选项）
 2. **误区诊断**：8 类 Python 初学者误区（M1-M8），规则匹配 + LLM 辅助
 3. **教学策略**：7 种策略 + 5 级渐进提示（禁止首次给答案）
 4. **学习画像增强**：weak_topics / recent_misconceptions / hint_dependency
-5. **评估数据集**：evaluation/v2_test_cases.json（20 个案例）
+5. **评估数据集**：evaluation/v2_test_cases.json（47 个误区正例，另有 22 条干净代码）
 
 ## 四入口行为
 
@@ -153,14 +159,10 @@ OnboardingModal（4 选项）
 ## 常见问题
 
 ### 新字段/表缺失
-- 2.0 使用 `Base.metadata.create_all()` 在启动时建表
-- SQLite 不支持修改已有表，新字段需手动添加：
-  ```sql
-  ALTER TABLE student_profiles ADD COLUMN weak_topics TEXT;
-  ALTER TABLE student_profiles ADD COLUMN recent_misconceptions TEXT;
-  ALTER TABLE student_profiles ADD COLUMN hint_dependency VARCHAR(20) DEFAULT 'low';
-  ALTER TABLE student_profiles ADD COLUMN completed_lessons TEXT;
-  ```
+- 2.0 的画像字段已进入迁移链：`d3e4f5a6b7c8_add_profile_learning_fields`
+  （`weak_topics` / `recent_misconceptions` / `hint_dependency` / `completed_lessons`）
+- 已有库直接 `cd backend && alembic upgrade head`；迁移会跳过已经手工加过的列
+- 不要再手工 `ALTER TABLE`：生产环境不跑 `create_all()`，手工改动不会进入迁移链
 
 ---
 
@@ -172,16 +174,20 @@ OnboardingModal（4 选项）
 
 | Flag | 默认 | 方向 | 作用 |
 |------|------|------|------|
-| `ENABLE_AST_DIAGNOSIS` | **true** | B | AST 代码结构分析诊断（替换纯正则） |
+| `ENABLE_AST_DIAGNOSIS` | false | B | AST 代码结构分析诊断（替换纯正则） |
 | `ENABLE_PEDAGOGY_STEERING` | false | E | 教学意图转移图 + 误区锚定 prompt |
 | `ENABLE_MULTI_JUDGE` | false | C | 3 评委评分（需 DEEPSEEK_API_KEY） |
-| `ENABLE_TIME_DECAY` | **true** | C | 画像时间衰减 + 转移矩阵 |
-| `ENABLE_CONTENT_RECOMMEND` | **true** | C | Content-Based 练习推荐 |
+| `ENABLE_TIME_DECAY` | false | C | 画像时间衰减 + 转移矩阵 |
+| `ENABLE_CONTENT_RECOMMEND` | false | C | Content-Based 练习推荐 |
 | `ENABLE_MULTI_MODEL_ROUTING` | false | C | 多模型路由（简单/复杂分流） |
 | `ENABLE_RAG_RERANK` | false | A | RAG LLM 重排序 |
 | `ENABLE_HYBRID_WEIGHTS` | false | A | 向量+TF-IDF 加权融合 |
 | `ENABLE_TOKEN_CHUNKING` | false | A | token 窗口 + 重叠分块 |
 | `ENABLE_CONTEXT_COMPRESSION` | false | A | RAG 上下文截断压缩 |
+
+> 代码默认全关；`backend/.env` 的演示配置打开了 `ENABLE_AST_DIAGNOSIS`、
+> `ENABLE_TIME_DECAY`、`ENABLE_CONTENT_RECOMMEND` 三项。判断"当前实际走哪条路"以启动日志
+> 和 `message.metadata_json` 为准，不要只看代码默认值。
 
 ## 新增模块
 
@@ -194,9 +200,14 @@ OnboardingModal（4 选项）
 
 | 脚本 | 用途 |
 |------|------|
-| `evaluation/run_v2_eval.py --mode ast-only` | 误区诊断（离线，47 正例 + 22 干净代码） |
+| `evaluation/run_v2_eval.py --mode ast-only` | 误区诊断（同集：47 正例 + 22 干净代码） |
+| `evaluation/run_v2_eval.py --mode ast-only --dataset ../evaluation/v2_holdout_cases.json --clean ../evaluation/holdout_clean_cases.json --out ../evaluation/v2_holdout_results.json` | 留出集诊断（30 + 15，单作者） |
 | `evaluation/run_judge_eval.py` | Multi-Judge 评分（需 key） |
 | `evaluation/run_rag_eval.py` | RAG Recall@K / MRR（离线，从 backend 目录运行） |
+| `evaluation/build_results_summary.py` | 汇总所有结果 JSON → `results_summary.csv`（不重跑实验） |
+
+结果图在 `docs/figures/`（`make_figures.py` 生成浅色/深色 SVG），数字口径与表格视图见
+`docs/figures/README.md`；改动数据集或评测后需同时重跑汇总脚本与图。
 
 ## 常见问题
 
@@ -209,3 +220,86 @@ OnboardingModal（4 选项）
   ```bash
   cd backend && python ../evaluation/run_rag_eval.py
   ```
+
+---
+
+# 工程边界与排障补充（2026-10）
+
+## 学生代码执行边界
+
+所有入口（练习判题、代码运行、Agent）统一走 `backend/app/sandbox/runner.py` 的
+`execute_student_code()` / `execute_student_code_plain()`，不要直接调 `subprocess` 或
+`docker_executor`。
+
+| `SANDBOX_MODE` | `isolation_required` | 行为 |
+|----------------|----------------------|------|
+| `auto` | false | 有 Docker 用 Docker，否则宿主进程 |
+| `auto` | true | 只用 Docker；不可用时返回 `status="unavailable"` |
+| `docker` | — | 只用 Docker；不可用返回 `unavailable` |
+| `subprocess` | false | 宿主进程 |
+| `subprocess` | true | 拒绝执行，返回 `unavailable` |
+
+`isolation_required = SANDBOX_REQUIRE_ISOLATION or APP_ENV == "production"`。
+练习提交遇到 `unavailable` 直接返回"未判定"，**不写画像、不发奖励**。
+
+## 部署与限流
+
+- 部署边界见 `docs/DEPLOYMENT.md`：Render 无 Docker → 生产强制隔离 → 判题全部
+  `unavailable`，只能演示聊天/RAG；完整判题需本地或 Docker Compose。
+- 进程内限流 `backend/app/core/rate_limit.py`：普通 API 120 次/分/IP，登录注册
+  10 次/分/IP（`RATE_LIMIT_ENABLED` 可关）。多 worker 时每个进程各算一份。
+- 空库必须 `alembic upgrade head`；生产不跑 `create_all()`。CI 会用空库验证迁移链。
+
+## 判题与奖励
+
+- 只有 `score_pct > 0` 且全部用例通过（用例数 > 0）才算通过。
+- 首次奖励幂等：`rewarded = all_passed and score_pct > 0 and already_passed == 0`。
+- 提示次数、看答案行为由服务端 `LearningEvent` 统计（`hint_requested` / `solution_viewed`），
+  不信任前端传来的 `used_hints` / `viewed_solution`。
+- 参考答案闸门：学生需通过该题或累计尝试 ≥3 次（`SOLUTION_ATTEMPT_THRESHOLD`），教师/管理员不限。
+
+## 画像字段格式
+
+| 字段 | 格式 |
+|------|------|
+| `weak_topics` | JSON 数组字符串 |
+| `recent_misconceptions` | JSON 数组字符串（误区编号 M1–M8，最多 10 个） |
+| `completed_lessons` | JSON 数组字符串（去重） |
+| `hint_dependency` | **纯标签** `low` / `medium` / `high`（不要再写 JSON） |
+
+读取旧数据用 `profile_service.normalize_hint_dependency()`。
+迁移 head：`d3e4f5a6b7c8`。
+
+## 前端引导状态
+
+`onboarding-wrapper.tsx` 用 `onboarding_${user.id}` 作 localStorage key（不是 token 前缀）。
+课程进度是 `pytutor_progress_${userId}`。换账号不会互相沿用。
+
+## RAG 评测
+
+```bash
+cd backend
+python ../evaluation/run_rag_eval.py --mode tfidf|vector|hybrid
+```
+
+结果分别写 `evaluation/rag_eval_results_{mode}.json`，含 Top-5 上下文 token 估算
+（`mean/max/total_context_tokens`，口径为 `splitter.estimate_tokens`，不是分词器精确值）。
+`ENABLE_HYBRID_WEIGHTS=false` 时 hybrid 等于"向量优先 + TF-IDF 补位"，Top-5 往往被向量占满，
+不要拿它证明融合有效。
+
+## 忠实度实验
+
+```bash
+cd research/faithfulness
+python run_experiment.py --demo                 # 桩模型，离线
+python run_experiment.py --out results_real.json # 真实模型，读 backend/.env
+```
+
+`build_llm()` 会显式加载 `backend/.env`（settings 的 env_file 是相对路径，从该目录直接运行读不到）。
+10 条种子的真实试跑结论见 `research/faithfulness/RESULTS.md`：抽取器 `rules_v2` 下两次运行
+C2 都未优于 C1（配对差为负，95% CI 含 0），不能宣称证据注入有效。
+
+## 可复现入口
+
+`docs/REPRODUCIBILITY.md` 记录了基线提交、开关矩阵、数据库路径规则、数据集哈希、
+评测口径和"已实现/已启用/已验证"对照表。改数据集或开关后请同步更新。

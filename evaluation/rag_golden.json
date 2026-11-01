@@ -2,14 +2,287 @@
   "name": "RAG 检索 Ground Truth",
   "description": "查询 → 预期知识点（用于 Recall@K / MRR 评测）。相关 chunk = concepts 与 expected_concepts 有交集。",
   "cases": [
-    {"id": "g001", "query": "什么是 Python 中的变量？", "expected_concepts": ["variables", "assignment"]},
-    {"id": "g002", "query": "for 循环怎么用？给我一个简单例子", "expected_concepts": ["for_loop", "range"]},
-    {"id": "g003", "query": "for 循环里 range 为什么到 5 就停了？", "expected_concepts": ["for_loop", "range"]},
-    {"id": "g004", "query": "我的代码出错了：NameError: name 'x' is not defined", "expected_concepts": ["variables", "NameError"]},
-    {"id": "g005", "query": "Python 中列表和字典有什么区别？", "expected_concepts": ["list", "dict"]},
-    {"id": "g006", "query": "给我出一道关于 if/else 的练习题", "expected_concepts": ["if_statement", "else"]},
-    {"id": "g008", "query": "帮我写一个函数，计算两个数的最大公约数", "expected_concepts": ["function", "def", "return"]},
-    {"id": "g009", "query": "怎么给列表添加元素？append 怎么用？", "expected_concepts": ["list", "append"]},
-    {"id": "g010", "query": "字符串怎么拼接和格式化？", "expected_concepts": ["string", "format"]}
+    {
+      "id": "g001",
+      "query": "什么是 Python 中的变量？",
+      "expected_concepts": [
+        "variables",
+        "assignment"
+      ]
+    },
+    {
+      "id": "g002",
+      "query": "for 循环怎么用？给我一个简单例子",
+      "expected_concepts": [
+        "for_loop",
+        "range"
+      ]
+    },
+    {
+      "id": "g003",
+      "query": "for 循环里 range 为什么到 5 就停了？",
+      "expected_concepts": [
+        "for_loop",
+        "range"
+      ]
+    },
+    {
+      "id": "g004",
+      "query": "我的代码出错了：NameError: name 'x' is not defined",
+      "expected_concepts": [
+        "variables",
+        "NameError"
+      ]
+    },
+    {
+      "id": "g005",
+      "query": "Python 中列表和字典有什么区别？",
+      "expected_concepts": [
+        "list",
+        "dict"
+      ]
+    },
+    {
+      "id": "g006",
+      "query": "给我出一道关于 if/else 的练习题",
+      "expected_concepts": [
+        "if_statement",
+        "else"
+      ]
+    },
+    {
+      "id": "g008",
+      "query": "帮我写一个函数，计算两个数的最大公约数",
+      "expected_concepts": [
+        "function",
+        "def",
+        "return"
+      ]
+    },
+    {
+      "id": "g009",
+      "query": "怎么给列表添加元素？append 怎么用？",
+      "expected_concepts": [
+        "list",
+        "append"
+      ]
+    },
+    {
+      "id": "g010",
+      "query": "字符串怎么拼接和格式化？",
+      "expected_concepts": [
+        "string",
+        "format"
+      ]
+    },
+    {
+      "id": "g011",
+      "query": "如何用 Python 的 requests 库抓取网页数据？",
+      "expected_concepts": [],
+      "no_answer_case": true
+    },
+    {
+      "id": "g012",
+      "query": "pandas 怎么做数据透视表？",
+      "expected_concepts": [],
+      "no_answer_case": true
+    },
+    {
+      "id": "g013",
+      "query": "列表推导式怎么把 for 循环写在一行？",
+      "expected_concepts": [
+        "list_comprehension",
+        "for_loop"
+      ]
+    },
+    {
+      "id": "g014",
+      "query": "怎么从字典里取出某个键对应的值？",
+      "expected_concepts": [
+        "dict",
+        "key_value"
+      ]
+    },
+    {
+      "id": "g015",
+      "query": "字典的键可以重复吗？",
+      "expected_concepts": [
+        "dict",
+        "mapping"
+      ]
+    },
+    {
+      "id": "g016",
+      "query": "try/except 怎么捕获 ValueError？",
+      "expected_concepts": [
+        "exception",
+        "try_except",
+        "ValueError"
+      ]
+    },
+    {
+      "id": "g017",
+      "query": "程序报 TypeError 应该怎么处理？",
+      "expected_concepts": [
+        "exception",
+        "TypeError",
+        "error_handling"
+      ]
+    },
+    {
+      "id": "g018",
+      "query": "int 和 float 有什么区别，怎么互相转换？",
+      "expected_concepts": [
+        "data_types",
+        "int",
+        "float"
+      ]
+    },
+    {
+      "id": "g019",
+      "query": "怎么把字符串转成整数？",
+      "expected_concepts": [
+        "data_types",
+        "string",
+        "int"
+      ]
+    },
+    {
+      "id": "g020",
+      "query": "元组和列表有什么不同？",
+      "expected_concepts": [
+        "data_types",
+        "tuple",
+        "list"
+      ]
+    },
+    {
+      "id": "g021",
+      "query": "集合 set 怎么用来去重？",
+      "expected_concepts": [
+        "data_types",
+        "set"
+      ]
+    },
+    {
+      "id": "g022",
+      "query": "用 if/elif/else 判断成绩等级怎么写？",
+      "expected_concepts": [
+        "if_statement",
+        "elif",
+        "else"
+      ]
+    },
+    {
+      "id": "g023",
+      "query": "Python 里的 True/False 布尔值怎么用？",
+      "expected_concepts": [
+        "boolean",
+        "if_statement"
+      ]
+    },
+    {
+      "id": "g024",
+      "query": "比较运算符 == 和赋值 = 有什么区别？",
+      "expected_concepts": [
+        "comparison",
+        "assignment",
+        "variables"
+      ]
+    },
+    {
+      "id": "g025",
+      "query": "函数怎么接收多个参数？",
+      "expected_concepts": [
+        "function",
+        "parameters",
+        "arguments"
+      ]
+    },
+    {
+      "id": "g026",
+      "query": "函数没有写 return 会返回什么？",
+      "expected_concepts": [
+        "function",
+        "return"
+      ]
+    },
+    {
+      "id": "g027",
+      "query": "怎么遍历列表并打印每一个元素？",
+      "expected_concepts": [
+        "for_loop",
+        "list",
+        "iteration"
+      ]
+    },
+    {
+      "id": "g028",
+      "query": "列表切片 [1:3] 取的是哪些元素？",
+      "expected_concepts": [
+        "list",
+        "slicing"
+      ]
+    },
+    {
+      "id": "g029",
+      "query": "怎么删除列表里的某个元素？",
+      "expected_concepts": [
+        "list",
+        "remove"
+      ]
+    },
+    {
+      "id": "g030",
+      "query": "字符串怎么取子串或者反转？",
+      "expected_concepts": [
+        "string",
+        "slice"
+      ]
+    },
+    {
+      "id": "g031",
+      "query": "f-string 怎么格式化输出？",
+      "expected_concepts": [
+        "string",
+        "fstring",
+        "format"
+      ]
+    },
+    {
+      "id": "g032",
+      "query": "变量名有什么命名规则？",
+      "expected_concepts": [
+        "variables",
+        "assignment"
+      ]
+    },
+    {
+      "id": "g033",
+      "query": "for 循环怎么累加求和？",
+      "expected_concepts": [
+        "for_loop",
+        "iteration",
+        "list"
+      ]
+    },
+    {
+      "id": "g034",
+      "query": "怎么用 Flask 写一个 REST API？",
+      "expected_concepts": [],
+      "no_answer_case": true
+    },
+    {
+      "id": "g035",
+      "query": "numpy 怎么创建随机矩阵？",
+      "expected_concepts": [],
+      "no_answer_case": true
+    },
+    {
+      "id": "g036",
+      "query": "怎么用 PyTorch 训练一个卷积神经网络？",
+      "expected_concepts": [],
+      "no_answer_case": true
+    }
   ]
 }

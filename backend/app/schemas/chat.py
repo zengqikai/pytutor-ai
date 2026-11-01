@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field, field_serializer, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_serializer, field_validator
 
 
 # =============================================================================
@@ -131,7 +131,30 @@ class MessageResponse(BaseModel):
     next_action: Optional[str] = None
     code_blocks: Optional[list[dict[str, str]]] = None
     token_count: Optional[int] = None
+    # 误区/策略/证据等结构化元数据。数据库列叫 metadata_json，
+    # 对外统一暴露为 metadata，刷新页面后才能还原当时的诊断。
+    metadata: Optional[dict] = Field(
+        default=None,
+        validation_alias=AliasChoices("metadata", "metadata_json"),
+    )
     created_at: datetime
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def parse_metadata(cls, v: Any) -> Optional[dict]:
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            if not v.strip():
+                return None
+            try:
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, dict) else None
+            except (ValueError, TypeError):
+                return None
+        return None
 
     @field_validator("related_concepts", mode="before")
     @classmethod

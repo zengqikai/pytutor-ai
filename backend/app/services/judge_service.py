@@ -467,21 +467,25 @@ async def _single_judge(
 def _fallback_verdict(
     judge_index: int, temperature: float, latency_ms: float, raw: str
 ) -> JudgeVerdict:
-    """评委调用失败时的降级 verdict（V2: 保守全 3 分，标记异常）。"""
+    """评委调用失败时的降级 verdict。
+
+    关键：这里**不能**填默认分数。此前实现填「全 3 分 / overall=3」并参与聚合，
+    会让 API 故障被统计成一次正常的中等质量评分——评委挂得越多，分数越"稳定"。
+    现在全部维度记 0 并标记 CANNOT_ASSESS，由调用方从有效评分中排除。
+    """
+    dims = ["D1_hint_adherence", "D2_beginner_appropriate",
+            "D3_no_leakage", "D4_misconception_target", "D5_actionability"]
     return JudgeVerdict(
         judge_index=judge_index,
         temperature=temperature,
-        scores={k: 3 for k in [
-            "D1_hint_adherence", "D2_beginner_appropriate",
-            "D3_no_leakage", "D4_misconception_target", "D5_actionability"
-        ]},
-        total=15,
-        overall=3,
-        issues=["评委 API 调用失败，使用默认分数"],
+        scores={k: 0 for k in dims},
+        total=0,
+        overall=0,
+        issues=[f"评委调用失败（{raw[:40] or 'unknown'}），未产生有效评分"],
         needs_revision=False,
-        brief_reason="评委 API 调用失败，自动降级",
-        reasoning={dim: "API 调用失败，无推理" for dim in ["D1","D2","D3","D4","D5"]},
-        cannot_assess=[],
+        brief_reason="评委调用失败，评分不可用",
+        reasoning={dim: "调用失败，无推理" for dim in ["D1", "D2", "D3", "D4", "D5"]},
+        cannot_assess=dims,
         raw_json=raw[:200],
         latency_ms=latency_ms,
     )
@@ -501,14 +505,12 @@ def _aggregate_verdicts(verdicts: list[JudgeVerdict]) -> MultiJudgeResult:
     n = len(verdicts)
 
     # overall 中位数（排除 0 = 完全无法评估的情况）
+    # 没有任何可用评分时返回 0 而不是伪造及格分——3 分在下游被当成"通过"，
+    # 会让评委全线失败的情况显示成一次合格回复。
     overalls = sorted([v.overall for v in verdicts if v.overall > 0])
     totals = sorted([v.total for v in verdicts if v.total > 0])
-    if not overalls:
-        overalls = [3]
-    if not totals:
-        totals = [15]
-    median_overall = float(statistics.median(overalls))
-    median_total = float(statistics.median(totals))
+    median_overall = float(statistics.median(overalls)) if overalls else 0.0
+    median_total = float(statistics.median(totals)) if totals else 0.0
 
     # needs_revision 多数投票
     revision_votes = sum(1 for v in verdicts if v.needs_revision)
@@ -735,16 +737,26 @@ async def multi_judge_verify(
     ]
     verdicts = await asyncio.gather(*tasks)
 
-    # 过滤掉完全失败的（不太可能，但做防御）
-    valid_verdicts = [v for v in verdicts if v is not None]
+    # 只保留真正产生评分的评委。失败 verdict 的 overall=0，必须排除，
+    # 否则中位数会被 0 拉低、Kappa 会被虚构的一致性抬高。
+    valid_verdicts = [v for v in verdicts if v is not None and v.overall > 0]
+    failed_count = len(verdicts) - len(valid_verdicts)
 
     if len(valid_verdicts) == 0:
-        logger.warning("multi_judge_all_failed")
+        logger.warning("multi_judge_all_failed", judge_count=len(verdicts))
         return {
-            "score": 3, "is_valid": True, "issues": ["所有评委调用失败"],
+            "score": 0,               # 0 = 不可评估；tutor_service 会映射为 None
+            "is_valid": False,
+            "review_available": False,
+            "issues": ["审核不可用：所有评委调用失败"],
             "needs_revision": False,
-            "judge_count": 0, "kappa": 0.0, "agreement": "low",
-            "flagged": True, "scores_detail": {}, "latency_ms": 0.0,
+            "judge_count": 0,
+            "failed_judges": failed_count,
+            "kappa": 0.0,
+            "agreement": "low",
+            "flagged": True,
+            "scores_detail": {},
+            "latency_ms": 0.0,
         }
 
     # 聚合
@@ -769,6 +781,9 @@ async def multi_judge_verify(
     return {
         "score": result.aggregated_score,
         "is_valid": result.aggregated_score >= 3 and not result.needs_revision,
+        # 部分评委失败时仍可用，但必须让调用方看到有效评委数
+        "review_available": True,
+        "failed_judges": failed_count,
         "issues": result.all_issues,
         "needs_revision": result.needs_revision,
         # Multi-Judge 专有字段

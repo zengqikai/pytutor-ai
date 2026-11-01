@@ -89,6 +89,29 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     # ==============================
+    # 学生代码执行边界
+    # ==============================
+    sandbox_mode: str = Field(
+        default="auto",
+        description=(
+            "学生代码执行方式：auto（有 Docker 用 Docker，无则子进程）| "
+            "docker（强制容器）| subprocess（仅开发）"
+        ),
+    )
+    sandbox_require_isolation: bool = Field(
+        default=False,
+        description=(
+            "True 时没有可用 Docker 就拒绝执行学生代码，绝不退回宿主进程。"
+            "生产环境（APP_ENV=production）会强制视为 True。"
+        ),
+    )
+
+    @property
+    def isolation_required(self) -> bool:
+        """是否禁止退回到宿主进程执行。"""
+        return self.sandbox_require_isolation or self.app_env.lower() == "production"
+
+    # ==============================
     # 数据库配置
     # ==============================
     database_url: str = Field(
@@ -170,6 +193,23 @@ class Settings(BaseSettings):
     )
 
     # ==============================
+    # 限流（按客户端 IP 的滑动窗口）
+    # ==============================
+    RATE_LIMIT_ENABLED: bool = Field(
+        default=True,
+        description="启用进程内限流。多 worker/多实例部署时每人各自计数，"
+                    "生产多实例应换成 Redis 或网关限流。",
+    )
+    RATE_LIMIT_PER_MINUTE: int = Field(
+        default=120, ge=1,
+        description="普通 API 每分钟每 IP 的最大请求数。",
+    )
+    AUTH_RATE_LIMIT_PER_MINUTE: int = Field(
+        default=10, ge=1,
+        description="注册/登录每分钟每 IP 的最大请求数（防爆破）。",
+    )
+
+    # ==============================
     # Feature Flags（算法优化开关）
     # ==============================
     # 三人协作（MASTER-PLAN）的算法优化开关隔离法：默认全部关，
@@ -243,6 +283,14 @@ class Settings(BaseSettings):
         default=1500,
         ge=1,
         description="A 方向 A6：RAG 上下文注入的 token 预算上限。",
+    )
+
+    # ---- 一次性初始化接口的保护令牌 ----
+    # 为空时 /setup/* 全部关闭（默认安全）。
+    # 部署时通过环境变量设置，完成初始化后清空即可。
+    SETUP_TOKEN: str = Field(
+        default="",
+        description="部署期一次性初始化接口的共享密钥；为空则接口关闭。",
     )
 
     # ==============================

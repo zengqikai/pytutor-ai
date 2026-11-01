@@ -131,8 +131,8 @@ async def run_direct_eval():
     from app.services.misconception_service import diagnose
 
     # 加载测试用例
-    cases = load_json_cases("v2_test_cases.json")
-    print(f"Misconception test cases: {len(cases)}")
+    cases = load_json_cases(dataset)
+    print(f"Misconception test cases: {len(cases)} ({dataset})")
 
     # 诊断每个案例
     mc_results = []
@@ -187,10 +187,10 @@ async def run_direct_eval():
     print(f"Exact Match Rate: {exact_match:.1%}")
 
     # ---- 误报率评测（干净代码） ----
-    clean_cases_path = Path(__file__).parent / "clean_code_cases.json"
+    clean_cases_path = Path(__file__).parent / clean_dataset
     clean_results = []
     if clean_cases_path.exists():
-        clean_cases = load_json_cases("clean_code_cases.json")
+        clean_cases = load_json_cases(clean_dataset)
         print(f"\nClean code cases: {len(clean_cases)}")
         async with AsyncSessionFactory() as db:
             for case in clean_cases:
@@ -309,7 +309,9 @@ async def run_http_eval():
 # AST-Only 模式（无需数据库、无需 LLM、无需后端服务）
 # =============================================================================
 
-def run_ast_only_eval():
+def run_ast_only_eval(dataset: str = "v2_test_cases.json",
+                      clean_dataset: str = "clean_code_cases.json",
+                      output_name: str = "v2_eval_results.json"):
     """
     纯 AST 分析器评测。不依赖数据库 / LLM / 后端服务。
 
@@ -321,8 +323,8 @@ def run_ast_only_eval():
     print("=== PyTutor AST-Only Evaluation ===\n")
 
     # 加载测试用例
-    cases = load_json_cases("v2_test_cases.json")
-    print(f"Misconception test cases: {len(cases)}")
+    cases = load_json_cases(dataset)
+    print(f"Misconception test cases: {len(cases)} ({dataset})")
 
     mc_results = []
     for i, case in enumerate(cases):
@@ -370,10 +372,10 @@ def run_ast_only_eval():
     print(f"Exact Match Rate: {exact_match:.1%}")
 
     # 误报率
-    clean_cases_path = Path(__file__).parent / "clean_code_cases.json"
+    clean_cases_path = Path(__file__).parent / clean_dataset
     clean_results = []
     if clean_cases_path.exists():
-        clean_cases = load_json_cases("clean_code_cases.json")
+        clean_cases = load_json_cases(clean_dataset)
         print(f"\nClean code cases: {len(clean_cases)}")
         for case in clean_cases:
             predicted = None
@@ -418,7 +420,7 @@ def run_ast_only_eval():
         "false_positive_details": fpr.get("fp_details", []),
         "results": mc_results,
     }
-    output_path = Path(__file__).parent / "v2_eval_results.json"
+    output_path = Path(__file__).parent / output_name
     output_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nResults saved to: {output_path}")
 
@@ -430,6 +432,12 @@ def run_ast_only_eval():
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="PyTutor Misconception Evaluation")
+    parser.add_argument("--dataset", default="v2_test_cases.json",
+                        help="misconception case file under evaluation/")
+    parser.add_argument("--clean", default="clean_code_cases.json",
+                        help="clean-code case file under evaluation/")
+    parser.add_argument("--out", default="v2_eval_results.json",
+                        help="output JSON name under evaluation/")
     parser.add_argument("--mode", choices=["direct", "http", "ast-only"], default="direct",
                         help="direct: import diagnose() directly; http: call API; ast-only: AST analysis only (no DB/LLM)")
     args = parser.parse_args()
@@ -437,7 +445,7 @@ def main():
     if args.mode == "http":
         asyncio.run(run_http_eval())
     elif args.mode == "ast-only":
-        run_ast_only_eval()
+        run_ast_only_eval(args.dataset, args.clean, args.out)
     else:
         asyncio.run(run_direct_eval())
 

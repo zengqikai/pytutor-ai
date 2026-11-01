@@ -11,6 +11,8 @@ A 方向 RAG 优化单元测试（A2 权重融合 / A4 token 分块 / A6 上下�
 - _format_compressed（上下文 token 预算压缩）
 """
 
+import pytest
+
 from app.core.config import settings
 from app.rag.splitter import _split_by_tokens, estimate_tokens
 from app.schemas.rag import RAGRetrievalResult
@@ -19,6 +21,18 @@ from app.services.rag_service import (
     _format_compressed,
     _weighted_merge,
 )
+
+
+@pytest.fixture(autouse=True)
+def _restore_settings():
+    """这些用例直接改 settings 字段；跑完必须还原，否则污染后续测试。"""
+    snapshot = settings.model_dump()
+    yield
+    for key, value in snapshot.items():
+        try:
+            setattr(settings, key, value)
+        except (AttributeError, ValueError, TypeError):
+            pass
 
 
 # =============================================================================
@@ -122,4 +136,6 @@ class TestContextCompression:
 
     def test_first_sentence(self):
         assert _first_sentence("第一句。第二句。") == "第一句。"
-        assert _first_sentence("no_punctuation_long_text" * 10).endswith("...") or True  # 兜底截断
+        # 无标点时按 max_len 硬截断（不加省略号）
+        long_text = "no_punctuation_long_text" * 10
+        assert _first_sentence(long_text, max_len=20) == long_text[:20]

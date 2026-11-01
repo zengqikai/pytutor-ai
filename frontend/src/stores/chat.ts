@@ -12,6 +12,17 @@ interface Message {
   misconception_id?: string;
   pedagogical_strategy?: string;
   verify_score?: number;
+  metadata?: {
+    misconception_id?: string;
+    misconception_name?: string;
+    evidence?: string;
+    confidence?: number;
+    strategy?: string;
+    hint_level?: number;
+    strategy_source?: string;
+    strategy_rule?: string;
+    degraded?: boolean;
+  } | null;
 }
 
 interface ChatState {

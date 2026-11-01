@@ -4,6 +4,8 @@ node_modules/
 __pycache__/
 *.pyc
 *.db
+*.db.bak
+*.db.bak-*
 .env
 *.log
 dist/
@@ -19,3 +21,7 @@ vercel.json
 # 队友交付物原始文件夹（已整合进 backend/，不进 git）
 pytutor-ai-main/
 pytutor-C-direction-clt-20260727/
+
+# 大体积二进制产物（可重新生成，不进 git）
+*.bundle
+*.mp4

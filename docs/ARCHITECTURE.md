@@ -76,7 +76,7 @@ Tailwind CSS 4            # 样式
 Zustand                   # 状态管理
 Monaco Editor             # 代码编辑器
 react-markdown             # AI 回复渲染
-Vercel AI SDK             # SSE 流式对话
+fetch + JSON               # 对话走非流式接口（SSE 未启用）
 ```
 
 ### 测试 & CI
@@ -403,7 +403,7 @@ POST /api/v1/chat/sessions
 GET  /api/v1/chat/sessions
 GET  /api/v1/chat/sessions/{id}
 POST /api/v1/chat/sessions/{id}/messages
-POST /api/v1/chat/sessions/{id}/stream    (SSE)
+POST /api/v1/chat/sessions/{id}/stream    (501，未启用；用 /messages)
 PATCH /api/v1/chat/sessions/{id}
 DELETE /api/v1/chat/sessions/{id}
 ```

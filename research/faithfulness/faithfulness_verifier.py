@@ -65,11 +65,19 @@ class FaithfulnessReport:
     supported: int
     unsupported: int
     unverifiable: int
-    faithfulness: float                # supported / verifiable
-    hallucination_rate: float          # unsupported / verifiable
+    # 零可核验断言时两者为 None——不能把"没说话"当成"说对了"
+    faithfulness: Optional[float]      # supported / verifiable
+    hallucination_rate: Optional[float]  # unsupported / verifiable
     details: list[ClaimVerdict] = field(default_factory=list)
 
+    @property
+    def has_verifiable(self) -> bool:
+        return self.verifiable > 0
+
     def summary(self) -> str:
+        if not self.has_verifiable:
+            return (f"忠实度=N/A  幻觉率=N/A  (无可核验断言；"
+                    f"不可核验 {self.unverifiable})")
         return (
             f"忠实度={self.faithfulness:.2f}  幻觉率={self.hallucination_rate:.2f}  "
             f"(可核验 {self.verifiable} = 支持 {self.supported} + 幻觉 {self.unsupported}; "
@@ -102,17 +110,61 @@ class RuleBasedClaimExtractor:
     ]
 
     _LINE_RE = re.compile(r"第\s*(\d+)\s*行")
+    _FENCE_RE = re.compile(r"```[^\n]*\n.*?```", re.S)
+    _HEADING_RE = re.compile(r"^#{1,6}\s+.*$")
+    _HR_RE = re.compile(r"^([-*_])\s*(\1\s*){2,}$")
+    _LIST_RE = re.compile(r"^(?:[-*+]|\d+[.)])\s+")
+    _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+    _TAG_RE = re.compile(r"<[^>]+>")
 
     def extract(self, explanation: str) -> list[Claim]:
         claims: list[Claim] = []
-        # 按句切分（中文句号/分号/换行/感叹问号）
-        sentences = re.split(r"[。；\n！？]", explanation)
+        text = self._clean_markdown(explanation)
+        # 按句切分：中文句读 + 换行 + 英文句末（后接空白）
+        sentences = re.split(r"[。；\n！？]|(?<=[.!?])\s+", text)
         for s in sentences:
-            s = s.strip()
-            if not s:
+            s = s.strip().strip("-*>#` ")
+            if not self._is_claim_like(s):
+                continue
+            # "看这段代码：" 之类的引导句不是断言
+            if len(s) < 12 and s.endswith(("：", ":")):
                 continue
             claims.extend(self._classify_sentence(s))
         return claims
+
+    @classmethod
+    def _clean_markdown(cls, explanation: str) -> str:
+        """去掉纯排版内容，避免把标题/代码块/表格当成断言。
+
+        代码块整体丢弃；行内代码只去反引号，保留代码词（``append`` 仍是可核验线索）。
+        """
+        text = cls._FENCE_RE.sub("\n", explanation)
+        text = text.replace("`", "")
+        kept: list[str] = []
+        for raw in text.splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            # 表格（有无前导竖线都跳过）与分隔行
+            if line.startswith("|") or line.count("|") >= 2:
+                continue
+            if cls._HEADING_RE.match(line) or cls._HR_RE.match(line):
+                continue
+            line = re.sub(r"^>\s?", "", line)
+            line = cls._LIST_RE.sub("", line)
+            line = cls._BOLD_RE.sub(r"\1", line)
+            line = cls._TAG_RE.sub("", line)
+            line = line.strip()
+            if line:
+                kept.append(line)
+        return "\n".join(kept)
+
+    @staticmethod
+    def _is_claim_like(s: str) -> bool:
+        """过滤空句、纯符号和过短片段（如 ``e.g``、单个列表符号）。"""
+        if len(s) < 4:
+            return False
+        return bool(re.search(r"[\w一-鿿]", s))
 
     def _classify_sentence(self, s: str) -> list[Claim]:
         out: list[Claim] = []
@@ -154,7 +206,8 @@ class RuleBasedClaimExtractor:
             return out
 
         # 类型转换 / str+int
-        if ("input" in s and ("字符串" in s or "str" in s)) or ("类型" in s and "转换" in s) \
+        if ("input" in s and ("字符串" in s or "str" in s)) \
+                or ("类型" in s and ("转换" in s or "不匹配" in s or "错误" in s)) \
                 or ("字符串" in s and ("数值" in s or "整数" in s or "int" in s)):
             out.append(Claim(text=s, predicate="type_mismatch", line=line))
             return out
@@ -248,20 +301,36 @@ class FaithfulnessVerifier:
                                 reason="代码里没有 range() 调用（幻觉）")
 
         if p == "type_mismatch":
-            # 存在 binop 且涉及字符串/输入 与 数值
-            if self._facts("binop"):
-                # 有 input 类型提示或字符串字面量参与运算即支持
-                return ClaimVerdict(claim, Verdict.SUPPORTED,
-                                    self._facts("binop")[0].describe())
-            return ClaimVerdict(claim, Verdict.UNSUPPORTED,
-                                reason="代码里没有可能类型不匹配的运算（幻觉）")
+            # "存在二元运算" 不等于 "类型不匹配"。只有推断出 str 与 num
+            # 相混时才算支持；两侧类型一致算反驳；推断不出则不可核验。
+            binops = self._facts("binop")
+            if not binops:
+                return ClaimVerdict(claim, Verdict.UNSUPPORTED,
+                                    reason="代码里没有二元运算（幻觉）")
+            for f in binops:
+                if f.get("definite_type_error"):
+                    return ClaimVerdict(claim, Verdict.SUPPORTED, f.describe(),
+                                        reason=f"{f.get('left_kind')} 与 {f.get('right_kind')} 相加")
+            kinds = {(f.get("left_kind"), f.get("right_kind")) for f in binops}
+            if all(l == r and l in ("str", "num") for l, r in kinds):
+                return ClaimVerdict(claim, Verdict.UNSUPPORTED,
+                                    reason="运算两侧类型一致，不构成类型错误（幻觉）")
+            return ClaimVerdict(claim, Verdict.UNVERIFIABLE,
+                                reason="无法从代码结构确定操作数类型")
 
         if p == "infinite_loop":
-            if self._facts("while_loop"):
-                return ClaimVerdict(claim, Verdict.SUPPORTED,
-                                    self._facts("while_loop")[0].describe())
+            # "有 while" 不等于 "无限循环"：条件变量在体内更新、或存在
+            # break/return/raise 出口时，不能把该断言判为支持。
+            whiles = self._facts("while_loop")
+            if not whiles:
+                return ClaimVerdict(claim, Verdict.UNSUPPORTED,
+                                    reason="代码里没有 while 循环（幻觉）")
+            for f in whiles:
+                if f.get("may_never_terminate"):
+                    return ClaimVerdict(claim, Verdict.SUPPORTED, f.describe(),
+                                        reason="条件变量在循环体内从不更新且无出口")
             return ClaimVerdict(claim, Verdict.UNSUPPORTED,
-                                reason="代码里没有 while 循环（幻觉）")
+                                reason="while 条件变量在体内有更新或存在出口（幻觉）")
 
         if p == "generic_structural":
             # 有行号 → 该行是否存在任何事实
@@ -286,13 +355,14 @@ class FaithfulnessVerifier:
         unsupported = sum(1 for v in verdicts if v.verdict == Verdict.UNSUPPORTED)
         unverifiable = sum(1 for v in verdicts if v.verdict == Verdict.UNVERIFIABLE)
         verifiable = supported + unsupported
-        faith = supported / verifiable if verifiable else 1.0
-        halluc = unsupported / verifiable if verifiable else 0.0
+        # 没有可核验断言 ≠ 100% 忠实。返回 None，由聚合层单独报告覆盖率。
+        faith = round(supported / verifiable, 3) if verifiable else None
+        halluc = round(unsupported / verifiable, 3) if verifiable else None
 
         return FaithfulnessReport(
             total_claims=len(claims), verifiable=verifiable,
             supported=supported, unsupported=unsupported, unverifiable=unverifiable,
-            faithfulness=round(faith, 3), hallucination_rate=round(halluc, 3),
+            faithfulness=faith, hallucination_rate=halluc,
             details=verdicts,
         )
 

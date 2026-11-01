@@ -1,0 +1,41 @@
+experiment,dataset,condition,metric,n,value,caveat
+ast_diagnosis,v2_test_cases,ast-only,exact_match,47,1.000,same-set validation; rules and cases were developed together
+ast_diagnosis,v2_test_cases,ast-only,macro_f1,47,1.000,same-set validation; rules and cases were developed together
+ast_diagnosis,clean_code_cases,ast-only,false_positive_rate,22,0.000,same-set validation; rules and cases were developed together
+ast_diagnosis,v2_test_cases,ast-only,mean_latency_ms,47,0.20,max 0.53 ms
+ast_diagnosis_holdout,v2_holdout_cases,ast-only,exact_match,30,0.833,held-out set written separately; rules were not tuned on it; single author
+ast_diagnosis_holdout,v2_holdout_cases,ast-only,macro_f1,30,0.883,held-out set written separately; rules were not tuned on it; single author
+ast_diagnosis_holdout,holdout_clean_cases,ast-only,false_positive_rate,15,0.000,held-out set written separately; rules were not tuned on it; single author
+ast_diagnosis_holdout,v2_holdout_cases,ast-only,mean_latency_ms,30,0.28,max 1.48 ms
+ast_diagnosis_holdout,v2_holdout_cases,M5,recall,4,0.250,1/4; main residual gap
+ast_diagnosis_holdout,v2_holdout_cases,M6,recall,4,0.500,2/4; main residual gap
+rag_retrieval,rag_golden,tfidf,hit_at_k@5,30,0.900,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,tfidf,recall_at_k@5,30,0.407,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,tfidf,mrr@5,30,0.900,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,tfidf,mean_latency_ms,30,0.1,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,tfidf,mean_context_tokens,30,250.6,"30 answerable queries; smoke baseline; estimated by splitter.estimate_tokens, max 390"
+rag_retrieval,rag_golden_no_answer,tfidf,returned_any,5,5/5,retriever cannot abstain
+rag_retrieval,rag_golden_no_answer,tfidf,mean_top_score,5,1.000,score is not calibrated
+rag_retrieval,rag_golden,vector,hit_at_k@5,30,0.933,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,vector,recall_at_k@5,30,0.501,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,vector,mrr@5,30,0.890,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,vector,mean_latency_ms,30,635.6,30 answerable queries; smoke baseline
+rag_retrieval,rag_golden,vector,mean_context_tokens,30,314.7,"30 answerable queries; smoke baseline; estimated by splitter.estimate_tokens, max 455"
+rag_retrieval,rag_golden_no_answer,vector,returned_any,5,5/5,retriever cannot abstain
+rag_retrieval,rag_golden_no_answer,vector,mean_top_score,5,0.498,score is not calibrated
+rag_retrieval,rag_golden,hybrid,hit_at_k@5,30,0.933,30 answerable queries; smoke baseline; identical to vector while ENABLE_HYBRID_WEIGHTS is off
+rag_retrieval,rag_golden,hybrid,recall_at_k@5,30,0.501,30 answerable queries; smoke baseline; identical to vector while ENABLE_HYBRID_WEIGHTS is off
+rag_retrieval,rag_golden,hybrid,mrr@5,30,0.890,30 answerable queries; smoke baseline; identical to vector while ENABLE_HYBRID_WEIGHTS is off
+rag_retrieval,rag_golden,hybrid,mean_latency_ms,30,641.1,30 answerable queries; smoke baseline; identical to vector while ENABLE_HYBRID_WEIGHTS is off
+rag_retrieval,rag_golden,hybrid,mean_context_tokens,30,314.7,"30 answerable queries; smoke baseline; identical to vector while ENABLE_HYBRID_WEIGHTS is off; estimated by splitter.estimate_tokens, max 455"
+rag_retrieval,rag_golden_no_answer,hybrid,returned_any,5,5/5,retriever cannot abstain
+rag_retrieval,rag_golden_no_answer,hybrid,mean_top_score,5,0.498,score is not calibrated
+multi_judge,judge_eval,3 judges,mean_score,10,2.40,no human reference; kappa is inter-judge only
+multi_judge,judge_eval,3 judges,revision_rate,10,9/10 (90%),no human reference; kappa is inter-judge only
+multi_judge,judge_eval,3 judges,mean_kappa,10,0.405,no human reference; kappa is inter-judge only
+faithfulness,dataset_seed,C1 (run1),faithfulness_overall,5,0.683,10 seed items; rules_v2 extractor; C2 not better on either run
+faithfulness,dataset_seed,C2 (run1),faithfulness_overall,7,0.647,10 seed items; rules_v2 extractor; C2 not better on either run
+faithfulness,dataset_seed,C2-C1 (run1),paired_mean_diff,5,-0.127,"95% CI [-0.56, 0.21]; crosses zero"
+faithfulness,dataset_seed,C1 (run2),faithfulness_overall,6,0.667,10 seed items; rules_v2 extractor; C2 not better on either run
+faithfulness,dataset_seed,C2 (run2),faithfulness_overall,7,0.650,10 seed items; rules_v2 extractor; C2 not better on either run
+faithfulness,dataset_seed,C2-C1 (run2),paired_mean_diff,5,-0.090,"95% CI [-0.19, 0.00]; crosses zero"

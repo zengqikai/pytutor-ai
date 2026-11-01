@@ -4,7 +4,7 @@
 # 用法: make <目标>
 # 例如: make dev     # 启动开发服务器
 
-.PHONY: help dev install migrate test clean docker-up docker-down
+.PHONY: help dev install migrate test test-cov build-frontend clean docker-up docker-down
 
 help:  ## 显示帮助信息
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -15,8 +15,12 @@ help:  ## 显示帮助信息
 dev:  ## 启动开发服务器（热重载）
 	cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-install:  ## 安装项目依赖
+install:  ## 安装前后端依赖（后端 pyproject + frontend/package.json）
 	cd backend && pip install -e ".[dev,test]"
+	cd frontend && npm install
+
+build-frontend:  ## 构建前端（等价于 CI 的 build 步骤）
+	cd frontend && npm run build
 
 # ==============================
 # 数据库

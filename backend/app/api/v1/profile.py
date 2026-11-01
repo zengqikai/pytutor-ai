@@ -15,9 +15,12 @@ from app.database.session import get_db
 from app.models.user import User
 from app.security.dependencies import get_current_user
 from app.services.profile_service import (
+    get_or_create_profile,
     get_profile_summary,
     get_recommendation,
     get_weaknesses,
+    record_event,
+    update_weakness,
 )
 
 router = APIRouter()
@@ -122,21 +125,41 @@ async def complete_onboarding(
     labels = {"A": "zero_basis", "B": "some_basics", "C": "can_practice", "D": "free_chat"}
     label = labels.get(level, "some_basics")
 
+    diagnosis = body.get("diagnosis") or {}
+
     await record_event(db, current_user.id, "onboarding_completed",
         concept=label,
-        detail={"skill_level": level}
+        detail={"skill_level": level, "diagnosis": diagnosis}
     )
 
     profile = await get_or_create_profile(db, current_user.id)
     if profile.concept_mastery_json:
-        mastery = json.loads(profile.concept_mastery_json)
+        try:
+            mastery = json.loads(profile.concept_mastery_json)
+        except (ValueError, TypeError):
+            mastery = {}
     else:
         mastery = {}
     mastery["_onboarding"] = label
     profile.concept_mastery_json = json.dumps(mastery, ensure_ascii=False)
+
+    # 入门诊断的逐题结果要真正落到画像里，否则"测了等于没测"：
+    # 薄弱点进 StudentWeakness + weak_topics，误区进 recent_misconceptions。
+    weak = [c for c in (diagnosis.get("weak") or []) if isinstance(c, str)]
+    for concept in weak:
+        await update_weakness(db, current_user.id, concept)
+
+    mcs = [m for m in (diagnosis.get("misconceptions") or []) if isinstance(m, str)]
+    if mcs:
+        profile.recent_misconceptions = json.dumps(mcs[:10], ensure_ascii=False)
+
     await db.commit()
 
-    return {"skill_level": label, "next": "lesson_0" if level == "A" else "main"}
+    return {
+        "skill_level": label,
+        "next": "lesson_0" if level == "A" else "main",
+        "weak_count": len(weak),
+    }
 
 
 @router.post("/me/lesson/complete")

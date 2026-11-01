@@ -743,3 +743,220 @@ Alembic 迁移: 7 次
 - Bug #45：Multi-Judge JSON 解析失败（reasoning 字符串破坏 JSON）— 加 `response_format={"type":"json_object"}` 强制结构化输出
 
 **端到端验证结果**：注册→登录→创建会话→代码对话（`a='hello'; b=123; c=a+b`）→ 正确诊断 M7 + 共情式引导回复（不给答案）；画像接口 200。Multi-Judge 实测 Kappa 0.4050（moderate，评委真实分歧，无 fallback 掩盖）。
+
+---
+
+## Phase 14: 完善清单 01–13 落地 (Steps 46-52)
+
+**日期**: 2026-10-22
+
+> 按 `PyTutor_后续完善任务清单.md` 执行 P0–P2 工程项；研究项只做到"量尺可用 + 小规模真实试跑"。
+
+### Step 46 — 启动顺序、迁移与知识库自举
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/main.py` | lifespan 顺序固定：建表/迁移确认 → 种子误区 → 知识库为空则导入 → TF-IDF → embedding；生产环境跳过 `create_all()` |
+| 新增 | `backend/app/rag/seed_data.py` | 知识库正文从脚本抽出，`seed_knowledge()` / `ensure_knowledge_seeded()` |
+| 修改 | `backend/scripts/seed_knowledge.py` | 变成薄封装，复用上面的函数 |
+| 新增 | `backend/alembic/versions/c2d3e4f5a6b7_normalize_hint_dependency.py` | 归一化历史 `hint_dependency` 值 |
+| 新增 | `backend/tests/test_knowledge_seed.py` | 空库导入、二次启动不重复、单篇失败不中断 |
+| 修改 | `backend/pyproject.toml` | `.github/workflows/ci.yml` 已改为全量离线测试 + 前端构建 |
+
+**Bug 修复**:
+- Bug #46：`hint_dependency` 把 `{"score":..,"label":..}` 写进 `VARCHAR(20)`，SQLite 不报错但教师端 `== 'high'` 永远匹配不上 —— 改为只存标签，读取侧 `normalize_hint_dependency()` 兼容旧值，附数据迁移
+
+### Step 47 — 权限、执行边界与判题
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `backend/app/sandbox/runner.py` | 统一执行边界：`sandbox_mode` × `isolation_required`；生产无 Docker 返回 `unavailable` |
+| 修改 | `backend/app/api/v1/exercises.py` | 服务端统计提示/看答案、首次奖励幂等、执行不可用不判题、通过/失败都更新弱项 |
+| 新增 | `backend/tests/test_authz.py` / `test_sandbox_runner.py` | 角色、答案闸门、四种沙箱模式 |
+
+### Step 48 — 误区事件、画像与引导隔离
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/services/misconception_service.py` | 记录误区时同步 `recent_misconceptions` |
+| 修改 | `backend/app/services/profile_service.py` | `lesson_completed` 维护 `completed_lessons`；`update_weakness` 同步 `weak_topics` |
+| 修改 | `backend/app/api/v1/profile.py` | 入门诊断的逐题结果落库（薄弱点 + 误区），返回 `weak_count` |
+| 修改 | `frontend/src/components/onboarding-wrapper.tsx` | 引导状态按 `user.id` 隔离；完成时写回同一 key |
+| 新增 | `backend/tests/test_onboarding_profile.py` / `test_learning_loop.py` | 诊断→画像→教师看板；完整学习闭环 |
+
+**Bug 修复**:
+- Bug #47：引导完成标记用 `token.slice(0,16)`，而同批 JWT 的前缀完全相同，同一浏览器下所有账号共用一个标记 —— 改用 `user.id`
+
+### Step 49 — 回复审核与教学策略
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/services/tutor_service.py` | 审核传入真实误区；修订后**再次审核**，分数不再写死为 2；复审失败记为未复核 |
+| 修改 | `backend/app/services/pedagogy_service.py` | 单评委失败/解析不出分数 → `score=0, review_available=False` |
+| 修改 | `backend/app/services/chat_service.py` | 真实策略/提示等级/质量分写入 `metadata_json` |
+| 修改 | `frontend/src/components/chat-message.tsx` | 展示误区名称/置信度/依据、策略来源、降级标记、质量分（仅审核过才显示） |
+| 新增 | `backend/tests/test_tutor_review.py` | 失败不伪造分数、修订后重新审核、误区透传 |
+
+**Bug 修复**:
+- Bug #48：修订回复后质量分固定为 2，无证据 —— 改为对修订稿重新审核，失败留空
+- Bug #49：单评委异常时默认 3 分，下游当成通过 —— 改为 0 分 + 不可评估
+
+### Step 50 — 研究侧：忠实度核验器与真实试跑
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `research/faithfulness/ast_facts.py` | 作用域栈、类型推断、`may_never_terminate`，仅对 Add/Sub/Div/FloorDiv/Pow 判定类型错误 |
+| 修改 | `research/faithfulness/faithfulness_verifier.py` | supported/contradicted/unverifiable 边界；零可核验断言返回 N/A |
+| 修改 | `research/faithfulness/run_experiment.py` | `build_llm()` 真实接入（显式加载 backend/.env）、断点续跑、token 用量、配对 CI、数据哈希 |
+| 修改 | `research/faithfulness/dataset_seed.json` | P04 改为硬负例、P03 标为 intent_dependent、补来源与 schema |
+| 新增 | `research/faithfulness/RESULTS.md` + `results_real_deepseek_run{1,2}.json` | 10 条 × 2 条件 × 2 次真实运行 |
+
+### Step 51 — RAG 评测三路打通
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `evaluation/run_rag_eval.py` | tfidf / vector / hybrid 各走真实实现；Hit@K、Recall@K、MRR 分开；覆盖率与跳过原因入库；空库退出码 2 |
+| 修改 | 输出路径 | 每种模式写 `rag_eval_results_{mode}.json` |
+
+**结果**：TF-IDF Hit@5 88.9% / MRR 0.889；向量 Hit@5 100% / Recall@5 51.4% / MRR 0.911；Hybrid 在 `ENABLE_HYBRID_WEIGHTS=false` 时与向量一致（不构成融合有效性的证据）。
+
+**Bug 修复**:
+- Bug #50：三种模式共用同一个结果文件，后跑的覆盖先跑的 —— 按模式分文件
+
+### Step 52 — 可复现交付
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `docs/REPRODUCIBILITY.md` | 基线、开关矩阵、数据库路径/迁移、数据集哈希、评测口径、状态用词 |
+| 重写 | `README.md` | 技术栈与结构对齐现状；安装/启动/测试/评测命令 |
+| 修改 | `package.json`（根） | 删除重复依赖声明，只转发到 `frontend/`；删除根 `package-lock.json` |
+| 修改 | `.gitignore` | 忽略 `*.bundle` / `*.mp4`；`pytutor.bundle` 取消跟踪 |
+| 修改 | `Makefile` | `install` 覆盖前后端，新增 `build-frontend` |
+
+**测试结果**：**233 passed, 12 deselected**；前端 `npm run build` 通过。
+
+### Step 53 — 结果包与 PPT 对齐
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `evaluation/build_results_summary.py` + `results_summary.csv` | 从各结果 JSON 生成 31 行机器可读汇总，避免手抄数字 |
+| 新增 | `docs/figures/results-overview.svg` / `-dark.svg` | 浅色/深色结果图：检索三路 Hit@5/Recall@5/MRR + AST 统计卡片 |
+| 新增 | `docs/figures/make_figures.py` / `README.md` | 可重生成；含表格视图、配色校验记录、PNG 导出方法 |
+| 修改 | `PyTutor_3.0_Academic_Presentation.pptx` | P12 改 10 案例 + RAG 指标；P14 加实测区；P15 加校准边界；P17 加负面分支 |
+| 新增 | `docs/CLAIMS-EVIDENCE.md` | 四条主贡献 + 三条支撑主张，逐条列算法、界面、证据与"不能宣称" |
+| 修改 | `docs/PPT-ALIGNMENT.md` / `docs/TASK-STATUS.md` / `docs/REPRODUCIBILITY.md` / `README.md` / `CLAUDE.md` | 4 处修改标记为已应用；链接结果图、CSV 与主张矩阵；任务 16 转为完成；修正 flag 默认值与 47 例数据集的旧描述 |
+
+**口径**：图中 Hybrid 与 Vector 相同，并在图上注明是 `ENABLE_HYBRID_WEIGHTS=false` 所致；
+AST 四项均标为 same-set。浅色 MRR 对底色的对比度 2.74:1，按 dataviz 规则用表格视图兜底。
+
+### Step 54 — 忠实度抽取器 rules_v2 + 真实重跑
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `research/faithfulness/faithfulness_verifier.py` | `RuleBasedClaimExtractor` 增加 `_clean_markdown()`：丢弃代码块/标题/表格行/分隔线，去掉列表符号与加粗，支持英文句末切分，过滤过短引导句 |
+| 修改 | `research/faithfulness/run_experiment.py` | `meta.claim_extractor` 记为 `RuleBasedClaimExtractor/rules_v2` |
+| 新增 | `research/faithfulness/results_real_deepseek_v2_run{1,2}.json` | 真实 `deepseek-chat` 两次重跑（各 20 次调用，0 失败） |
+| 修改 | `research/faithfulness/RESULTS.md` | 以 v2 为主结果重写；附清理前后断言量对比（621/667 → 278/287） |
+| 修改 | `backend/tests/test_faithfulness_verifier.py` | 新增 `TestMarkdownIsNotAClaim`（5 个用例） |
+| 修改 | `docs/TASK-STATUS.md` / `docs/REPRODUCIBILITY.md` / `docs/CLAIMS-EVIDENCE.md` / `PyTutor_3.0_Academic_Presentation.pptx` | 同步 v2 数字与"C2 两次都未优于 C1"的结论；PPT P14 实测区改为新数字 |
+
+**Bug 修复**:
+- Bug #51：Markdown 标题、代码块、表格行被当作断言计入未核验，导致忠实度分母含大量噪声 ——
+  抽取前先清洗格式行；断言总量下降约 55%，未核验噪声下降约 60%
+
+**结果**：C1/C2 为 0.683/0.647（run1）、0.667/0.650（run2），配对差 −0.127、−0.090，95% CI 均含 0。
+结论从"方向不稳定"改为"没有证据表明 C2 更优，点估计偏向 C1"；仍不能宣称证据注入有效。
+
+### Step 55 — RAG 评测补充上下文 token
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `evaluation/run_rag_eval.py` | 每个查询记录 Top-K chunk 的估算 token 之和，汇总 `mean/max/total_context_tokens`；控制台与 `metric_definitions` 同步说明口径 |
+| 修改 | `evaluation/build_results_summary.py` + `results_summary.csv` | 三路检索各加一行 `mean_context_tokens` |
+| 修改 | `docs/TASK-STATUS.md` / `docs/REPRODUCIBILITY.md` / `docs/CLAIMS-EVIDENCE.md` | 任务 13 的"未报告 token"缺口关闭；表格补 token 列 |
+
+**结果**：TF-IDF 242.3（最大 369）、向量 315.2（最大 455）、Hybrid 315.2（同向量）。
+口径：`app/rag/splitter.estimate_tokens()` 估算（CJK 1 字 ≈ 1 token，其余 4 字符 ≈ 1 token），
+不是分词器精确计数；9 条查询仍是 smoke 规模。
+
+### Step 56 — 关闭未对齐的 SSE 入口（任务 17 决策）
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/app/api/v1/chat.py` | `POST /chat/sessions/{id}/stream` 不再流式返回，改为 **501** 并指向非流式入口 |
+| 修改 | `backend/app/services/chat_service.py` | 删除 `send_message_stream`：它缺 RAG/诊断/画像/审核，且 `session.messages` 在异步上下文有懒加载风险 |
+| 修改 | `backend/tests/test_authz.py` | 新增 `TestStreamingDisabled`：断言 501 且提示使用 messages 接口，不触库 |
+
+**理由**：清单 17 允许"没有体验需求时保留非流式入口"。保留一个会给出降级回复的公开端点
+比不提供更容易造成"两套接口诊断不一致"，因此显式关闭而不是静默降级。
+
+### Step 57 — RAG 黄金集扩到 30 条并重跑三路
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `evaluation/rag_golden.json` | 从 9 条可答 + 2 条无答案扩到 **30 条可答 + 5 条无答案**（新增 g013–g036）；sha256 前缀 `e12dd15fc2fd54e7` |
+| 重跑 | `evaluation/rag_eval_results_{tfidf,vector,hybrid}.json` | 30 条查询上重跑三路，含 Top-5 上下文 token |
+| 修改 | `docs/figures/make_figures.py` / `README.md` / `results-overview.svg`（含深色） | 图与表同步到 0.900/0.407/0.900（TF-IDF）、0.933/0.501/0.890（向量） |
+| 修改 | `evaluation/build_results_summary.py` + `results_summary.csv` | 34 行；RAG caveat 改为 30 条单作者 smoke 基线 |
+| 修改 | `docs/REPRODUCIBILITY.md` / `docs/CLAIMS-EVIDENCE.md` / `docs/DATA_CARD.md` / `docs/TASK-STATUS.md` / `CLAUDE.md` | 同步数字、哈希与"MRR 略低于 TF-IDF、无拒答能力"的边界 |
+
+**结果**：向量相对 TF-IDF：Hit@5 90.0% → 93.3%，Recall@5 40.7% → 50.1%，MRR 0.900 → 0.890；
+Top-5 上下文 251 → 315 token（估算）。Hybrid 仍与向量一致（`ENABLE_HYBRID_WEIGHTS=false`）。
+**不能说**"向量全面优于 TF-IDF"：MRR 点估计略低；查询仍为单作者标注。
+
+### Step 58 — 诊断留出集（30 + 15 条）
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `evaluation/v2_holdout_cases.json` | 30 条新写误区正例，覆盖 M1–M8；sha256 前缀 `8d3e008fdb3c76b7` |
+| 新增 | `evaluation/holdout_clean_cases.json` | 15 条干净代码；sha256 前缀 `a4a69607f88c5a3e` |
+| 修改 | `evaluation/run_v2_eval.py` | `run_ast_only_eval()` 接受 dataset/clean/output；新增 `--dataset`、`--clean`、`--out` |
+| 新增 | `evaluation/v2_holdout_results.json` | 留出集结果 |
+| 修改 | `docs/DATA_CARD.md` / `docs/REPRODUCIBILITY.md` / `docs/CLAIMS-EVIDENCE.md` / `docs/TASK-STATUS.md` | 记录规模、哈希、结果与"未据此调规则" |
+
+**结果**：exact match **0.833（25/30）**、macro-F1 0.883、干净代码误报 **0/15**；
+漏检集中在 H18–H20（M5，recall 0.25）与 H22/H24（M6，recall 0.50）。
+这是项目第一个非训练集上的泛化估计；同集的 1.000 仍只能说明规则自洽。
+
+### Step 59 — 生产化加固（依赖、迁移、CI、认证与限流）
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `backend/requirements.txt` | 全部精确 pin；移除未使用的 `sentence-transformers`；加入 ruff、pytest-cov |
+| 新增 | `backend/alembic/versions/d3e4f5a6b7c8_add_profile_learning_fields.py` | 补 2.0 画像四字段；幂等加列；head 变为 `d3e4f5a6b7c8` |
+| 修改 | `backend/alembic/versions/c2d3e4f5a6b7_normalize_hint_dependency.py` | 列不存在时直接返回，避免空库链式迁移失败 |
+| 修改 | `.github/workflows/ci.yml` | 精确版本安装 → compileall → ruff 错误门（E9/F63/F7/F82）→ 空库迁移并断言四个画像列 → pytest 覆盖率门 40% → `npm ci --legacy-peer-deps` + build |
+| 新增 | `backend/app/core/rate_limit.py` + `tests/test_rate_limit.py` | 进程内滑动窗口限流；登录/注册 10 次/分/IP，普通 API 120 次/分/IP；健康检查与 CORS 预检跳过 |
+| 修改 | `backend/app/core/config.py` / `backend/app/main.py` | `RATE_LIMIT_*` 配置；中间件注册 |
+| 新增 | `backend/tests/test_auth_service.py` | 7 个用例：密码盐/校验、JWT 往返/篡改/过期、注册/登录、重复 409、统一 401、禁用 403 |
+| 新增 | `docs/DEPLOYMENT.md` | 三种环境的判题边界；Render 无 Docker 时 `unavailable`；迁移与限流注意事项 |
+
+**Bug 修复**:
+- Bug #52：2.0 画像字段只靠手工 `ALTER TABLE`，空库 `alembic upgrade head` 在
+  `c2d3e4f5a6b7` 处报 `no such column: hint_dependency` —— 新增幂等迁移，CI 用空库验证
+- Bug #53：`app/main.py` lifespan 内局部 `from app.database.session import AsyncSessionFactory`
+  使该名字在整个函数内变成本地变量，前面几处种子写入抛 `UnboundLocalError` 并被
+  `try/except` 吞掉 → 误区/知识库种子静默跳过。移除局部导入后恢复；由 ruff F823 捕获
+
+**测试结果**：**251 passed, 12 deselected**，覆盖率 47%；ruff 错误门通过；空库迁移 head `d3e4f5a6b7c8`。
+
+### Step 60 — 忠实度人工抽查工具
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 新增 | `evaluation/build_spotcheck.py` | 从 v2 run1 确定性分层抽样：每个「判定 × 条件」5 条，共 30 条；按题目轮转避免单题占满 |
+| 新增 | `evaluation/faithfulness_spotcheck.csv` | 11 列；人工列（`human_extraction_ok` / `human_verdict` / `notes`）留空，UTF-8 BOM 便于 Excel |
+| 新增 | `docs/FAITHFULNESS-SPOTCHECK.md` | 填写规则、空白汇总表、填完后需同步的 6 个位置、为什么不能自动填 |
+
+**边界**：这一步只交付工具与抽样表，**没有**填入任何人工判定；"抽取/判定一致率"必须等人填完后才能写。
+
+### Step 61 — 结果包补入留出集与人工抽查入口
+
+| 操作 | 文件 | 说明 |
+|------|------|------|
+| 修改 | `evaluation/build_results_summary.py` | 新增 `ast_diagnosis_holdout` 六行：exact match、macro-F1、FP rate、平均延迟、M5/M6 recall；CSV 从 34 行增至 **40 行** |
+| 修改 | `docs/figures/README.md` | 增加留出集表格；CSV 行数更新；数据出处补 `v2_holdout_results.json` |
+| 修改 | `docs/TASK-STATUS.md` | 任务 10 指向抽查表；修正"留出集还没做"的旧说法；待人工事项拆成二次标注/人工抽查/盲评/校准 |
+| 修改 | `docs/FAITHFULNESS-SPOTCHECK.md` | 抽样说明改为每桶 5 条、固定 seed、脚本路径 |
+
+**口径**：图中右栏仍只画同集卡片；留出集只进表格与 CSV，避免读者把 25/30 误读成同集结果。

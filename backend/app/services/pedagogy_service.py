@@ -144,13 +144,29 @@ AI 回复：
         json_match = re.search(r'\{.*\}', content, re.DOTALL)
         if json_match:
             result = json.loads(json_match.group())
+            score = result.get("score")
+            # 没有可解析的分数就视为"未审核"，不默认给 3 分——
+            # 3 分在下游会被当成"通过"，让审核失败显示成一次合格回复。
+            if not isinstance(score, (int, float)) or score <= 0:
+                return _review_unavailable("评委未返回有效分数")
             return {
-                "is_valid": result.get("is_valid", True),
-                "score": result.get("score", 3),
+                "is_valid": bool(result.get("is_valid", True)),
+                "score": int(score),
                 "issues": result.get("issues", []),
-                "needs_revision": result.get("needs_revision", False),
+                "needs_revision": bool(result.get("needs_revision", False)),
             }
     except Exception as e:
         logger.warning("verify_failed", error=str(e)[:200])
 
-    return {"is_valid": True, "score": 3, "issues": [], "needs_revision": False}
+    return _review_unavailable("评委调用失败")
+
+
+def _review_unavailable(reason: str) -> dict:
+    """审核不可用：score=0，下游据此记为"未复核"而不是合格。"""
+    return {
+        "is_valid": True,
+        "score": 0,
+        "issues": [f"审核不可用：{reason}"],
+        "needs_revision": False,
+        "review_available": False,
+    }

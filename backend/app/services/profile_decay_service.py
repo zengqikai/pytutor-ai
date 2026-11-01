@@ -724,11 +724,10 @@ async def update_hint_dependency(
             old_label, prev_score, result["score"]
         )
 
-    # 将新结果写回 profile
-    profile.hint_dependency = json.dumps({
-        "score": result["score"],
-        "label": result["label"],
-    }, ensure_ascii=False)
+    # 字段类型是 VARCHAR(20)，只存等级标签。
+    # 之前存的是整段 JSON（{"score": 1.0, "label": "high"}），
+    # 既超长，又让教师端 "== 'high'" 的统计永远匹配不上。
+    profile.hint_dependency = result["label"]
 
     await db.commit()
 

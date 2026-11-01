@@ -313,6 +313,24 @@ async def seed_misconceptions(db: AsyncSession) -> int:
     return count
 
 
+async def resolve_misconception_pk(db: AsyncSession, misconception_ref: str) -> str | None:
+    """把业务编号（M1–M8）解析为 misconceptions.id 主键；已是主键则原样返回。
+
+    诊断链路产出的是 `M7` 这类业务编号，而 misconception_events.misconception_id
+    是指向 misconceptions.id 的外键。两者混用会写入孤儿记录（SQLite 不报错，
+    PostgreSQL 会直接失败），因此所有写入前都必须经过本函数。
+    """
+    if not misconception_ref:
+        return None
+
+    result = await db.execute(select(Misconception.id).where(Misconception.id == misconception_ref))
+    if result.scalar_one_or_none():
+        return misconception_ref
+
+    result = await db.execute(select(Misconception.id).where(Misconception.code == misconception_ref))
+    return result.scalar_one_or_none()
+
+
 async def record_misconception_event(
     db: AsyncSession,
     user_id: str,
@@ -323,10 +341,21 @@ async def record_misconception_event(
     submission_id: str = "",
     exercise_id: str = "",
 ) -> MisconceptionEvent:
-    """记录一次误区诊断事件。"""
+    """记录一次误区诊断事件。
+
+    `misconception_id` 可以是主键或业务编号，内部统一解析为主键。
+    无法解析时抛 ValueError，避免静默写入脏数据。
+    """
+    pk = await resolve_misconception_pk(db, misconception_id)
+    if pk is None:
+        raise ValueError(
+            f"未知误区标识 {misconception_id!r}：既不是 misconceptions.id 主键，"
+            f"也不是已注册的 code"
+        )
+
     event = MisconceptionEvent(
         user_id=user_id,
-        misconception_id=misconception_id,
+        misconception_id=pk,
         submission_id=submission_id or None,
         exercise_id=exercise_id or None,
         confidence=confidence,
@@ -334,6 +363,36 @@ async def record_misconception_event(
         code_snippet=code_snippet[:500] if code_snippet else None,
     )
     db.add(event)
+
+    # 同步画像的"最近误区"字段：聊天和教师看板都直接读这个字段，
+    # 不维护它就会出现"误区事件有记录、画像永远是空"的分裂。
+    try:
+        import json as _json
+        from app.services.profile_service import get_or_create_profile
+        mc = await db.get(Misconception, pk)
+        code = mc.code if mc else misconception_id
+        profile = await get_or_create_profile(db, user_id)
+        recent: list[str] = []
+        if profile.recent_misconceptions:
+            try:
+                parsed = _json.loads(profile.recent_misconceptions)
+                if isinstance(parsed, list):
+                    recent = [str(x) for x in parsed]
+            except (ValueError, TypeError):
+                recent = []
+        recent.append(code)
+        # 去重保留最近出现的顺序，最多 10 条
+        deduped: list[str] = []
+        for c in reversed(recent):
+            if c not in deduped:
+                deduped.append(c)
+        profile.recent_misconceptions = _json.dumps(
+            list(reversed(deduped))[:10], ensure_ascii=False
+        )
+    except Exception as exc:
+        logger.warning("profile_misconception_update_failed",
+                       user_id=user_id, error=str(exc)[:200])
+
     await db.commit()
     return event
 

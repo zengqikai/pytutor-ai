@@ -31,6 +31,7 @@ from app.observability.otel_setup import setup_opentelemetry  # noqa: F401
 from app.database.session import AsyncSessionFactory, engine
 from app.observability.logger import get_logger
 from app.observability.middleware import RequestLoggingMiddleware
+from app.core.rate_limit import RateLimitMiddleware
 from app.api.router import api_v1_router
 
 # 在模块加载时初始化日志系统（在创建 app 之前）
@@ -76,10 +77,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database_type="SQLite" if settings.is_sqlite else "PostgreSQL",
     )
 
+    # ---- 步骤 1：先建表/种子数据，再去读表 ----
+    # 顺序不能反：空库启动时如果先重建索引，RAG 表还不存在，索引永远是空的。
+    try:
+        from app.database.base import Base
+        from app.models.misconception import Misconception, MisconceptionEvent  # noqa: F401
+        if settings.app_env.lower() == "production":
+            # 生产库的表结构只能由迁移决定；create_all 不会给已有表加列，
+            # 静默建出"半个 schema"比启动失败更难查。
+            logger.info("schema_managed_by_alembic", env=settings.app_env)
+        else:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        async with AsyncSessionFactory() as session:
+            from app.services.misconception_service import seed_misconceptions
+            mc_count = await seed_misconceptions(session)
+            logger.info("misconceptions_seeded", count=mc_count)
+
+        # 空库首次启动时自动导入知识库：否则新环境里的 RAG 检索永远查不到东西，
+        # 得先知道去跑 scripts/seed_knowledge.py 才可用。
+        async with AsyncSessionFactory() as session:
+            from app.rag.seed_data import ensure_knowledge_seeded
+            kb_count = await ensure_knowledge_seeded(session)
+            if kb_count:
+                logger.info("knowledge_seeded_on_first_start", count=kb_count)
+            else:
+                logger.info("knowledge_base_already_present")
+    except Exception as e:
+        logger.warning("schema_init_failed", error=str(e)[:200])
+
     # 重建 RAG 检索索引（TF-IDF 从 DB 加载到内存；向量索引复用 ChromaDB 持久化数据）
     # 注：不使用 rag_service.rebuild_index() 以避免启动时触发 embedding API 调用
     try:
-        from app.database.session import AsyncSessionFactory
+        # 注意：不要在这里再 import AsyncSessionFactory。函数内局部 import 会让
+        # 上面第 92/99 行把它当成局部变量，触发 UnboundLocalError，种子数据被静默跳过。
         from app.rag.retriever import retriever
         from app.models.rag import RAGChunk, RAGDocument
         from sqlalchemy import select as sa_select
@@ -114,19 +145,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.warning("embedding_import_failed", reason="chromadb or sentence-transformers not installed")
     except Exception as e:
         logger.warning("embedding_init_failed", error=str(e)[:200])
-
-    # 创建 2.0 新表 + 种子数据（误区分类）
-    try:
-        from app.database.base import Base
-        from app.models.misconception import Misconception, MisconceptionEvent  # noqa: F401
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        async with AsyncSessionFactory() as session:
-            from app.services.misconception_service import seed_misconceptions
-            mc_count = await seed_misconceptions(session)
-            logger.info("misconceptions_seeded", count=mc_count)
-    except Exception as e:
-        logger.warning("misconception_init_failed", error=str(e)[:200])
 
     yield  # <-- 应用运行期间停在这里
 
@@ -180,6 +198,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # 3. 限流 —— 最外层，先于业务逻辑拒绝过量请求
+    app.add_middleware(RateLimitMiddleware)
 
     # ==============================
     # 注册路由

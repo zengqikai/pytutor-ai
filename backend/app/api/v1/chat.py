@@ -11,7 +11,7 @@
     POST   /api/v1/chat/sessions/{id}/messages - 发送消息（获取 AI 回复）
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.session import get_db
@@ -80,16 +80,17 @@ async def stream_chat_message(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """流式 AI 对话（SSE）——逐 token 返回。"""
-    from fastapi.responses import StreamingResponse
-    from app.services.chat_service import send_message_stream
+    """流式入口暂不提供。
 
-    async def event_stream():
-        async for chunk in send_message_stream(db, session_id, current_user, request):
-            yield f"data: {chunk}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    非流式 `POST /sessions/{id}/messages` 是唯一受支持的入口：它包含 RAG 检索、
+    误区诊断、画像更新和回复审核。流式路径尚未复用这些上下文，若对外提供，
+    同一个问题会得到两套诊断/元数据不一致的回复，因此明确返回 501，
+    而不是静默降级（清单任务 17）。
+    """
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="流式对话未启用，请使用 POST /api/v1/chat/sessions/{session_id}/messages",
+    )
 
 
 @router.delete("/sessions/{session_id}")

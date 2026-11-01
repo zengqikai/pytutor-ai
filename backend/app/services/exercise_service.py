@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.exercise import Exercise, TestCase
 from app.observability.logger import get_logger
-from app.sandbox.executor import execute_python_code
 from app.schemas.ai import ChatMessage as LLMMessage
 from app.schemas.exercise import (
     ExerciseDetailResponse,

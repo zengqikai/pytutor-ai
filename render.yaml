@@ -1,5 +1,9 @@
 # Render 部署配置
 # 文档: https://render.com/docs
+#
+# 限制：Render 不提供 Docker，而 APP_ENV=production 会强制沙箱隔离，
+# 因此本配置只能提供聊天/RAG/画像；练习判题会返回 unavailable。
+# 需要完整判题请按 docs/DEPLOYMENT.md 在本地或 Docker 环境运行。
 
 services:
   - type: web

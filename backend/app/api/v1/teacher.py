@@ -22,8 +22,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
 from app.models.misconception import Misconception, MisconceptionEvent
 from app.models.profile import LearningEvent, StudentProfile, StudentWeakness
-from app.models.user import User
-from app.security.dependencies import get_current_user
+from app.models.user import User, UserRole
+from app.security.dependencies import require_role
+from app.services.profile_service import normalize_hint_dependency
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ router = APIRouter()
 @router.get("/overview")
 async def teacher_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(UserRole.INSTRUCTOR, UserRole.ADMIN)),
 ):
     """返回教师仪表盘所需的全部聚合数据。"""
 
@@ -122,7 +123,7 @@ async def teacher_overview(
             "level": sp.level,
             "exercises_passed": sp.total_exercises_passed,
             "exercises_completed": sp.total_exercises_completed,
-            "hint_dependency": sp.hint_dependency or "low",
+            "hint_dependency": normalize_hint_dependency(sp.hint_dependency),
             "recent_misconceptions": mc[-3:] if mc else [],
         })
 

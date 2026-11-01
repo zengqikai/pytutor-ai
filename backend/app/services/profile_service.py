@@ -46,6 +46,25 @@ LEARNING_PATH = [
 ]
 
 
+def normalize_hint_dependency(value: str | None) -> str:
+    """
+    把 hint_dependency 统一成 low / medium / high。
+
+    历史数据里存过 {"score": .., "label": ..} 的 JSON，长度也超过列宽；
+    读取侧统一在这里兼容，避免每个调用方各写一份解析。
+    """
+    if not value:
+        return "low"
+    text = str(value).strip()
+    if text.startswith("{"):
+        try:
+            label = json.loads(text).get("label")
+        except (ValueError, TypeError):
+            return "low"
+        return label if label in {"low", "medium", "high"} else "low"
+    return text if text in {"low", "medium", "high"} else "low"
+
+
 async def get_or_create_profile(db: AsyncSession, user_id: str) -> StudentProfile:
     """获取或创建学习画像。"""
     result = await db.execute(
@@ -91,6 +110,17 @@ async def record_event(
         profile.total_code_submissions += 1
     elif "hint" in event_type:
         profile.total_hints_used += 1
+    elif event_type == "lesson_completed" and concept:
+        # 课程进度落在画像上，刷新/换设备后仍能恢复
+        try:
+            completed = json.loads(profile.completed_lessons) if profile.completed_lessons else []
+            if not isinstance(completed, list):
+                completed = []
+        except (ValueError, TypeError):
+            completed = []
+        if concept not in completed:
+            completed.append(concept)
+        profile.completed_lessons = json.dumps(completed, ensure_ascii=False)
 
     # ---- C 方向 Task 4: Hint Dependency 自动量化 ----
     # 纯计数器运算（零 LLM 调用），始终执行，无需 Feature Flag
@@ -150,6 +180,19 @@ async def update_weakness(
             )
             db.add(weakness)
         logger.info("weakness_updated", user_id=user_id, concept=concept, fail_count=weakness.fail_count)
+
+    # 同步画像的 weak_topics：这是页面和推荐逻辑直接读的字段，
+    # 只更新 StudentWeakness 会让两边数据对不上。
+    try:
+        import json as _json
+        profile = await get_or_create_profile(db, user_id)
+        unresolved = (await db.execute(
+            select(StudentWeakness.concept)
+            .where(StudentWeakness.user_id == user_id, StudentWeakness.is_resolved == False)
+        )).scalars().all()
+        profile.weak_topics = _json.dumps(list(unresolved)[:20], ensure_ascii=False)
+    except Exception as exc:
+        logger.warning("weak_topics_sync_failed", user_id=user_id, error=str(exc)[:200])
 
     await db.commit()
 
@@ -479,7 +522,7 @@ async def get_profile_summary(db: AsyncSession, user_id: str) -> dict:
         "weaknesses": weaknesses,
         "weak_topics": weak_topics,
         "recent_misconceptions": recent_mc,
-        "hint_dependency": profile.hint_dependency or "low",
+        "hint_dependency": normalize_hint_dependency(profile.hint_dependency),
         "completed_lessons": completed,
         "recommendation": recommendation,
     }

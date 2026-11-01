@@ -10,7 +10,8 @@ Docker 代码沙箱（工业级隔离）
 - 只读根文件系统
 - seccomp/AppArmor 安全策略
 
-开发降级：Docker 不可用时自动切回子进程模式。
+本模块只负责"在容器里跑"，不做任何降级决策。是否允许退回子进程由
+app.sandbox.runner 按配置统一决定，避免每个入口各自判断。
 """
 
 import asyncio
@@ -42,9 +43,13 @@ async def _docker_available() -> bool:
         return False
 
 
-async def execute_in_docker(code: str, stdin_input: str = "") -> dict:
+async def run_in_docker(code: str, stdin_input: str = "") -> dict:
     """
-    在 Docker 容器中安全执行 Python 代码。
+    在 Docker 容器中安全执行 Python 代码（严格模式，不降级）。
+
+    Docker 不可用时直接返回 status="unavailable"——是否退回子进程由
+    app.sandbox.runner 按配置决定。这里自行降级会让"生产环境必须隔离"
+    的约束形同虚设。
 
     安全策略：
     - --network none: 禁止网络
@@ -55,9 +60,16 @@ async def execute_in_docker(code: str, stdin_input: str = "") -> dict:
     - --pids-limit 50: 限制进程数
     """
     if not await _docker_available():
-        logger.info("docker_unavailable_fallback")
-        from app.sandbox.executor import execute_python_code_with_input
-        return await execute_python_code_with_input(code, stdin_input)
+        logger.error("docker_unavailable_strict")
+        return {
+            "status": "unavailable",
+            "stdout": "",
+            "stderr": "Docker 不可用，已拒绝执行学生代码。",
+            "exit_code": None,
+            "runtime_ms": 0,
+            "memory_kb": None,
+            "timeout_triggered": False,
+        }
 
     import re
 
@@ -136,3 +148,9 @@ async def execute_in_docker(code: str, stdin_input: str = "") -> dict:
         import shutil
         try: shutil.rmtree(tmp_dir)
         except: pass
+
+
+async def execute_in_docker(code: str, stdin_input: str = "") -> dict:
+    """兼容旧调用名：交给统一执行边界 runner 决定隔离策略。"""
+    from app.sandbox.runner import execute_student_code
+    return await execute_student_code(code, stdin_input)

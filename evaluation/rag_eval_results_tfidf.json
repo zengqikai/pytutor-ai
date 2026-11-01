@@ -1,0 +1,695 @@
+{
+  "mode": "tfidf",
+  "metric_definitions": {
+    "hit_at_k": "Top-K 至少命中一个相关 chunk 的查询比例",
+    "recall_at_k": "Top-K 命中的相关 chunk 数 / 全部相关 chunk 数的平均",
+    "mrr": "第一个相关 chunk 排名的倒数平均",
+    "mean_context_tokens": "Top-K 各 chunk 的估算 token 之和的平均（splitter.estimate_tokens，CJK 按 1 字 1 token、其余 4 字符 1 token；非分词器精确值）"
+  },
+  "golden_queries": 35,
+  "corpus_chunks": 41,
+  "corpus_coverage": 1.0,
+  "no_answer_check": {
+    "total": 5,
+    "returned_any": 5,
+    "mean_top_score": 1.0,
+    "details": [
+      {
+        "id": "g011",
+        "query": "如何用 Python 的 requests 库抓取网页数据？",
+        "returned": 5,
+        "top_chunk_id": "d9c81851-5cab-4be3-8923-64951dd650b7",
+        "top_heading": "Python 列表 (list)",
+        "top_score": 1.0
+      },
+      {
+        "id": "g012",
+        "query": "pandas 怎么做数据透视表？",
+        "returned": 3,
+        "top_chunk_id": "5624e29a-b07a-4a8e-9e43-76b017f2ea58",
+        "top_heading": "Python 数据类型",
+        "top_score": 1.0
+      },
+      {
+        "id": "g034",
+        "query": "怎么用 Flask 写一个 REST API？",
+        "returned": 5,
+        "top_chunk_id": "03aaedb7-12d2-4a03-9be3-fe268c964dd4",
+        "top_heading": "访问元素（索引）",
+        "top_score": 1.0
+      },
+      {
+        "id": "g035",
+        "query": "numpy 怎么创建随机矩阵？",
+        "returned": 2,
+        "top_chunk_id": "ea0c871e-59e8-4d86-877e-dd77cdcd23cf",
+        "top_heading": "Python 字符串操作",
+        "top_score": 1.0
+      },
+      {
+        "id": "g036",
+        "query": "怎么用 PyTorch 训练一个卷积神经网络？",
+        "returned": 5,
+        "top_chunk_id": "03aaedb7-12d2-4a03-9be3-fe268c964dd4",
+        "top_heading": "访问元素（索引）",
+        "top_score": 1.0
+      }
+    ]
+  },
+  "summary": {
+    "top3": {
+      "evaluated": 30,
+      "skipped": 0,
+      "hit_at_k": 0.9,
+      "recall_at_k": 0.299,
+      "mrr": 0.9,
+      "mean_latency_ms": 0.2,
+      "mean_context_tokens": 140.0,
+      "max_context_tokens": 275,
+      "total_context_tokens": 4199
+    },
+    "top5": {
+      "evaluated": 30,
+      "skipped": 0,
+      "hit_at_k": 0.9,
+      "recall_at_k": 0.407,
+      "mrr": 0.9,
+      "mean_latency_ms": 0.1,
+      "mean_context_tokens": 250.6,
+      "max_context_tokens": 390,
+      "total_context_tokens": 7517
+    }
+  },
+  "details": {
+    "top3": {
+      "details": [
+        {
+          "id": "g001",
+          "query": "什么是 Python 中的变量？",
+          "relevant_chunks": 4,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g002",
+          "query": "for 循环怎么用？给我一个简单例子",
+          "relevant_chunks": 7,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g003",
+          "query": "for 循环里 range 为什么到 5 就停了？",
+          "relevant_chunks": 7,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g004",
+          "query": "我的代码出错了：NameError: name 'x' is not defined",
+          "relevant_chunks": 4,
+          "found_in_topk": 1,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "赋值语句",
+          "no_answer_case": false
+        },
+        {
+          "id": "g005",
+          "query": "Python 中列表和字典有什么区别？",
+          "relevant_chunks": 20,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g006",
+          "query": "给我出一道关于 if/else 的练习题",
+          "relevant_chunks": 5,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 条件判断 (if/elif/else)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g008",
+          "query": "帮我写一个函数，计算两个数的最大公约数",
+          "relevant_chunks": 4,
+          "found_in_topk": 1,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g009",
+          "query": "怎么给列表添加元素？append 怎么用？",
+          "relevant_chunks": 16,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g010",
+          "query": "字符串怎么拼接和格式化？",
+          "relevant_chunks": 8,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "格式化",
+          "no_answer_case": false
+        },
+        {
+          "id": "g013",
+          "query": "列表推导式怎么把 for 循环写在一行？",
+          "relevant_chunks": 7,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g014",
+          "query": "怎么从字典里取出某个键对应的值？",
+          "relevant_chunks": 8,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字典 (dict)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g015",
+          "query": "字典的键可以重复吗？",
+          "relevant_chunks": 8,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字典 (dict)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g016",
+          "query": "try/except 怎么捕获 ValueError？",
+          "relevant_chunks": 4,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "示例",
+          "no_answer_case": false
+        },
+        {
+          "id": "g017",
+          "query": "程序报 TypeError 应该怎么处理？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 异常处理 (try/except)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g018",
+          "query": "int 和 float 有什么区别，怎么互相转换？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "类型转换",
+          "no_answer_case": false
+        },
+        {
+          "id": "g019",
+          "query": "怎么把字符串转成整数？",
+          "relevant_chunks": 8,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字符串操作",
+          "no_answer_case": false
+        },
+        {
+          "id": "g020",
+          "query": "元组和列表有什么不同？",
+          "relevant_chunks": 16,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g021",
+          "query": "集合 set 怎么用来去重？",
+          "relevant_chunks": 4,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 变量与赋值",
+          "no_answer_case": false
+        },
+        {
+          "id": "g022",
+          "query": "用 if/elif/else 判断成绩等级怎么写？",
+          "relevant_chunks": 5,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 条件判断 (if/elif/else)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g023",
+          "query": "Python 里的 True/False 布尔值怎么用？",
+          "relevant_chunks": 5,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g024",
+          "query": "比较运算符 == 和赋值 = 有什么区别？",
+          "relevant_chunks": 9,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "比较运算符",
+          "no_answer_case": false
+        },
+        {
+          "id": "g025",
+          "query": "函数怎么接收多个参数？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g026",
+          "query": "函数没有写 return 会返回什么？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g027",
+          "query": "怎么遍历列表并打印每一个元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g028",
+          "query": "列表切片 [1:3] 取的是哪些元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g029",
+          "query": "怎么删除列表里的某个元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g030",
+          "query": "字符串怎么取子串或者反转？",
+          "relevant_chunks": 8,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字符串操作",
+          "no_answer_case": false
+        },
+        {
+          "id": "g031",
+          "query": "f-string 怎么格式化输出？",
+          "relevant_chunks": 8,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "格式化",
+          "no_answer_case": false
+        },
+        {
+          "id": "g032",
+          "query": "变量名有什么命名规则？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "变量的命名规则",
+          "no_answer_case": false
+        },
+        {
+          "id": "g033",
+          "query": "for 循环怎么累加求和？",
+          "relevant_chunks": 16,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        }
+      ],
+      "skipped_details": []
+    },
+    "top5": {
+      "details": [
+        {
+          "id": "g001",
+          "query": "什么是 Python 中的变量？",
+          "relevant_chunks": 4,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g002",
+          "query": "for 循环怎么用？给我一个简单例子",
+          "relevant_chunks": 7,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g003",
+          "query": "for 循环里 range 为什么到 5 就停了？",
+          "relevant_chunks": 7,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g004",
+          "query": "我的代码出错了：NameError: name 'x' is not defined",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "赋值语句",
+          "no_answer_case": false
+        },
+        {
+          "id": "g005",
+          "query": "Python 中列表和字典有什么区别？",
+          "relevant_chunks": 20,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g006",
+          "query": "给我出一道关于 if/else 的练习题",
+          "relevant_chunks": 5,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 条件判断 (if/elif/else)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g008",
+          "query": "帮我写一个函数，计算两个数的最大公约数",
+          "relevant_chunks": 4,
+          "found_in_topk": 1,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g009",
+          "query": "怎么给列表添加元素？append 怎么用？",
+          "relevant_chunks": 16,
+          "found_in_topk": 5,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g010",
+          "query": "字符串怎么拼接和格式化？",
+          "relevant_chunks": 8,
+          "found_in_topk": 5,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "格式化",
+          "no_answer_case": false
+        },
+        {
+          "id": "g013",
+          "query": "列表推导式怎么把 for 循环写在一行？",
+          "relevant_chunks": 7,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        },
+        {
+          "id": "g014",
+          "query": "怎么从字典里取出某个键对应的值？",
+          "relevant_chunks": 8,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字典 (dict)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g015",
+          "query": "字典的键可以重复吗？",
+          "relevant_chunks": 8,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字典 (dict)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g016",
+          "query": "try/except 怎么捕获 ValueError？",
+          "relevant_chunks": 4,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "示例",
+          "no_answer_case": false
+        },
+        {
+          "id": "g017",
+          "query": "程序报 TypeError 应该怎么处理？",
+          "relevant_chunks": 4,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 异常处理 (try/except)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g018",
+          "query": "int 和 float 有什么区别，怎么互相转换？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "类型转换",
+          "no_answer_case": false
+        },
+        {
+          "id": "g019",
+          "query": "怎么把字符串转成整数？",
+          "relevant_chunks": 8,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字符串操作",
+          "no_answer_case": false
+        },
+        {
+          "id": "g020",
+          "query": "元组和列表有什么不同？",
+          "relevant_chunks": 16,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g021",
+          "query": "集合 set 怎么用来去重？",
+          "relevant_chunks": 4,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 变量与赋值",
+          "no_answer_case": false
+        },
+        {
+          "id": "g022",
+          "query": "用 if/elif/else 判断成绩等级怎么写？",
+          "relevant_chunks": 5,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 条件判断 (if/elif/else)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g023",
+          "query": "Python 里的 True/False 布尔值怎么用？",
+          "relevant_chunks": 5,
+          "found_in_topk": 0,
+          "hit": false,
+          "first_rank": null,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g024",
+          "query": "比较运算符 == 和赋值 = 有什么区别？",
+          "relevant_chunks": 9,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "比较运算符",
+          "no_answer_case": false
+        },
+        {
+          "id": "g025",
+          "query": "函数怎么接收多个参数？",
+          "relevant_chunks": 4,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g026",
+          "query": "函数没有写 return 会返回什么？",
+          "relevant_chunks": 4,
+          "found_in_topk": 3,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 函数定义与调用",
+          "no_answer_case": false
+        },
+        {
+          "id": "g027",
+          "query": "怎么遍历列表并打印每一个元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g028",
+          "query": "列表切片 [1:3] 取的是哪些元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g029",
+          "query": "怎么删除列表里的某个元素？",
+          "relevant_chunks": 16,
+          "found_in_topk": 5,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 列表 (list)",
+          "no_answer_case": false
+        },
+        {
+          "id": "g030",
+          "query": "字符串怎么取子串或者反转？",
+          "relevant_chunks": 8,
+          "found_in_topk": 4,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python 字符串操作",
+          "no_answer_case": false
+        },
+        {
+          "id": "g031",
+          "query": "f-string 怎么格式化输出？",
+          "relevant_chunks": 8,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "格式化",
+          "no_answer_case": false
+        },
+        {
+          "id": "g032",
+          "query": "变量名有什么命名规则？",
+          "relevant_chunks": 4,
+          "found_in_topk": 2,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "变量的命名规则",
+          "no_answer_case": false
+        },
+        {
+          "id": "g033",
+          "query": "for 循环怎么累加求和？",
+          "relevant_chunks": 16,
+          "found_in_topk": 5,
+          "hit": true,
+          "first_rank": 1,
+          "top_chunk_heading": "Python for 循环",
+          "no_answer_case": false
+        }
+      ],
+      "skipped_details": []
+    }
+  }
+}

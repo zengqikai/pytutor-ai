@@ -101,7 +101,46 @@ def _unparse(node: ast.AST) -> str:
 class _FactVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
         self.facts: list[Fact] = []
-        self.var_types: dict[str, str] = {}
+        # 作用域栈：模块级 + 每个函数一层。同名变量在不同作用域里是
+        # 不同变量，查类型时必须从最内层往外找，不能张冠李戴。
+        self._scopes: list[dict[str, str]] = [{}]
+        self.var_types = self._scopes[0]
+
+    def _lookup(self, name: str) -> str:
+        for scope in reversed(self._scopes):
+            if name in scope:
+                return scope[name]
+        return "unknown"
+
+    @staticmethod
+    def _expr_kind(node, lookup) -> str:
+        """尽量从结构推断表达式的"壳"类型；推断不出就返回 unknown。"""
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, str):
+                return "str"
+            if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+                return "num"
+            return "unknown"
+        if isinstance(node, ast.Name):
+            return lookup(node.id)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "input":
+                return "str"
+            if node.func.id in ("int", "float", "len"):
+                return "num"
+            if node.func.id == "str":
+                return "str"
+        if isinstance(node, ast.JoinedStr):
+            return "str"
+        if isinstance(node, ast.BinOp):
+            # 子表达式能算出来的话，结果类型也随之确定（str*int → str）
+            left = _FactVisitor._expr_kind(node.left, lookup)
+            right = _FactVisitor._expr_kind(node.right, lookup)
+            if isinstance(node.op, (ast.Mult,)) and {left, right} == {"str", "num"}:
+                return "str"
+            if left == right == "num" and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
+                return "num"
+        return "unknown"
 
     # -- 赋值：记录类型提示 + in-place 方法返回值赋值 --
     def visit_Assign(self, node: ast.Assign) -> None:
@@ -111,14 +150,14 @@ class _FactVisitor(ast.NodeVisitor):
             if isinstance(v, ast.Constant):
                 t = "str" if isinstance(v.value, str) else (
                     "num" if isinstance(v.value, (int, float)) else "other")
-                self.var_types[name] = t
+                self._scopes[-1][name] = t
                 self.facts.append(_fact("var_type_hint", node.lineno, var=name, type=t))
             elif isinstance(v, ast.Call) and isinstance(v.func, ast.Name):
                 if v.func.id == "input":
-                    self.var_types[name] = "str"
+                    self._scopes[-1][name] = "str"
                     self.facts.append(_fact("var_type_hint", node.lineno, var=name, type="str(input)"))
                 elif v.func.id in ("int", "float", "len"):
-                    self.var_types[name] = "num"
+                    self._scopes[-1][name] = "num"
                     self.facts.append(_fact("var_type_hint", node.lineno, var=name, type="num"))
             # in-place 方法返回值赋值
             if isinstance(v, ast.Call) and isinstance(v.func, ast.Attribute):
@@ -143,7 +182,35 @@ class _FactVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_While(self, node: ast.While) -> None:
-        self.facts.append(_fact("while_loop", node.lineno, condition=_unparse(node.test)))
+        # "有 while" ≠ "会无限循环"。只有当条件变量在循环体里从不更新、
+        # 或条件是常量 True，且没有 break/return/raise 出口时，才把它
+        # 记为"可能不终止"的结构证据。
+        exits = any(
+            isinstance(n, (ast.Break, ast.Return, ast.Raise))
+            for stmt in node.body for n in ast.walk(stmt)
+        )
+        cond_names = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
+        body_assigned: set[str] = set()
+        for stmt in node.body:
+            for n in ast.walk(stmt):
+                targets = []
+                if isinstance(n, ast.Assign):
+                    targets = n.targets
+                elif isinstance(n, (ast.AugAssign, ast.AnnAssign)):
+                    targets = [n.target]
+                for t in targets:
+                    if isinstance(t, ast.Name):
+                        body_assigned.add(t.id)
+        const_true = isinstance(node.test, ast.Constant) and node.test.value is True
+        may_never_terminate = (const_true or not (cond_names & body_assigned)) and not exits
+
+        self.facts.append(_fact(
+            "while_loop", node.lineno,
+            condition=_unparse(node.test),
+            may_never_terminate=may_never_terminate,
+            cond_vars_updated=bool(cond_names & body_assigned),
+            has_exit=exits,
+        ))
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
@@ -163,10 +230,21 @@ class _FactVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_BinOp(self, node: ast.BinOp) -> None:
+        # 只记录"能推断出的类型壳"。两侧都推断不出时，任何"类型错误"
+        # 断言都既不能证实也不能证伪——这是 UNVERIFIABLE，不是 SUPPORTED。
+        left_kind = self._expr_kind(node.left, self._lookup)
+        right_kind = self._expr_kind(node.right, self._lookup)
+        # str * int 和 str % x 都是合法运算；只有加减除/幂这类
+        # 混合 str 与 num 才是确定的类型错误。
+        op_name = type(node.op).__name__
+        mixed = {left_kind, right_kind} == {"str", "num"}
         self.facts.append(_fact(
             "binop", node.lineno,
-            left=_unparse(node.left), op=type(node.op).__name__,
-            right=_unparse(node.right)))
+            left=_unparse(node.left), op=op_name,
+            right=_unparse(node.right),
+            left_kind=left_kind, right_kind=right_kind,
+            definite_type_error=mixed and op_name in {"Add", "Sub", "Div", "FloorDiv", "Pow"},
+        ))
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -177,7 +255,11 @@ class _FactVisitor(ast.NodeVisitor):
         self.facts.append(_fact(
             "func_def", node.lineno,
             name=node.name, params=params, has_return=has_return))
-        self.generic_visit(node)
+        self._scopes.append({a.arg: "unknown" for a in node.args.args})
+        try:
+            self.generic_visit(node)
+        finally:
+            self._scopes.pop()
 
 
 def extract_facts(code: str) -> list[Fact]:

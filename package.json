@@ -1,13 +1,11 @@
 {
-  "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dotenv": "^17.4.2",
-    "lucide-react": "^1.17.0",
-    "react-markdown": "^10.1.0",
-    "react-syntax-highlighter": "^16.1.1",
-    "tailwind-merge": "^3.6.0",
-    "zustand": "^5.0.14"
+  "name": "pytutor-monorepo",
+  "private": true,
+  "description": "仓库根入口：前端依赖以 frontend/package.json 为唯一来源，这里不再重复声明依赖。",
+  "scripts": {
+    "install:frontend": "npm --prefix frontend install",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "vercel-build": "npm --prefix frontend run build"
   }
 }

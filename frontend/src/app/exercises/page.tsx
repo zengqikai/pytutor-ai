@@ -21,9 +21,17 @@ export default function ExercisesPage() {
   const [displayedHintLevel, setDisplayedHintLevel] = useState(0);
   const [hintMeta, setHintMeta] = useState<{misconception_name?: string; strategy?: string} | null>(null);
   const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => { loadUser(); loadExercises(); loadPassed(); }, []);
   useEffect(() => { loadExercises(); }, [store.difficulty]);
+
+  // 判定"通过"的唯一口径：必须有测试结果、用例数 > 0、且全部通过。
+  // 缺结果（网络错误/服务异常/零用例）一律不算通过。
+  const resultTotal = store.result?.test_results?.total ?? 0;
+  const resultPassed = !!store.result?.test_results && resultTotal > 0
+    && store.result.test_results.passed === resultTotal;
+  const sandboxDown = !!store.result?.sandbox_unavailable;
 
   const loadPassed = async () => {
     try {
@@ -66,7 +74,7 @@ export default function ExercisesPage() {
 
   const submitAnswer = async () => {
     if (!store.selected || !store.userCode.trim()) return;
-    setSubmitting(true); store.setResult(null);
+    setSubmitting(true); store.setResult(null); setSubmitError(null);
     try {
       const token = localStorage.getItem("auth_token");
       const res = await fetch(`${API_BASE_URL}/exercises/${store.selected.id}/submit`, {
@@ -74,13 +82,22 @@ export default function ExercisesPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           code: store.userCode,
-          used_hints: displayedHintLevel,       // 使用了多少次提示
-          viewed_solution: store.showSolution,   // 是否查看了答案
+          used_hints: displayedHintLevel,       // 仅作下限参考，服务端以事件记录为准
+          viewed_solution: store.showSolution,
         }),
       });
-      store.setResult(await res.json());
-      loadPassed();
-    } catch (e: any) { alert(e.message); } finally { setSubmitting(false); }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || typeof data !== "object") {
+        // 403/500 的响应体不是判题结果，绝不能当成"答错"或"答对"渲染
+        setSubmitError(
+          data?.detail ? `${data.detail}（HTTP ${res.status}）` : `提交失败（HTTP ${res.status}）`,
+        );
+        return;
+      }
+      store.setResult(data);
+      if (!data.sandbox_unavailable) loadPassed();
+    } catch (e: any) { setSubmitError(e?.message || "网络错误"); }
+    finally { setSubmitting(false); }
   };
 
   const requestHint = async () => {
@@ -98,6 +115,7 @@ export default function ExercisesPage() {
         }),
       });
       const d = await res.json();
+      if (!res.ok) { store.setHintText(d?.detail || `获取提示失败（HTTP ${res.status}）`); return; }
       const currentLevel = store.hintLevel;
       store.setHintText(d.hint || "");
       setDisplayedHintLevel(currentLevel);
@@ -115,6 +133,12 @@ export default function ExercisesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await res.json();
+      if (!res.ok) {
+        // 403 = 还没通过、也没试够次数；把服务端的原因原样告诉学生
+        store.setSolutionText(d?.detail || `获取失败（HTTP ${res.status}）`);
+        store.setShowSolution(true);
+        return;
+      }
       store.setSolutionText(d.solution || "暂无");
       store.setShowSolution(true);
     } catch { store.setSolutionText("获取失败"); store.setShowSolution(true); }
@@ -294,12 +318,25 @@ export default function ExercisesPage() {
             <div className="border-t border-white/[0.06] bg-[#060610] max-h-[40%] overflow-y-auto">
               <div className="px-4 py-2 border-b border-white/[0.04]"><p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">判题结果</p></div>
               <div className="p-4">
-                {store.result ? (
+                {submitError ? (
+                  <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                    <p className="text-sm font-medium text-rose-300">提交失败</p>
+                    <p className="text-xs text-rose-300/70 mt-1">{submitError}</p>
+                  </div>
+                ) : store.result ? (
                   <div className="space-y-4">
-                    <div className={`flex items-center gap-3 p-4 rounded-xl ${store.result.test_results?.passed === store.result.test_results?.total ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-rose-500/10 border border-rose-500/20"}`}>
-                      <span className="text-2xl">{store.result.test_results?.passed === store.result.test_results?.total ? "✅" : "❌"}</span>
-                      <div><p className={`font-bold ${store.result.test_results?.passed === store.result.test_results?.total ? "text-emerald-400" : "text-rose-400"}`}>{store.result.test_results?.passed === store.result.test_results?.total ? "Accepted" : "Wrong Answer"}</p>
-                      <p className="text-sm text-slate-400">{store.result.test_results?.passed}/{store.result.test_results?.total} 测试用例通过</p>
+                    <div className={`flex items-center gap-3 p-4 rounded-xl ${sandboxDown ? "bg-amber-500/10 border border-amber-500/20" : resultPassed ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-rose-500/10 border border-rose-500/20"}`}>
+                      <span className="text-2xl">{sandboxDown ? "⚠️" : resultPassed ? "✅" : "❌"}</span>
+                      <div><p className={`font-bold ${sandboxDown ? "text-amber-400" : resultPassed ? "text-emerald-400" : "text-rose-400"}`}>
+                        {sandboxDown ? "执行服务不可用" : resultTotal > 0 ? (resultPassed ? "Accepted" : "Wrong Answer") : "无法判定"}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {sandboxDown
+                          ? "服务端沙箱未就绪，本次提交未判定，也不计入成绩"
+                          : resultTotal > 0
+                            ? `${store.result.test_results.passed}/${resultTotal} 测试用例通过`
+                            : "未返回测试结果，无法判定"}
+                      </p>
                       {store.result.score_pct > 0 && (
                         <p className="text-xs mt-1">{store.result.score_label} <span className="text-slate-500">（独立分 {store.result.score_pct}%）</span></p>
                       )}</div>

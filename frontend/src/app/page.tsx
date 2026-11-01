@@ -17,6 +17,18 @@ interface Message {
   misconception_id?: string;
   pedagogical_strategy?: string;
   verify_score?: number;
+  /** 服务端持久化的诊断元数据（刷新后仍可还原） */
+  metadata?: {
+    misconception_id?: string;
+    misconception_name?: string;
+    evidence?: string;
+    confidence?: number;
+    strategy?: string;
+    hint_level?: number;
+    strategy_source?: string;
+    strategy_rule?: string;
+    degraded?: boolean;
+  } | null;
 }
 
 export default function ChatPage() {
@@ -81,7 +93,18 @@ export default function ChatPage() {
       const sid = await ensureSession();
       const chatRes = await chatAPI.sendMessage(sid, content, reasoningMode ? "deepseek-v4-pro" : undefined);
       const ai = chatRes.ai_response || {};
-      chatStore.addMessage({ role: "assistant", content: ai.message || "抱歉，回复生成失败。", response_type: ai.response_type, hint_level: ai.hint_level, related_concepts: ai.related_concepts, misconception_id: ai.misconception_id, pedagogical_strategy: ai.pedagogical_strategy, verify_score: ai.verify_score });
+      chatStore.addMessage({
+        role: "assistant",
+        content: ai.message || "抱歉，回复生成失败。",
+        response_type: ai.response_type,
+        hint_level: ai.hint_level,
+        related_concepts: ai.related_concepts,
+        misconception_id: ai.misconception_id,
+        pedagogical_strategy: ai.pedagogical_strategy,
+        verify_score: ai.verify_score,
+        // 服务端保存的 metadata 是唯一可信来源（证据、真实策略、降级标记）
+        metadata: chatRes.assistant_message?.metadata ?? null,
+      });
       loadSessions();
     } catch (e: any) { chatStore.addMessage({ role: "assistant", content: `Error: ${e.message}` }); }
     finally { setSending(false); }
@@ -142,7 +165,18 @@ export default function ChatPage() {
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto space-y-5">
-              {messages.map((msg, i) => <ChatMessage key={i} role={msg.role} content={msg.content} hint_level={msg.hint_level} related_concepts={msg.related_concepts} onRunInEditor={(codeStr: string) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }} />)}
+              {messages.map((msg, i) => <ChatMessage
+                key={i}
+                role={msg.role}
+                content={msg.content}
+                hint_level={msg.hint_level}
+                related_concepts={msg.related_concepts}
+                misconception_id={msg.misconception_id}
+                pedagogical_strategy={msg.pedagogical_strategy}
+                verify_score={msg.verify_score}
+                metadata={msg.metadata}
+                onRunInEditor={(codeStr: string) => { setCode(codeStr); setShowCode(true); setEditorKey(k => k + 1); }}
+              />)}
               {sending && <div className="flex gap-3"><div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">AI</div><div className="glass border-white/[0.06] rounded-xl px-4 py-3"><div className="flex gap-1.5"><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse" /><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse delay-200" /><span className="w-2 h-2 bg-slate-500 rounded-full animate-dot-pulse delay-400" /></div></div></div>}
               <div ref={messagesEndRef} />
             </div>
@@ -167,7 +201,24 @@ export default function ChatPage() {
             <Editor key={editorKey} height="100%" defaultLanguage="python" theme="vs-dark" value={code} onChange={(v) => setCode(v || "")} options={{ fontSize: 14, fontFamily: "var(--font-geist-mono), monospace", minimap: { enabled: false }, scrollBeyondLastLine: false, lineNumbers: "on", padding: { top: 12 }, automaticLayout: true }} />
           </div>
           <div className="border-t border-white/[0.06] px-3 py-2"><input value={customInput} onChange={(e) => setCustomInput(e.target.value)} placeholder="stdin（如果代码用 input()）" className="w-full bg-black/40 border border-white/[0.06] rounded-lg px-3 py-1.5 text-xs text-green-300 font-mono outline-none" /></div>
-          <div className="flex-1 overflow-y-auto p-4"><p className="text-[10px] text-slate-500 mb-2">运行结果</p>{codeResult && <pre className="text-sm text-emerald-300 font-mono">{codeResult.stdout || codeResult.stderr || "(无输出)"}</pre>}</div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <p className="text-[10px] text-slate-500 mb-2">运行结果</p>
+            {codeResult && <pre className="text-sm text-emerald-300 font-mono whitespace-pre-wrap">{codeResult.stdout || codeResult.stderr || "(无输出)"}</pre>}
+            {analyzing && <p className="text-xs text-slate-500 mt-3">正在分析错误…</p>}
+            {codeResult?.error_analysis?.explanation && (
+              <div className="mt-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/20 p-3">
+                <p className="text-[10px] font-semibold text-amber-400 mb-1">错误分析</p>
+                <p className="text-xs text-amber-200/80 leading-relaxed whitespace-pre-wrap">{codeResult.error_analysis.explanation}</p>
+                {codeResult.error_analysis.concepts?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {codeResult.error_analysis.concepts.map((c: string) => (
+                      <span key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-slate-400">{c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </aside>
       )}
     </div>

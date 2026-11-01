@@ -14,40 +14,39 @@ export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [tutorialStartLesson, setTutorialStartLesson] = useState<string | undefined>(undefined);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setShowOnboarding(false); setShowTutorial(false); setShowDiagnostic(false);
-      setReady(true); return;
+      return;
     }
 
-    const token = localStorage.getItem("auth_token");
-    if (!token) { setReady(true); return; }
+    // 用用户 ID 而不是 token 前缀：所有 JWT 的头部都是相同的，
+    // 按 token.slice(0,16) 会让同一个浏览器里的所有账号共用一个标记。
+    const uid = user?.id || user?.email;
+    if (!uid) return;
 
-    const uid = token.slice(0, 16);
     const done = localStorage.getItem(`onboarding_${uid}`);
-    if (done) { setReady(true); return; }
+    if (done) return;
 
-    const cachedRole = localStorage.getItem("user_role");
-    if (cachedRole && cachedRole !== "student") { setReady(true); return; }
+    if (user?.role && user.role !== "student") return;
 
     setShowOnboarding(true);
-    setReady(true);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   const handleOnboardingComplete = (level: string) => {
     setShowOnboarding(false);
-    const token = localStorage.getItem("auth_token") || "";
-    localStorage.setItem(`onboarding_${token.slice(0, 16)}`, "1");
+    // 与读取时用同一个 key，否则"引导已完成"永远写不回去。
+    const uid = user?.id || user?.email;
+    if (uid) localStorage.setItem(`onboarding_${uid}`, "1");
     switch (level) {
       case "A": setShowTutorial(true); break;
       case "B": setShowDiagnostic(true); break;
       case "C": router.push("/exercises"); break;
+      // D = 留在 AI 对话页，不做任何跳转（主动选择自由提问）
+      case "D": break;
     }
   };
-
-  if (!ready) return null;
 
   return (
     <>

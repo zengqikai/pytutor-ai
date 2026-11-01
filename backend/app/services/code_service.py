@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.submission import CodeSubmission, ExecutionResult
 from app.models.user import User
 from app.observability.logger import get_logger
-from app.sandbox.executor import execute_python_code
+from app.sandbox.runner import execute_student_code
 from app.schemas.code import CodeSubmitRequest, CodeSubmitResponse, ExecutionResultResponse
 
 logger = get_logger(__name__)
@@ -51,12 +51,8 @@ async def submit_and_execute(
     await db.commit()
     await db.refresh(submission)
 
-    # 步骤 2：安全执行代码（支持 stdin 输入）
-    if stdin_input:
-        from app.sandbox.executor import execute_python_code_with_input
-        exec_result = await execute_python_code_with_input(request.code, stdin_input=stdin_input)
-    else:
-        exec_result = await execute_python_code(request.code)
+    # 步骤 2：安全执行代码（统一走 runner，隔离策略由配置决定）
+    exec_result = await execute_student_code(request.code, stdin_input=stdin_input or "")
 
     # 步骤 3：保存执行结果
     result = ExecutionResult(

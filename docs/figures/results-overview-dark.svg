@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img" aria-labelledby="figTitle figDesc">
+<title id="figTitle">PyTutor retrieval baselines and local AST diagnosis</title>
+<desc id="figDesc">Left: Hit@5, Recall@5 and MRR for TF-IDF, vector and hybrid retrieval on thirty answerable queries. Vector and hybrid both reach Hit@5 0.933, Recall@5 0.501 and MRR 0.890; TF-IDF reaches 0.900, 0.407 and 0.900. Right: AST diagnosis matches 47 of 47 misconception cases with no false positives on 22 clean cases. AST figures are same-set results, not a held-out estimate.</desc>
+<rect width="1200" height="600" fill="#1a1a19"/>
+<text x="40" y="46" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#f2f1ec">Retrieval baselines and local AST diagnosis</text>
+<text x="40" y="70" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#b9b7ae">30 answerable queries · 41 chunks · same configuration as the demo</text>
+<text x="80" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f1ec">Retrieval quality by method (0–1)</text>
+<line x1="80" y1="464.0" x2="700" y2="464.0" stroke="#33332f" stroke-width="1"/>
+<text x="70" y="468.0" text-anchor="end" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">0.00</text>
+<line x1="80" y1="376.0" x2="700" y2="376.0" stroke="#33332f" stroke-width="1"/>
+<text x="70" y="380.0" text-anchor="end" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">0.25</text>
+<line x1="80" y1="288.0" x2="700" y2="288.0" stroke="#33332f" stroke-width="1"/>
+<text x="70" y="292.0" text-anchor="end" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">0.50</text>
+<line x1="80" y1="200.0" x2="700" y2="200.0" stroke="#33332f" stroke-width="1"/>
+<text x="70" y="204.0" text-anchor="end" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">0.75</text>
+<line x1="80" y1="112.0" x2="700" y2="112.0" stroke="#33332f" stroke-width="1"/>
+<text x="70" y="116.0" text-anchor="end" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">1.00</text>
+<path d="M130.0,464 L130.0,151.2 Q130.0,147.2 134.0,147.2 L170.0,147.2 Q174.0,147.2 174.0,151.2 L174.0,464 Z" fill="#3987e5"><title>TF-IDF · Hit@5: 0.900</title></path>
+<path d="M178.0,464 L178.0,324.736 Q178.0,320.736 182.0,320.736 L218.0,320.736 Q222.0,320.736 222.0,324.736 L222.0,464 Z" fill="#d95926"><title>TF-IDF · Recall@5: 0.407</title></path>
+<path d="M226.0,464 L226.0,151.2 Q226.0,147.2 230.0,147.2 L266.0,147.2 Q270.0,147.2 270.0,151.2 L270.0,464 Z" fill="#199e70"><title>TF-IDF · MRR: 0.900</title></path>
+<text x="248.0" y="140.2" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#b9b7ae">0.900</text>
+<text x="200" y="486" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#f2f1ec">TF-IDF</text>
+<path d="M320.0,464 L320.0,139.584 Q320.0,135.584 324.0,135.584 L360.0,135.584 Q364.0,135.584 364.0,139.584 L364.0,464 Z" fill="#3987e5"><title>Vector · Hit@5: 0.933</title></path>
+<path d="M368.0,464 L368.0,291.648 Q368.0,287.648 372.0,287.648 L408.0,287.648 Q412.0,287.648 412.0,291.648 L412.0,464 Z" fill="#d95926"><title>Vector · Recall@5: 0.501</title></path>
+<path d="M416.0,464 L416.0,154.71999999999997 Q416.0,150.71999999999997 420.0,150.71999999999997 L456.0,150.71999999999997 Q460.0,150.71999999999997 460.0,154.71999999999997 L460.0,464 Z" fill="#199e70"><title>Vector · MRR: 0.890</title></path>
+<text x="438.0" y="143.7" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#b9b7ae">0.890</text>
+<text x="390" y="486" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#f2f1ec">Vector</text>
+<path d="M510.0,464 L510.0,139.584 Q510.0,135.584 514.0,135.584 L550.0,135.584 Q554.0,135.584 554.0,139.584 L554.0,464 Z" fill="#3987e5"><title>Hybrid · Hit@5: 0.933</title></path>
+<path d="M558.0,464 L558.0,291.648 Q558.0,287.648 562.0,287.648 L598.0,287.648 Q602.0,287.648 602.0,291.648 L602.0,464 Z" fill="#d95926"><title>Hybrid · Recall@5: 0.501</title></path>
+<path d="M606.0,464 L606.0,154.71999999999997 Q606.0,150.71999999999997 610.0,150.71999999999997 L646.0,150.71999999999997 Q650.0,150.71999999999997 650.0,154.71999999999997 L650.0,464 Z" fill="#199e70"><title>Hybrid · MRR: 0.890</title></path>
+<text x="628.0" y="143.7" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#b9b7ae">0.890</text>
+<text x="580" y="486" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#f2f1ec">Hybrid</text>
+<line x1="80" y1="464" x2="700" y2="464" stroke="#4a4a44" stroke-width="1"/>
+<text x="80" y="514" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#9a988f">Hybrid equals vector while ENABLE_HYBRID_WEIGHTS is off; this is not evidence for fusion.</text>
+<rect x="376" y="87" width="10" height="10" rx="2" fill="#3987e5"/>
+<text x="392" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">Hit@5</text>
+<rect x="491" y="87" width="10" height="10" rx="2" fill="#d95926"/>
+<text x="507" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">Recall@5</text>
+<rect x="626" y="87" width="10" height="10" rx="2" fill="#199e70"/>
+<text x="642" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">MRR</text>
+<line x1="720" y1="96" x2="720" y2="520" stroke="#33332f" stroke-width="1"/>
+<text x="760" y="96" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f1ec">Local AST diagnosis</text>
+<rect x="760" y="124" width="185" height="98" rx="8" fill="#232322" stroke="#33332f"/>
+<text x="776" y="170" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="600" fill="#f2f1ec">47/47</text>
+<text x="776" y="194" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">misconception cases matched</text>
+<rect x="965" y="124" width="185" height="98" rx="8" fill="#232322" stroke="#33332f"/>
+<text x="981" y="170" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="600" fill="#f2f1ec">1.000</text>
+<text x="981" y="194" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">macro F1 (M1-M8)</text>
+<rect x="760" y="240" width="185" height="98" rx="8" fill="#232322" stroke="#33332f"/>
+<text x="776" y="286" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="600" fill="#f2f1ec">0/22</text>
+<text x="776" y="310" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">false positives on</text>
+<text x="776" y="325" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">clean code</text>
+<rect x="965" y="240" width="185" height="98" rx="8" fill="#232322" stroke="#33332f"/>
+<text x="981" y="286" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="600" fill="#f2f1ec">0.2 ms</text>
+<text x="981" y="310" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#b9b7ae">mean diagnosis latency</text>
+<text x="760" y="400" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">Same-set validation: rules and cases were</text>
+<text x="760" y="417" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a988f">developed together. Not a held-out estimate.</text>
+<text x="40" y="572" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#9a988f">Source: evaluation/run_rag_eval.py (tfidf, vector, hybrid) · evaluation/run_v2_eval.py --mode ast-only · 2026-10-22</text>
+</svg>

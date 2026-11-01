@@ -156,67 +156,6 @@ async def list_sessions(
 
 
 # =============================================================================
-# 流式消息处理
-# =============================================================================
-
-async def send_message_stream(
-    db: AsyncSession,
-    session_id: str,
-    user: User,
-    request: SendMessageRequest,
-):
-    """流式发送消息——逐 token yield"""
-    import json
-    from app.services.tutor_service import generate_tutor_response_stream
-
-    # 验证会话
-    result = await db.execute(
-        select(ChatSession).where(ChatSession.id == session_id)
-    )
-    session = result.scalar_one_or_none()
-    if not session or session.student_id != user.id:
-        yield json.dumps({"error": "会话不存在或无权访问"})
-        return
-
-    # 保存用户消息
-    user_msg = ChatMessage(session_id=session_id, role="user", content=request.content)
-    db.add(user_msg)
-
-    # 获取历史
-    history = []
-    for msg in session.messages:
-        history.append({"role": msg.role, "content": msg.content})
-
-    # 流式生成
-    full_response = ""
-    async for token in generate_tutor_response_stream(
-        user_message=request.content,
-        conversation_history=history,
-        model=request.model,
-    ):
-        full_response += token
-        yield json.dumps({"token": token})
-
-    # 保存 AI 回复
-    assistant_msg = ChatMessage(
-        session_id=session_id, role="assistant", content=full_response,
-        response_type="general", hint_level=1,
-    )
-    db.add(assistant_msg)
-
-    # 自动命名
-    from sqlalchemy import func as sa_func, select as sa_select
-    count_result = await db.execute(
-        sa_select(sa_func.count()).select_from(ChatMessage).where(ChatMessage.session_id == session_id)
-    )
-    if (count_result.scalar() or 0) <= 1:
-        session.title = request.content[:40] + ("..." if len(request.content) > 40 else "")
-    await db.commit()
-
-    yield json.dumps({"done": True, "message_id": assistant_msg.id})
-
-
-# =============================================================================
 # 消息处理
 # =============================================================================
 
@@ -348,6 +287,10 @@ async def send_message(
         except Exception as e:
             logger.debug("chat_misconception_skipped", error=str(e)[:100])
 
+    # 本轮回复的结构化元数据（误区、策略、证据、提示等级）。
+    # 生成前先建好，异常分支也要能拿到已诊断出的信息。
+    turn_meta: dict = {}
+
     # 步骤 5：调用 AI 导师（2.0 增强：误区+策略+画像+修正检测）
     try:
         # 2.0: 画像驱动——注入学生历史信息
@@ -362,9 +305,11 @@ async def send_message(
                 except: pass
             if recent_mc:
                 profile_context = f"📊 学生画像：最近出现的误区有 {', '.join(recent_mc[-3:])}。"
-                if profile.hint_dependency == "high":
+                from app.services.profile_service import normalize_hint_dependency
+                hint_dep = normalize_hint_dependency(profile.hint_dependency)
+                if hint_dep == "high":
                     profile_context += "该学生提示依赖度较高，请降低提示等级鼓励独立思考。"
-                elif profile.hint_dependency == "low":
+                elif hint_dep == "low":
                     profile_context += "该学生提示依赖度低，可以适当给更多概念解释。"
         except Exception:
             pass
@@ -390,6 +335,18 @@ async def send_message(
                 attempt_count=prior_count + 1,       # 真实累计次数
                 has_history=(prior_count > 0),        # 真实历史
             )
+            # 真实策略与提示等级要一路传到响应、消息记录和前端，
+            # 不能在返回前写死成 progressive_hint。
+            turn_meta.update({
+                "misconception_id": mc_id,
+                "misconception_name": misconception_result.get("misconception_name"),
+                "confidence": misconception_result.get("confidence"),
+                "evidence": misconception_result.get("evidence"),
+                "strategy": strategy.get("strategy"),
+                "hint_level": strategy.get("hint_level"),
+                "strategy_reason": strategy.get("reason"),
+                "prior_misconception_count": prior_count,
+            })
             # F2/F9：在"查历史之后"才记录本次事件，保证 has_history/attempt_count
             # 反映的是"本次之前"的历史，不把本次算进去。
             try:
@@ -401,8 +358,14 @@ async def send_message(
                     code_snippet=misconception_result.get("_code_snippet", ""),
                     submission_id="",
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                # 不能静默吞掉：事件写入失败会让历史次数永远停在旧值，
+                # 进而让教学策略退化为"每次都当第一次"。
+                logger.warning(
+                    "misconception_event_record_failed",
+                    misconception_id=mc_id,
+                    error=str(exc)[:200],
+                )
 
             if settings.ENABLE_PEDAGOGY_STEERING:
                 # SRS 3.2 接线（E-FR-01）：转移图决定教学意图，
@@ -427,6 +390,13 @@ async def send_message(
                         f"[教学意图: {decision.intent.value}"
                         f"（{decision.matched_rule}）]\n{anchored}"
                     )
+                    # 开启转移图后，它才是真正生效的策略
+                    turn_meta.update({
+                        "strategy": decision.intent.value,
+                        "hint_level": decision.hint_level,
+                        "strategy_source": "steering_graph",
+                        "strategy_rule": decision.matched_rule,
+                    })
                     logger.info(
                         "pedagogy_steering_decision",
                         intent=decision.intent.value,
@@ -461,11 +431,20 @@ async def send_message(
             student_level="beginner",
             rag_context=rag_context,
             model=model,
+            misconception_id=(misconception_result or {}).get("misconception_id"),
         )
-        # 2.0: 注入误区信息到响应
+        # 2.0: 注入误区信息到响应（策略取实际决策结果，不写死）
         if misconception_result:
             ai_response.misconception_id = misconception_result.get("misconception_id")
-            ai_response.pedagogical_strategy = "progressive_hint"
+        if turn_meta.get("strategy"):
+            ai_response.pedagogical_strategy = turn_meta["strategy"]
+        if turn_meta.get("hint_level"):
+            ai_response.hint_level = int(turn_meta["hint_level"])
+        # 质量分只有真正审核过才记录；审核失败时 verify_score 为 None，
+        # 不写入元数据，页面也就不会把它显示成一个正常分数。
+        if ai_response.verify_score and ai_response.verify_score > 0:
+            turn_meta["quality_score"] = int(ai_response.verify_score)
+            turn_meta["quality_reviewed"] = True
     except Exception as e:
         logger.error("ai_generation_failed", session_id=session_id, error=str(e))
         # 即使 AI 失败，用户消息也要保存。先回滚重置会话（可能已被之前的 flush 失败污染）
@@ -481,9 +460,12 @@ async def send_message(
                 f"{misconception_result.get('evidence', '')}\n\n"
                 f"（AI 导师暂时繁忙，先给你这条基于代码结构的提示，稍后可以再问我细节。）"
             )
+            turn_meta["degraded"] = True
             assistant_msg = ChatMessage(
                 session_id=session_id, role="assistant",
-                content=fallback_msg, response_type="code_feedback", hint_level=1,
+                content=fallback_msg, response_type="code_feedback",
+                hint_level=int(turn_meta.get("hint_level") or 1),
+                metadata_json=json.dumps(turn_meta, ensure_ascii=False),
             )
             db.add(assistant_msg)
             await db.commit()
@@ -492,8 +474,10 @@ async def send_message(
                 "assistant_message": MessageResponse.model_validate(assistant_msg),
                 "ai_response": AIResponse(
                     response_type="code_feedback", message=fallback_msg,
-                    hint_level=1, related_concepts=[], next_action="ask_question",
+                    hint_level=int(turn_meta.get("hint_level") or 1),
+                    related_concepts=[], next_action="ask_question",
                     misconception_id=misconception_result.get("misconception_id"),
+                    pedagogical_strategy=turn_meta.get("strategy"),
                 ),
                 "degraded": True,
             }
@@ -512,6 +496,8 @@ async def send_message(
         hint_level=ai_response.hint_level,
         related_concepts=",".join(ai_response.related_concepts) if ai_response.related_concepts else None,
         next_action=ai_response.next_action,
+        # 诊断证据 + 实际策略：刷新页面后仍能还原"当时为什么这样提示"
+        metadata_json=json.dumps(turn_meta, ensure_ascii=False) if turn_meta else None,
     )
     db.add(assistant_msg)
 

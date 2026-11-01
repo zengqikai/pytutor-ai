@@ -1,0 +1,77 @@
+[
+  {
+    "case_id": "HC01",
+    "code": "x = 5\nif x == 5:\n    print(\"five\")",
+    "description": "正确的 if == 比较"
+  },
+  {
+    "case_id": "HC02",
+    "code": "for i in range(3):\n    print(i)",
+    "description": "正常 range 循环"
+  },
+  {
+    "case_id": "HC03",
+    "code": "nums = [1,2]\nnums.append(3)\nprint(nums)",
+    "description": "append 不接返回值"
+  },
+  {
+    "case_id": "HC04",
+    "code": "nums = [1,2]\nfor n in nums:\n    print(n)",
+    "description": "遍历列表元素"
+  },
+  {
+    "case_id": "HC05",
+    "code": "for i in range(1, 5):\n    print(i)",
+    "description": "正常 range 右边界"
+  },
+  {
+    "case_id": "HC06",
+    "code": "def add(a,b):\n    return a+b\nprint(add(1,2))",
+    "description": "函数有 return"
+  },
+  {
+    "case_id": "HC07",
+    "code": "age = 20\nprint(\"I am \" + str(age))",
+    "description": "显式 str 转换"
+  },
+  {
+    "case_id": "HC08",
+    "code": "n = 0\nwhile n < 3:\n    n += 1\nprint(n)",
+    "description": "while 有自增"
+  },
+  {
+    "case_id": "HC09",
+    "code": "name = \"A\"\nif name == \"A\" and len(name) == 1:\n    print(name)",
+    "description": "比较与逻辑运算"
+  },
+  {
+    "case_id": "HC10",
+    "code": "d = {\"a\": 1}\nprint(d[\"a\"])",
+    "description": "字典取值"
+  },
+  {
+    "case_id": "HC11",
+    "code": "for i in range(len([1,2])):\n    print(i)",
+    "description": "range 生成索引"
+  },
+  {
+    "case_id": "HC12",
+    "code": "def f(x):\n    print(x)\nf(1)",
+    "description": "print-only 但无人使用返回值"
+  },
+  {
+    "case_id": "HC13",
+    "code": "while True:\n    break",
+    "description": "while True + break"
+  },
+  {
+    "case_id": "HC14",
+    "code": "try:\n    int(\"x\")\nexcept ValueError:\n    print(\"bad\")",
+    "description": "异常处理"
+  },
+  {
+    "case_id": "HC15",
+    "code": "xs = [i*i for i in range(4)]\nprint(xs)",
+    "description": "列表推导式"
+  }
+]

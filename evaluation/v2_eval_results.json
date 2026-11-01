@@ -1,270 +1,417 @@
 {
-  "pytutor": [
+  "mode": "ast-only",
+  "summary": {
+    "total_cases": 47,
+    "exact_match": 1.0,
+    "macro_f1": 1.0,
+    "false_positive_rate": 0.0,
+    "misconception_cases": "47/47",
+    "clean_code_fp": "0/22"
+  },
+  "per_class": {
+    "M1": {
+      "name": "赋值与比较混淆",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    },
+    "M2": {
+      "name": "缩进理解错误",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0
+    },
+    "M3": {
+      "name": "append返回值误解",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 7,
+      "fp": 0,
+      "fn": 0
+    },
+    "M4": {
+      "name": "index/value混淆",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 7,
+      "fp": 0,
+      "fn": 0
+    },
+    "M5": {
+      "name": "range右边界误解",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0
+    },
+    "M6": {
+      "name": "print/return混淆",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 6,
+      "fp": 0,
+      "fn": 0
+    },
+    "M7": {
+      "name": "类型转换错误",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 8,
+      "fp": 0,
+      "fn": 0
+    },
+    "M8": {
+      "name": "while循环条件错误",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 7,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "false_positive_details": [],
+  "results": [
     {
       "case_id": "C01",
       "expected": "M1",
-      "diagnosed": "M1",
+      "predicted": "M1",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 582
+      "time_ms": 0.53
     },
     {
       "case_id": "C02",
       "expected": "M2",
-      "diagnosed": "M2",
+      "predicted": "M2",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 603
+      "time_ms": 0.27
     },
     {
       "case_id": "C03",
       "expected": "M3",
-      "diagnosed": "M3",
+      "predicted": "M3",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 666
+      "time_ms": 0.28
     },
     {
       "case_id": "C04",
       "expected": "M4",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 766
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.21
     },
     {
       "case_id": "C05",
       "expected": "M5",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 722
+      "predicted": "M5",
+      "accurate": true,
+      "time_ms": 0.19
     },
     {
       "case_id": "C06",
       "expected": "M6",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 744
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.28
     },
     {
       "case_id": "C07",
       "expected": "M7",
-      "diagnosed": "M7",
+      "predicted": "M7",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 705
+      "time_ms": 0.13
     },
     {
       "case_id": "C08",
       "expected": "M8",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 685
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.19
     },
     {
       "case_id": "C09",
       "expected": "M1",
-      "diagnosed": "M1",
+      "predicted": "M1",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 712
+      "time_ms": 0.28
     },
     {
       "case_id": "C10",
       "expected": "M3",
-      "diagnosed": "M3",
+      "predicted": "M3",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 716
+      "time_ms": 0.21
     },
     {
       "case_id": "C11",
       "expected": "M2",
-      "diagnosed": "M2",
+      "predicted": "M2",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 707
+      "time_ms": 0.26
     },
     {
       "case_id": "C12",
       "expected": "M4",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 663
-    },
-    {
-      "case_id": "C13",
-      "expected": "M8",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 731
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.2
     },
     {
       "case_id": "C14",
       "expected": "M7",
-      "diagnosed": "M7",
+      "predicted": "M7",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 2269
+      "time_ms": 0.14
     },
     {
       "case_id": "C15",
       "expected": "M6",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 689
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.2
     },
     {
       "case_id": "C16",
       "expected": "M3",
-      "diagnosed": "M3",
+      "predicted": "M3",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 703
-    },
-    {
-      "case_id": "C17",
-      "expected": "M5",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 693
+      "time_ms": 0.18
     },
     {
       "case_id": "C18",
       "expected": "M7",
-      "diagnosed": "M7",
+      "predicted": "M7",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 2071
+      "time_ms": 0.14
     },
     {
       "case_id": "C19",
       "expected": "M8",
-      "diagnosed": "M2",
-      "accurate": false,
-      "scores": {
-        "diagnosis_accuracy": 0.5,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 0.83,
-      "time_ms": 707
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.17
     },
     {
       "case_id": "C20",
       "expected": "M1",
-      "diagnosed": "M1",
+      "predicted": "M1",
       "accurate": true,
-      "scores": {
-        "diagnosis_accuracy": 1,
-        "hint_appropriate": 1,
-        "no_premature_answer": 1
-      },
-      "total": 1.0,
-      "time_ms": 684
+      "time_ms": 0.26
+    },
+    {
+      "case_id": "C21",
+      "expected": "M3",
+      "predicted": "M3",
+      "accurate": true,
+      "time_ms": 0.19
+    },
+    {
+      "case_id": "C22",
+      "expected": "M4",
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.18
+    },
+    {
+      "case_id": "C23",
+      "expected": "M5",
+      "predicted": "M5",
+      "accurate": true,
+      "time_ms": 0.22
+    },
+    {
+      "case_id": "C24",
+      "expected": "M6",
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.25
+    },
+    {
+      "case_id": "C25",
+      "expected": "M7",
+      "predicted": "M7",
+      "accurate": true,
+      "time_ms": 0.12
+    },
+    {
+      "case_id": "C26",
+      "expected": "M8",
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.15
+    },
+    {
+      "case_id": "C27",
+      "expected": "M1",
+      "predicted": "M1",
+      "accurate": true,
+      "time_ms": 0.26
+    },
+    {
+      "case_id": "C28",
+      "expected": "M2",
+      "predicted": "M2",
+      "accurate": true,
+      "time_ms": 0.24
+    },
+    {
+      "case_id": "C29",
+      "expected": "M3",
+      "predicted": "M3",
+      "accurate": true,
+      "time_ms": 0.23
+    },
+    {
+      "case_id": "C30",
+      "expected": "M4",
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.17
+    },
+    {
+      "case_id": "C31",
+      "expected": "M5",
+      "predicted": "M5",
+      "accurate": true,
+      "time_ms": 0.24
+    },
+    {
+      "case_id": "C32",
+      "expected": "M6",
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.21
+    },
+    {
+      "case_id": "C33",
+      "expected": "M7",
+      "predicted": "M7",
+      "accurate": true,
+      "time_ms": 0.11
+    },
+    {
+      "case_id": "C34",
+      "expected": "M8",
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.16
+    },
+    {
+      "case_id": "C35",
+      "expected": "M3",
+      "predicted": "M3",
+      "accurate": true,
+      "time_ms": 0.16
+    },
+    {
+      "case_id": "C36",
+      "expected": "M4",
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.15
+    },
+    {
+      "case_id": "C37",
+      "expected": "M5",
+      "predicted": "M5",
+      "accurate": true,
+      "time_ms": 0.24
+    },
+    {
+      "case_id": "C38",
+      "expected": "M6",
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.21
+    },
+    {
+      "case_id": "C39",
+      "expected": "M7",
+      "predicted": "M7",
+      "accurate": true,
+      "time_ms": 0.13
+    },
+    {
+      "case_id": "C40",
+      "expected": "M8",
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.1
+    },
+    {
+      "case_id": "C42",
+      "expected": "M4",
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.19
+    },
+    {
+      "case_id": "C43",
+      "expected": "M5",
+      "predicted": "M5",
+      "accurate": true,
+      "time_ms": 0.18
+    },
+    {
+      "case_id": "C44",
+      "expected": "M6",
+      "predicted": "M6",
+      "accurate": true,
+      "time_ms": 0.3
+    },
+    {
+      "case_id": "C45",
+      "expected": "M7",
+      "predicted": "M7",
+      "accurate": true,
+      "time_ms": 0.13
+    },
+    {
+      "case_id": "C46",
+      "expected": "M8",
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.15
+    },
+    {
+      "case_id": "C47",
+      "expected": "M3",
+      "predicted": "M3",
+      "accurate": true,
+      "time_ms": 0.17
+    },
+    {
+      "case_id": "C48",
+      "expected": "M4",
+      "predicted": "M4",
+      "accurate": true,
+      "time_ms": 0.17
+    },
+    {
+      "case_id": "C49",
+      "expected": "M7",
+      "predicted": "M7",
+      "accurate": true,
+      "time_ms": 0.11
+    },
+    {
+      "case_id": "C50",
+      "expected": "M8",
+      "predicted": "M8",
+      "accurate": true,
+      "time_ms": 0.15
     }
-  ],
-  "baseline": [],
-  "summary": {
-    "total": 20,
-    "accuracy": 0.55,
-    "avg_score": 0.9235
-  }
+  ]
 }

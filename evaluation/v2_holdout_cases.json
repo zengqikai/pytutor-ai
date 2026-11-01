@@ -1,0 +1,242 @@
+[
+  {
+    "case_id": "H01",
+    "code": "age = 18\nif age = 18:\n    print(\"adult\")",
+    "stderr": "SyntaxError: invalid syntax",
+    "expected_misconception": "M1",
+    "expected_hint_level": 1,
+    "student_question": "为什么报错"
+  },
+  {
+    "case_id": "H02",
+    "code": "score = 90\nif score = 100:\n    print(\"perfect\")",
+    "stderr": "",
+    "expected_misconception": "M1",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H03",
+    "code": "name = \"Tom\"\nwhile name = \"Tom\":\n    break",
+    "stderr": "",
+    "expected_misconception": "M1",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H04",
+    "code": "flag = True\nif flag = True:\n    print(\"on\")",
+    "stderr": "",
+    "expected_misconception": "M1",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H05",
+    "code": "if True:\nprint(\"hi\")",
+    "stderr": "IndentationError: expected an indented block",
+    "expected_misconception": "M2",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H06",
+    "code": "for x in range(2):\nprint(x)",
+    "stderr": "IndentationError",
+    "expected_misconception": "M2",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H07",
+    "code": "def f():\nreturn 1",
+    "stderr": "IndentationError",
+    "expected_misconception": "M2",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H08",
+    "code": "while False:\nprint(\"never\")",
+    "stderr": "IndentationError",
+    "expected_misconception": "M2",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H09",
+    "code": "nums = [1, 2]\nresult = nums.append(3)\nprint(result)",
+    "stderr": "",
+    "expected_misconception": "M3",
+    "expected_hint_level": 1,
+    "student_question": "为什么打印 None"
+  },
+  {
+    "case_id": "H10",
+    "code": "items = []\nitems = items.append(\"a\")",
+    "stderr": "",
+    "expected_misconception": "M3",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H11",
+    "code": "scores = [10]\ntotal = scores.append(20)\nprint(len(total))",
+    "stderr": "",
+    "expected_misconception": "M3",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H12",
+    "code": "queue = [1]\nqueue = queue.append(2)\nprint(queue)",
+    "stderr": "",
+    "expected_misconception": "M3",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H13",
+    "code": "names = [\"a\", \"b\"]\nfor name in names:\n    print(names[name])",
+    "stderr": "TypeError: list indices must be integers",
+    "expected_misconception": "M4",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H14",
+    "code": "values = [10, 20, 30]\nfor v in values:\n    print(values[v])",
+    "stderr": "TypeError",
+    "expected_misconception": "M4",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H15",
+    "code": "colors = [\"red\", \"blue\"]\nfor i in colors:\n    print(colors[i])",
+    "stderr": "TypeError",
+    "expected_misconception": "M4",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H16",
+    "code": "data = [1, 2]\nfor item in data:\n    print(data[item])",
+    "stderr": "",
+    "expected_misconception": "M4",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H17",
+    "code": "for i in range(1,5):\n    print(i)",
+    "stderr": "",
+    "expected_misconception": "M5",
+    "expected_hint_level": 1,
+    "student_question": "为什么最后没有打印 5？"
+  },
+  {
+    "case_id": "H18",
+    "code": "for n in range(0,3):\n    print(n)",
+    "stderr": "",
+    "expected_misconception": "M5",
+    "expected_hint_level": 1,
+    "student_question": "range(0,3) 不是应该到 3 吗"
+  },
+  {
+    "case_id": "H19",
+    "code": "for k in range(2,8):\n    print(k)",
+    "stderr": "",
+    "expected_misconception": "M5",
+    "expected_hint_level": 1,
+    "student_question": "为什么 k 最大只到 7"
+  },
+  {
+    "case_id": "H20",
+    "code": "for j in range(1,4):\n    total = j + 1\nprint(total)",
+    "stderr": "",
+    "expected_misconception": "M5",
+    "expected_hint_level": 1,
+    "student_question": "循环是不是包含 4"
+  },
+  {
+    "case_id": "H21",
+    "code": "def square(x):\n    print(x*x)\nresult = square(4)\nprint(result)",
+    "stderr": "",
+    "expected_misconception": "M6",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H22",
+    "code": "def greet(name):\n    print(\"hi \" + name)\nmsg = greet(\"Ann\")",
+    "stderr": "",
+    "expected_misconception": "M6",
+    "expected_hint_level": 1,
+    "student_question": "msg 为什么是 None"
+  },
+  {
+    "case_id": "H23",
+    "code": "def total(a, b):\n    print(a + b)\nprint(total(1, 2) + 1)",
+    "stderr": "",
+    "expected_misconception": "M6",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H24",
+    "code": "def show(x):\n    print(\"value\", x)\ny = show(3)\nprint(y)",
+    "stderr": "",
+    "expected_misconception": "M6",
+    "expected_hint_level": 1,
+    "student_question": "y 为什么是 None"
+  },
+  {
+    "case_id": "H25",
+    "code": "count = 3\nprint(\"count=\" + count)",
+    "stderr": "TypeError: can only concatenate str",
+    "expected_misconception": "M7",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H26",
+    "code": "num = input(\"n: \")\nprint(num + 1)",
+    "stderr": "TypeError",
+    "expected_misconception": "M7",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H27",
+    "code": "score = \"95\"\nprint(score + 5)",
+    "stderr": "TypeError",
+    "expected_misconception": "M7",
+    "expected_hint_level": 1,
+    "student_question": ""
+  },
+  {
+    "case_id": "H28",
+    "code": "n = 0\nwhile n < 3:\n    print(n)",
+    "stderr": "",
+    "expected_misconception": "M8",
+    "expected_hint_level": 1,
+    "student_question": "为什么一直打印 0"
+  },
+  {
+    "case_id": "H29",
+    "code": "x = 5\nwhile x > 0:\n    print(x)",
+    "stderr": "",
+    "expected_misconception": "M8",
+    "expected_hint_level": 1,
+    "student_question": "死循环了"
+  },
+  {
+    "case_id": "H30",
+    "code": "i = 0\nwhile i != 3:\n    print(\"loop\")",
+    "stderr": "",
+    "expected_misconception": "M8",
+    "expected_hint_level": 1,
+    "student_question": ""
+  }
+]

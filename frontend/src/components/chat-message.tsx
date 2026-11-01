@@ -29,6 +29,21 @@ interface Props {
   misconception_id?: string;
   pedagogical_strategy?: string;
   verify_score?: number;
+  /** 服务端保存的诊断元数据：误区全名、证据、置信度、实际策略来源 */
+  metadata?: {
+    misconception_id?: string;
+    misconception_name?: string;
+    evidence?: string;
+    confidence?: number;
+    strategy?: string;
+    hint_level?: number;
+    strategy_source?: string;
+    strategy_rule?: string;
+    degraded?: boolean;
+    /** 仅当服务端完成审核时存在；审核不可用则不出现，页面不显示假的分数 */
+    quality_score?: number;
+    quality_reviewed?: boolean;
+  } | null;
   userAvatar?: string;
   onRunInEditor?: (code: string) => void;
 }
@@ -43,9 +58,15 @@ const strategyLabels: Record<string, string> = {
   practice_recommendation: "推荐练习",
 };
 
-export function ChatMessage({ role, content, hint_level, related_concepts, misconception_id, pedagogical_strategy, verify_score, userAvatar, onRunInEditor }: Props) {
+export function ChatMessage({ role, content, hint_level, related_concepts, misconception_id, pedagogical_strategy, verify_score, metadata, userAvatar, onRunInEditor }: Props) {
   const isUser = role === "user";
   const displayContent = isUser ? content : normalizeContent(content);
+  // 策略以服务端实际执行的为准；没有元数据时退回传入字段
+  const strategy = pedagogical_strategy || metadata?.strategy;
+  const mcLabel = metadata?.misconception_name || misconception_id;
+  const mcEvidence = metadata?.evidence;
+  // 历史消息只有 metadata 里的分数；实时消息才带 verify_score 字段
+  const qualityScore = verify_score ?? metadata?.quality_score;
 
   return (
     <div className={`flex gap-3 animate-fade-in ${isUser ? "flex-row-reverse" : ""}`}>
@@ -65,25 +86,43 @@ export function ChatMessage({ role, content, hint_level, related_concepts, misco
                 {hintLabels[hint_level].label}
               </span>
             )}
-            {misconception_id && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                🧠 {misconception_id}
+            {mcLabel && (
+              <span
+                title={mcEvidence || undefined}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 border border-rose-500/20 text-rose-400"
+              >
+                🧠 {mcLabel}
+                {typeof metadata?.confidence === "number" && (
+                  <span className="opacity-60">{Math.round(metadata.confidence * 100)}%</span>
+                )}
               </span>
             )}
-            {pedagogical_strategy && strategyLabels[pedagogical_strategy] && (
+            {strategy && strategyLabels[strategy] && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                📖 {strategyLabels[pedagogical_strategy]}
+                📖 {strategyLabels[strategy]}
+                {metadata?.strategy_source === "steering_graph" && (
+                  <span className="opacity-60">· 转移图</span>
+                )}
               </span>
             )}
-            {verify_score && verify_score > 0 && (
+            {metadata?.degraded && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                ⚠️ 降级回复
+              </span>
+            )}
+            {qualityScore && qualityScore > 0 && (
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border
-                ${verify_score >= 4 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                  verify_score >= 3 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                ${qualityScore >= 4 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                  qualityScore >= 3 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
                   'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-                ✅ 质量 {verify_score}/5
+                ✅ 质量 {qualityScore}/5
               </span>
             )}
           </div>
+        )}
+
+        {!isUser && mcEvidence && (
+          <p className="text-[11px] text-rose-300/70 mb-2 px-1 leading-snug">依据：{mcEvidence}</p>
         )}
 
         <div className={`rounded-xl text-sm leading-relaxed overflow-hidden
